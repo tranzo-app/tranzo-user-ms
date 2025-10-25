@@ -33,4 +33,7 @@ otp:
 server:
   port: 8080
 
-
+twilio :
+  auth-token : "EnterYourAuthTokenHere"
+  phone-number : "EnterYourPhoneNumberHere"
+  username : "EnterYourUsernameHere"
