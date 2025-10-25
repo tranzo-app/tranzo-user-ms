@@ -34,6 +34,6 @@ server:
   port: 8080
 
 twilio :
-  auth-token : "1ca154fa56e4da07034a817ef47d6461"
-  phone-number : "+12186733267"
-  username : "AC366fd20183b54c35687557a1a23a7560"
+  auth-token : "EnterYourAuthTokenHere"
+  phone-number : "EnterYourPhoneNumberHere"
+  username : "EnterYourUsernameHere"
