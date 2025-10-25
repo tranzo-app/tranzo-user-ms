@@ -1,0 +1,8 @@
+{
+  "properties": [
+    {
+      "name": "twilio.auth-token",
+      "type": "java.lang.String",
+      "description": "Description for twilio.auth-token."
+  }
+] }

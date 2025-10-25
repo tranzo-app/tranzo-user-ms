@@ -1,0 +1,39 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:tranzo_user_db;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update   # automatically creates tables from your entities
+    show-sql: true       # prints SQL queries in console
+
+  h2:
+    console:
+      enabled: true      # allows web access to H2 console
+      path: /h2-console  # the URL path for the H2 dashboard
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+
+auth:
+  jwt:
+    secret: "uhgndhsvkzxjaihkhablkhl88721jgkas"
+    ttlMillis: 3600000
+
+otp:
+  length: 6
+  ttlSeconds: 300
+  throttleSeconds: 60
+  maxAttempts: 5
+  sms-template: "Your OTP code is %s. It will expire in %d minutes."
+
+server:
+  port: 8080
+
+twilio :
+  auth-token : "1ca154fa56e4da07034a817ef47d6461"
+  phone-number : "+12186733267"
+  username : "AC366fd20183b54c35687557a1a23a7560"
