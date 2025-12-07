@@ -1,12 +1,11 @@
 package com.tranzo.tranzo_user_ms.service;
 
 import com.tranzo.tranzo_user_ms.configuration.TwilioConfig;
-import com.tranzo.tranzo_user_ms.dto.ApiResponse;
+import com.tranzo.tranzo_user_ms.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.dto.RequestOtpDto;
 import com.tranzo.tranzo_user_ms.dto.VerifyOtpDto;
-import com.tranzo.tranzo_user_ms.exception.BadRequestsException;
 import com.tranzo.tranzo_user_ms.exception.TooManyRequestsException;
-import com.tranzo.tranzo_user_ms.model.UserProfile;
+import com.tranzo.tranzo_user_ms.model.UserProfileEntity;
 import com.tranzo.tranzo_user_ms.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.repository.UserRepository;
@@ -49,28 +48,28 @@ public class OtpService {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
 
-    public ApiResponse generateOtp(RequestOtpDto dto) {
-
-        String mobile = dto.getMobileNumber();
-
-        String cooldownKey = "otp:cooldown:" + mobile;
-        Boolean canRequest = redisTemplate.opsForValue()
-                .setIfAbsent(cooldownKey, "1", Duration.ofSeconds(throttleSeconds));
-
-        if (Boolean.FALSE.equals(canRequest)) {
-            throw new TooManyRequestsException("OTP recently requested. Try again after a few seconds.");
-        }
-
-        String otp = generateNumericOtp(otpLength);
-        String otpKey = "otp:code:" + mobile;
-
-        redisTemplate.opsForValue().set(otpKey, otp, Duration.ofSeconds(otpTtlSeconds));
-        sendSms(mobile, otp);
-
-        log.info("OTP generated and sent to {}", maskNumber(mobile));
-
-        return new ApiResponse(HttpStatus.OK.value(), "OTP sent successfully.");
-    }
+//    public ResponseDto generateOtp(RequestOtpDto dto) {
+//
+//        String mobile = dto.getMobileNumber();
+//
+//        String cooldownKey = "otp:cooldown:" + mobile;
+//        Boolean canRequest = redisTemplate.opsForValue()
+//                .setIfAbsent(cooldownKey, "1", Duration.ofSeconds(throttleSeconds));
+//
+//        if (Boolean.FALSE.equals(canRequest)) {
+//            throw new TooManyRequestsException("OTP recently requested. Try again after a few seconds.");
+//        }
+//
+//        String otp = generateNumericOtp(otpLength);
+//        String otpKey = "otp:code:" + mobile;
+//
+//        redisTemplate.opsForValue().set(otpKey, otp, Duration.ofSeconds(otpTtlSeconds));
+//        sendSms(mobile, otp);
+//
+//        log.info("OTP generated and sent to {}", maskNumber(mobile));
+//
+//        return new ResponseDto(HttpStatus.OK.value(), "OTP sent successfully.");
+//    }
 
     @Transactional
     public boolean verifyOtp(VerifyOtpDto dto) {
@@ -97,7 +96,7 @@ public class OtpService {
                 });
 
         if(!userProfileRepository.existsByUser(user)) {
-            UserProfile profile = new UserProfile();
+            UserProfileEntity profile = new UserProfileEntity();
             profile.setUser(user);
             userProfileRepository.save(profile);
         }
