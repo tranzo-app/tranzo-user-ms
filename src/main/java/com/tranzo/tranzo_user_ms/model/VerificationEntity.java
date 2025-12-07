@@ -21,6 +21,7 @@ import java.util.UUID;
 public class VerificationEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     @Column(name = "verification_uuid", nullable = false, updatable = false)
     private UUID verificationUuid;
 
