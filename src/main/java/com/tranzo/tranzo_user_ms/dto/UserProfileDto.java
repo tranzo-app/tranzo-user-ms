@@ -2,6 +2,7 @@ package com.tranzo.tranzo_user_ms.dto;
 
 import com.tranzo.tranzo_user_ms.enums.Gender;
 import jakarta.persistence.Column;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
@@ -12,6 +13,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -25,7 +27,6 @@ public class UserProfileDto {
     @Size(max = 50, message = "Middle name cannot exceed 50 characters")
     private String middleName;
 
-    @NotBlank(message = "Last name is required")
     @Size(max = 50, message = "Last name cannot exceed 50 characters")
     private String lastName;
 
@@ -41,4 +42,7 @@ public class UserProfileDto {
 
     @Size(max = 100, message = "Location cannot exceed 100 characters")
     private String location;
+
+    @Valid
+    private List<SocialHandleDto> socialHandleDtoList;
 }
