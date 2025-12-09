@@ -1,0 +1,35 @@
+name: Feature Workflow
+
+on:
+  workflow_call:
+
+jobs:
+  build-lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Project Info
+        run: |
+          echo "Branch: ${{ github.ref }}"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Triggered by: ${{ github.actor }}"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Compile and Build Code
+        run: npm run build
+
+      - name: Run Lint Checks
+        run: npm run lint
+
+      - name: Run Unit Tests
+        run: npm test

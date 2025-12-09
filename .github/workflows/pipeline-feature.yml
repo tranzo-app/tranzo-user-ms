@@ -1,0 +1,10 @@
+name: pipeline-feature
+
+on:
+  push:
+      branches:
+          - 'development/sumit'
+
+jobs:
+  trigger-feature-workflow:
+    uses: ./.github/workflows/feature-workflow.yml
