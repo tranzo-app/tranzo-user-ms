@@ -7,4 +7,4 @@ on:
 
 jobs:
   trigger-feature-workflow:
-    uses: ./.github/workflows/feature-workflow.yml@master
+    uses: ./.github/workflows/feature-workflow.yml
