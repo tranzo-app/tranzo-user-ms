@@ -17,19 +17,21 @@ jobs:
           echo "Repository: ${{ github.repository }}"
           echo "Triggered by: ${{ github.actor }}"
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
         with:
-          node-version: '20'
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Run lint (maven verify without test)
+        run: mvn -B verify -DskipTests
 
-      - name: Compile and Build Code
-        run: npm run build
+      - name: Run unit tests
+        run: maven -B test
 
-      - name: Run Lint Checks
-        run: npm run lint
+      - name: Build artifact
+        run: mvn -B package
 
-      - name: Run Unit Tests
-        run: npm test
+      - name: Build
+        run: mvn clean install -DskipTests=true
