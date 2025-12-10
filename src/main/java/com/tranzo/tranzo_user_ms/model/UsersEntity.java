@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "user" , uniqueConstraints = {
+@Table(name = "users" , uniqueConstraints = {
     @UniqueConstraint(name = "uk_app_user_mobile",columnNames = "mobileNumber"),
     @UniqueConstraint(name = "uk_app_user_email",columnNames = "email")
 })
@@ -50,6 +50,7 @@ public class UsersEntity {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
     private UserRole userRole;
 

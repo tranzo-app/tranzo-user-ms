@@ -26,7 +26,7 @@ import java.util.UUID;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class UserProfileEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @EqualsAndHashCode.Include
     @Column(name = "user_profile_uuid", updatable = false, nullable = false)
     private UUID userProfileUuid;
@@ -50,6 +50,7 @@ public class UserProfileEntity {
     @Column(name = "BIO")
     private String bio;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "GENDER", nullable = false)
     private Gender gender;
 
@@ -70,6 +71,7 @@ public class UserProfileEntity {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "verification_status", nullable = false)
     private VerificationStatus verificationStatus;
 }
