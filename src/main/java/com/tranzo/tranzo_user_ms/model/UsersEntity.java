@@ -2,6 +2,7 @@
 package com.tranzo.tranzo_user_ms.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.tranzo.tranzo_user_ms.enums.AccountStatus;
 import com.tranzo.tranzo_user_ms.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
@@ -52,6 +53,9 @@ public class UsersEntity {
 
     @Column(name = "role", nullable = false)
     private UserRole userRole;
+
+    @Column(name = "acount_status", nullable = false)
+    private AccountStatus accountStatus = AccountStatus.ACTIVE;
 
     @OneToOne(mappedBy = "user" , fetch = FetchType.LAZY)
     private UserProfileEntity userProfileEntity;

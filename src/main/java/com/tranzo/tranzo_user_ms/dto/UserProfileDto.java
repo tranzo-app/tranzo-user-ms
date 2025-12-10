@@ -3,10 +3,7 @@ package com.tranzo.tranzo_user_ms.dto;
 import com.tranzo.tranzo_user_ms.enums.Gender;
 import jakarta.persistence.Column;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Past;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,6 +23,12 @@ public class UserProfileDto {
 
     @Size(max = 50, message = "Middle name cannot exceed 50 characters")
     private String middleName;
+
+    @Pattern(regexp = "[0-9]{7,15}", message = "Mobile number must be 7–15 digits")
+    private String mobileNumber;
+
+    @Email(message = "Invalid email format")
+    private String emailId;
 
     @Size(max = 50, message = "Last name cannot exceed 50 characters")
     private String lastName;
