@@ -1,0 +1,49 @@
+name: Feature Workflow
+
+on:
+  workflow_call:
+
+jobs:
+  # -----------------------------
+  # 1) BUILD JOB (no tests)
+  # -----------------------------
+  build-code:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'    # change if your project uses other version
+          cache: 'maven'
+
+      - name: Lint & compile (skip tests)
+        run: mvn -B verify -DskipTests
+
+      - name: Package app (skip tests)
+        run: mvn -B package -DskipTests
+
+  # -----------------------------
+  # 2) UNIT-TEST JOB
+  # -----------------------------
+  unit-test:
+    needs: build-code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Run unit tests
+        run: mvn -B test

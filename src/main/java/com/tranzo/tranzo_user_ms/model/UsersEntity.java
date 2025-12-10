@@ -1,3 +1,4 @@
+
 package com.tranzo.tranzo_user_ms.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;

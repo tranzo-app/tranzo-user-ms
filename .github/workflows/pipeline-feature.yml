@@ -1,0 +1,10 @@
+name: pipeline-feature
+
+on:
+  push:
+      branches:
+          - 'master'
+
+jobs:
+  trigger-feature-workflow:
+    uses: ./.github/workflows/feature-workflow.yml@master
