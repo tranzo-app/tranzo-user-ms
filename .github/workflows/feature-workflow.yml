@@ -21,7 +21,6 @@ jobs:
           java-version: '17'    # change if your project uses other version
           cache: 'maven'
 
-      # Optional: lint, if you have checkstyle/spotless/etc on verify phase
       - name: Lint & compile (skip tests)
         run: mvn -B verify -DskipTests
 
@@ -32,7 +31,7 @@ jobs:
   # 2) UNIT-TEST JOB
   # -----------------------------
   unit-test:
-    needs: build-code      # <---- this makes it run only if build-code succeeds
+    needs: build-code
     runs-on: ubuntu-latest
 
     steps:
