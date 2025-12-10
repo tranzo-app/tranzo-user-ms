@@ -1,7 +1,12 @@
 name: Feature Workflow
 
 on:
-  workflow_call:
+  push:
+    branches:
+      - '**'   # triggers workflow on any feature branch
+  pull_request:
+    branches:
+      - '**'   # triggers workflow on any feature branch
 
 jobs:
   # -----------------------------
