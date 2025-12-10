@@ -18,7 +18,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'    # change if your project uses other version
+          java-version: '21'    # change if your project uses other version
           cache: 'maven'
 
       - name: Lint & compile (skip tests)
@@ -42,7 +42,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
           cache: 'maven'
 
       - name: Run unit tests
