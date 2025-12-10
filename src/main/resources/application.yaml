@@ -13,27 +13,3 @@ spring:
     console:
       enabled: true      # allows web access to H2 console
       path: /h2-console  # the URL path for the H2 dashboard
-  data:
-    redis:
-      host: 127.0.0.1
-      port: 6379
-
-auth:
-  jwt:
-    secret: "uhgndhsvkzxjaihkhablkhl88721jgkas"
-    ttlMillis: 3600000
-
-otp:
-  length: 6
-  ttlSeconds: 300
-  throttleSeconds: 60
-  maxAttempts: 5
-  sms-template: "Your OTP code is %s. It will expire in %d minutes."
-
-server:
-  port: 8080
-
-twilio :
-  auth-token : "EnterYourAuthTokenHere"
-  phone-number : "EnterYourPhoneNumberHere"
-  username : "EnterYourUsernameHere"
