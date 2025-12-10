@@ -4,18 +4,40 @@ on:
   workflow_call:
 
 jobs:
-  build-lint-test:
+  # -----------------------------
+  # 1) BUILD JOB (no tests)
+  # -----------------------------
+  build-code:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Project Info
-        run: |
-          echo "Branch: ${{ github.ref }}"
-          echo "Commit SHA: ${{ github.sha }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Triggered by: ${{ github.actor }}"
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'    # change if your project uses other version
+          cache: 'maven'
+
+      # Optional: lint, if you have checkstyle/spotless/etc on verify phase
+      - name: Lint & compile (skip tests)
+        run: mvn -B verify -DskipTests
+
+      - name: Package app (skip tests)
+        run: mvn -B package -DskipTests
+
+  # -----------------------------
+  # 2) UNIT-TEST JOB
+  # -----------------------------
+  unit-test:
+    needs: build-code      # <---- this makes it run only if build-code succeeds
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -24,14 +46,5 @@ jobs:
           java-version: '17'
           cache: 'maven'
 
-      - name: Run lint (maven verify without test)
-        run: mvn -B verify -DskipTests
-
       - name: Run unit tests
-        run: maven -B test
-
-      - name: Build artifact
-        run: mvn -B package
-
-      - name: Build
-        run: mvn clean install -DskipTests=true
+        run: mvn -B test
