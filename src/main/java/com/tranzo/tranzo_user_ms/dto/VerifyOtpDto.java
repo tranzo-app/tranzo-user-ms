@@ -1,4 +1,3 @@
-
 package com.tranzo.tranzo_user_ms.dto;
 
 import com.tranzo.tranzo_user_ms.utility.VerifyEitherEmailOrMobile;

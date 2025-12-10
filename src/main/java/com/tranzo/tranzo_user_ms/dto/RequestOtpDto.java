@@ -1,4 +1,3 @@
-
 package com.tranzo.tranzo_user_ms.dto;
 
 import jakarta.validation.constraints.AssertTrue;
