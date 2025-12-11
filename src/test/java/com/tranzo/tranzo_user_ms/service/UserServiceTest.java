@@ -66,13 +66,13 @@ class UserServiceTest {
     @Test
     @DisplayName("GET — should return profile successfully")
     void getUserProfile_success() {
-        when(userProfileRepository.findWithSocialHandlesByUserUuid(userUuid))
+        when(userProfileRepository.findAllUserProfileDetailByUserId(userUuid))
                 .thenReturn(Optional.of(profileEntity));
 
         UserProfileDto result = userService.getUserProfile(userUuid.toString());
 
         assertEquals("Komal", result.getFirstName());
-        verify(userProfileRepository).findWithSocialHandlesByUserUuid(userUuid);
+        verify(userProfileRepository).findAllUserProfileDetailByUserId(userUuid);
     }
 
     @Test
@@ -85,7 +85,7 @@ class UserServiceTest {
     @Test
     @DisplayName("GET — should fail when user profile not found")
     void getUserProfile_notFound() {
-        when(userProfileRepository.findWithSocialHandlesByUserUuid(userUuid))
+        when(userProfileRepository.findAllUserProfileDetailByUserId(userUuid))
                 .thenReturn(Optional.empty());
 
         assertThrows(UserProfileNotFoundException.class,
@@ -109,7 +109,7 @@ class UserServiceTest {
     void updateUserProfile_success() {
         UserProfileDto updateDto = validUpdateDto();
 
-        when(userProfileRepository.findWithSocialHandlesByUserUuid(userUuid))
+        when(userProfileRepository.findAllUserProfileDetailByUserId(userUuid))
                 .thenReturn(Optional.of(profileEntity));
 
         UserProfileDto result = userService.updateUserProfile(userUuid.toString(), updateDto);
@@ -141,7 +141,7 @@ class UserServiceTest {
     void updateUserProfile_notFound() {
         UserProfileDto updateDto = validUpdateDto();
 
-        when(userProfileRepository.findWithSocialHandlesByUserUuid(userUuid))
+        when(userProfileRepository.findAllUserProfileDetailByUserId(userUuid))
                 .thenReturn(Optional.empty());
 
         assertThrows(UserProfileNotFoundException.class,
@@ -200,7 +200,7 @@ class UserServiceTest {
     @DisplayName("PUT profile-picture — success")
     void updateProfilePicture_success() {
         UrlDto dto = UrlDto.builder().Url("https://cdn.com/img123.png").build();
-        when(userProfileRepository.findWithSocialHandlesByUserUuid(userUuid))
+        when(userProfileRepository.findAllUserProfileDetailByUserId(userUuid))
                 .thenReturn(Optional.of(profileEntity));
 
         UserProfileDto result = userService.updateProfilePicture(userUuid.toString(), dto);
@@ -221,7 +221,7 @@ class UserServiceTest {
     void updateProfilePicture_notFound() {
         UrlDto dto = UrlDto.builder().Url("https://img.png").build();
 
-        when(userProfileRepository.findWithSocialHandlesByUserUuid(userUuid))
+        when(userProfileRepository.findAllUserProfileDetailByUserId(userUuid))
                 .thenReturn(Optional.empty());
 
         assertThrows(UserProfileNotFoundException.class,
@@ -237,7 +237,7 @@ class UserServiceTest {
     void deleteProfilePicture_success() {
         profileEntity.setProfilePictureUrl("https://some-url.com/pic.png");
 
-        when(userProfileRepository.findWithSocialHandlesByUserUuid(userUuid))
+        when(userProfileRepository.findAllUserProfileDetailByUserId(userUuid))
                 .thenReturn(Optional.of(profileEntity));
 
         UserProfileDto result = userService.deleteProfilePicture(userUuid.toString());
@@ -255,7 +255,7 @@ class UserServiceTest {
     @Test
     @DisplayName("DELETE profile-picture — profile not found")
     void deleteProfilePicture_notFound() {
-        when(userProfileRepository.findWithSocialHandlesByUserUuid(userUuid))
+        when(userProfileRepository.findAllUserProfileDetailByUserId(userUuid))
                 .thenReturn(Optional.empty());
 
         assertThrows(UserProfileNotFoundException.class,

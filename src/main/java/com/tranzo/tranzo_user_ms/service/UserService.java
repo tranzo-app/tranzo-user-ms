@@ -40,7 +40,7 @@ public class UserService {
         }
 
         UserProfileEntity profileEntity = userProfileRepository
-                .findWithSocialHandlesByUserUuid(userUuid)
+                .findAllUserProfileDetailByUserId(userUuid)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
         log.info("User profile found for userId: {}", userId);
         return mapToUserProfileDto(profileEntity);
@@ -91,7 +91,7 @@ public class UserService {
         }
 
         UserProfileEntity profileEntity = userProfileRepository
-                .findWithSocialHandlesByUserUuid(userUUID)
+                .findAllUserProfileDetailByUserId(userUUID)
                 .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
 
         UsersEntity user = profileEntity.getUser();
@@ -183,7 +183,7 @@ public class UserService {
             throw new InvalidUserIdException("Invalid user id: " + userId);
         }
         UserProfileEntity profileEntity = userProfileRepository
-                .findWithSocialHandlesByUserUuid(userUuid)
+                .findAllUserProfileDetailByUserId(userUuid)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
         profileEntity.setProfilePictureUrl(profilePictureUrl.getUrl());
         log.info("Profile picture updated for userId: {}", userId);
@@ -199,7 +199,7 @@ public class UserService {
             throw new InvalidUserIdException("Invalid user id: " + userId);
         }
         UserProfileEntity profileEntity = userProfileRepository
-                .findWithSocialHandlesByUserUuid(userUuid)
+                .findAllUserProfileDetailByUserId(userUuid)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
         profileEntity.setProfilePictureUrl(null);
         log.info("Profile picture deleted for userId: {}", userId);
@@ -221,7 +221,7 @@ public class UserService {
 
         // Fetch profile + user + social handles (your existing query with join fetch)
         UserProfileEntity profileEntity = userProfileRepository
-                .findWithSocialHandlesByUserUuid(userUuid)
+                .findAllUserProfileDetailByUserId(userUuid)
                 .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
 
         UsersEntity user = profileEntity.getUser();

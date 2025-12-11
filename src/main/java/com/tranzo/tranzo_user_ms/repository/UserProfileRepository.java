@@ -18,5 +18,5 @@ public interface UserProfileRepository extends JpaRepository<UserProfileEntity, 
     where u.userUuid = :userUuid
       and u.accountStatus = com.tranzo.tranzo_user_ms.model.AccountStatus.ACTIVE
     """)
-    Optional<UserProfileEntity> findWithSocialHandlesByUserUuid(@Param("userUuid") UUID userUuid);
+    Optional<UserProfileEntity> findAllUserProfileDetailByUserId(@Param("userUuid") UUID userUuid);
 }
