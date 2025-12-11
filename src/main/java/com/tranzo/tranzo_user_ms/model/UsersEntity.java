@@ -55,7 +55,8 @@ public class UsersEntity {
     @Column(name = "role", nullable = false)
     private UserRole userRole;
 
-    @Column(name = "acount_status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", nullable = false)
     private AccountStatus accountStatus = AccountStatus.ACTIVE;
 
     @OneToOne(mappedBy = "user" , fetch = FetchType.LAZY)

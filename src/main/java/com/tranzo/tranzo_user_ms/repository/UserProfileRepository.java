@@ -11,12 +11,12 @@ import java.util.UUID;
 public interface UserProfileRepository extends JpaRepository<UserProfileEntity, UUID> {
 
     @Query("""
-    select up
-    from UserProfileEntity up
-    join fetch up.user u
-    left join fetch u.socialHandelEntity
-    where u.userUuid = :userUuid
-      and u.accountStatus = com.tranzo.tranzo_user_ms.model.AccountStatus.ACTIVE
+        select up
+        from UserProfileEntity up
+        join fetch up.user u
+        left join fetch u.socialHandleEntity
+        where u.userUuid = :userUuid
+        and u.accountStatus = com.tranzo.tranzo_user_ms.enums.AccountStatus.ACTIVE
     """)
-    Optional<UserProfileEntity> findWithSocialHandlesByUserUuid(@Param("userUuid") UUID userUuid);
+    Optional<UserProfileEntity> findAllUserProfileDetailByUserId(@Param("userUuid") UUID userUuid);
 }
