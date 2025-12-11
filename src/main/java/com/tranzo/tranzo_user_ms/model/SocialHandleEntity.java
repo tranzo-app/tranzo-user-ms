@@ -33,6 +33,7 @@ public class SocialHandleEntity {
     @JoinColumn(name = "user_uuid", nullable = false)
     private UsersEntity user;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "platform", nullable = false)
     private SocialHandle platform;
 

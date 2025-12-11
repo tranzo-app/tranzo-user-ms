@@ -5,9 +5,18 @@ spring:
     username: sa
     password:
   jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: update   # automatically creates tables from your entities
-    show-sql: true       # prints SQL queries in console
+      ddl-auto: create
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      mode: always
 
   h2:
     console:
