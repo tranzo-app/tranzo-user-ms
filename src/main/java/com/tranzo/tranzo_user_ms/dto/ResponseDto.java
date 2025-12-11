@@ -22,4 +22,42 @@ public class ResponseDto<T> {
     private String statusMessage;
 
     private T data;
+
+    // --------------------Factory Methods--------------------
+
+    public static <T> ResponseDto<T> success(String message, T data) {
+        return ResponseDto.<T>builder()
+                .statusCode(200)
+                .status("SUCCESS")
+                .statusMessage(message)
+                .data(data)
+                .build();
+    }
+
+    public static <T> ResponseDto<T> success(int statusCode, String message, T data) {
+        return ResponseDto.<T>builder()
+                .statusCode(statusCode)
+                .status("SUCCESS")
+                .statusMessage(message)
+                .data(data)
+                .build();
+    }
+
+    public static <T> ResponseDto<T> failure(int statusCode, String message, T data) {
+        return ResponseDto.<T>builder()
+                .statusCode(statusCode)
+                .status("FAILURE")
+                .statusMessage(message)
+                .data(null)
+                .build();
+    }
+
+    public static <T> ResponseDto<T> error(int statusCode, String message, T data) {
+        return ResponseDto.<T>builder()
+                .statusCode(statusCode)
+                .status("ERROR")
+                .statusMessage(message)
+                .data(null)
+                .build();
+    }
 }

@@ -72,4 +72,5 @@ public class UserProfileEntity {
 
     @Column(name = "verification_status", nullable = false)
     private VerificationStatus verificationStatus;
+
 }
