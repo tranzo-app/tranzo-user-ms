@@ -4,6 +4,7 @@ import com.tranzo.tranzo_user_ms.dto.SocialHandleDto;
 import com.tranzo.tranzo_user_ms.dto.UrlDto;
 import com.tranzo.tranzo_user_ms.dto.UserProfileDto;
 import com.tranzo.tranzo_user_ms.enums.AccountStatus;
+import com.tranzo.tranzo_user_ms.enums.SocialHandle;
 import com.tranzo.tranzo_user_ms.exception.InvalidPatchRequestException;
 import com.tranzo.tranzo_user_ms.exception.InvalidUserIdException;
 import com.tranzo.tranzo_user_ms.exception.UserAlreadyDeletedExeption;
@@ -18,8 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -64,6 +64,7 @@ public class UserService {
                 .emailId(user.getEmail())
                 .dob(profileEntity.getDob())
                 .location(profileEntity.getLocation())
+                .profilePictureUrl(profileEntity.getProfilePictureUrl())
                 .socialHandleDtoList(socialHandleDtos)
                 .build();
     }
@@ -204,4 +205,83 @@ public class UserService {
         log.info("Profile picture deleted for userId: {}", userId);
         return mapToUserProfileDto(profileEntity);
     }
+
+    @Transactional
+    public UserProfileDto upsertSocialHandles(String userId, List<SocialHandleDto> socialHandles) {
+        UUID userUuid;
+        try {
+            userUuid = UUID.fromString(userId);
+        } catch (IllegalArgumentException ex) {
+            throw new InvalidUserIdException("Invalid user id: " + userId);
+        }
+
+        if (socialHandles == null || socialHandles.isEmpty()) {
+            throw new InvalidPatchRequestException("At least one social handle must be provided");
+        }
+
+        // Fetch profile + user + social handles (your existing query with join fetch)
+        UserProfileEntity profileEntity = userProfileRepository
+                .findWithSocialHandlesByUserUuid(userUuid)
+                .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
+
+        UsersEntity user = profileEntity.getUser();
+
+        if (user.getAccountStatus() == AccountStatus.DELETED) {
+            throw new UserAlreadyDeletedExeption("User account is deleted for id: " + userId);
+        }
+
+        List<SocialHandleEntity> existingHandles = user.getSocialHandleEntity();
+
+        // Map existing handles by platform for easy lookup
+        Map<SocialHandle, SocialHandleEntity> existingByPlatform = existingHandles.stream()
+                .collect(Collectors.toMap(
+                        SocialHandleEntity::getPlatform,
+                        e -> e
+                ));
+
+        // Optional: avoid duplicates in request
+        Set<SocialHandle> seen = new HashSet<>();
+        for (SocialHandleDto dto : socialHandles) {
+            if (!seen.add(dto.getPlatform())) {
+                throw new InvalidPatchRequestException(
+                        "Duplicate platform in request: " + dto.getPlatform()
+                );
+            }
+        }
+
+        // Apply operations:
+        //  - url null/blank -> delete
+        //  - url present     -> add/update
+        for (SocialHandleDto dto : socialHandles) {
+            SocialHandle platform = dto.getPlatform();
+            String url = dto.getUrl();
+            SocialHandleEntity existing = existingByPlatform.get(platform);
+
+            // DELETE case
+            if (url == null || url.isBlank()) {
+                if (existing != null) {
+                    existingHandles.remove(existing);
+                    existingByPlatform.remove(platform);
+                }
+                continue;
+            }
+
+            // ADD / UPDATE case
+            if (existing == null) {
+                SocialHandleEntity entity = new SocialHandleEntity();
+                entity.setUser(user);
+                entity.setPlatform(platform);
+                entity.setPlatformUrl(url);
+
+                existingHandles.add(entity);
+                existingByPlatform.put(platform, entity);
+            } else {
+                existing.setPlatformUrl(url);
+            }
+        }
+
+        log.info("Social handles updated for user {}", userId);
+        return mapToUserProfileDto(profileEntity);
+    }
+
 }

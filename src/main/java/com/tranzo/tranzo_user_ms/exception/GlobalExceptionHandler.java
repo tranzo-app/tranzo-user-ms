@@ -3,8 +3,12 @@ package com.tranzo.tranzo_user_ms.exception;
 import com.tranzo.tranzo_user_ms.dto.ResponseDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -47,10 +51,30 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ResponseDto<Void>> handleUserAlreadyDeletedException(UserAlreadyDeletedExeption ex) {
         ResponseDto<Void> response = ResponseDto.<Void>builder()
                 .status("error")
-                .statusCode(HttpStatus.CONFLICT.value())
+                .statusCode(400)
                 .statusMessage(ex.getMessage())
                 .data(null)
                 .build();
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        return ResponseEntity.status(400).body(response);
     }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ResponseDto<Map<String, String>>> handleValidationErrors(
+            MethodArgumentNotValidException ex) {
+
+        Map<String, String> fieldErrors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                fieldErrors.put(error.getField(), error.getDefaultMessage())
+        );
+
+        ResponseDto<Map<String, String>> body = ResponseDto.<Map<String, String>>builder()
+                .status("error")
+                .statusCode(400)
+                .statusMessage("Validation failed")
+                .data(fieldErrors)
+                .build();
+
+        return ResponseEntity.badRequest().body(body);
+    }
+
 }
