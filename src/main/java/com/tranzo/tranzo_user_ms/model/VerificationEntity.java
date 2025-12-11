@@ -29,6 +29,7 @@ public class VerificationEntity {
     @JoinColumn(name = "user_uuid", nullable = false)
     private UsersEntity user;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "document_type", nullable = false)
     private DocumentType documentType;
 
@@ -38,6 +39,7 @@ public class VerificationEntity {
     @Column(name = "document_image_url", nullable = false)
     private String documentImageUrl;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "verification_status", nullable = false)
     private VerificationStatus verificationStatus;
 
