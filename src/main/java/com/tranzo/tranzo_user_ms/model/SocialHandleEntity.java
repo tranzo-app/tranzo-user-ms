@@ -49,4 +49,5 @@ public class SocialHandleEntity {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
 }

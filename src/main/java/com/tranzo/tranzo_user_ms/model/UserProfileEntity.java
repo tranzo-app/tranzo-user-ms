@@ -74,4 +74,5 @@ public class UserProfileEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "verification_status", nullable = false)
     private VerificationStatus verificationStatus;
+
 }
