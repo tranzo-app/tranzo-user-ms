@@ -77,4 +77,26 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
+    @ExceptionHandler(InvalidReportRequestException.class)
+    public ResponseEntity<ResponseDto<Void>> handleInvalidReportRequestException(InvalidReportRequestException ex) {
+        ResponseDto<Void> response = ResponseDto.<Void>builder()
+                .status("error")
+                .statusCode(400)
+                .statusMessage(ex.getMessage())
+                .data(null)
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(DuplicateReportException.class)
+    public ResponseEntity<ResponseDto<Void>> handleUserReportAlreadyExistsException(DuplicateReportException ex) {
+        ResponseDto<Void> response = ResponseDto.<Void>builder()
+                .status("error")
+                .statusCode(400)
+                .statusMessage(ex.getMessage())
+                .data(null)
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
 }

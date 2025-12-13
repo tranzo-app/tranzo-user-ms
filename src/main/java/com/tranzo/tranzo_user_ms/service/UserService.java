@@ -3,16 +3,16 @@ package com.tranzo.tranzo_user_ms.service;
 import com.tranzo.tranzo_user_ms.dto.SocialHandleDto;
 import com.tranzo.tranzo_user_ms.dto.UrlDto;
 import com.tranzo.tranzo_user_ms.dto.UserProfileDto;
+import com.tranzo.tranzo_user_ms.dto.UserReportRequestDto;
 import com.tranzo.tranzo_user_ms.enums.AccountStatus;
 import com.tranzo.tranzo_user_ms.enums.SocialHandle;
-import com.tranzo.tranzo_user_ms.exception.InvalidPatchRequestException;
-import com.tranzo.tranzo_user_ms.exception.InvalidUserIdException;
-import com.tranzo.tranzo_user_ms.exception.UserAlreadyDeletedExeption;
-import com.tranzo.tranzo_user_ms.exception.UserProfileNotFoundException;
+import com.tranzo.tranzo_user_ms.exception.*;
 import com.tranzo.tranzo_user_ms.model.SocialHandleEntity;
 import com.tranzo.tranzo_user_ms.model.UserProfileEntity;
+import com.tranzo.tranzo_user_ms.model.UserReportEntity;
 import com.tranzo.tranzo_user_ms.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.repository.UserProfileRepository;
+import com.tranzo.tranzo_user_ms.repository.UserReportRepository;
 import com.tranzo.tranzo_user_ms.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +29,9 @@ public class UserService {
 
     private final UserProfileRepository userProfileRepository;
     private final UserRepository userRepository;
+    private final UserReportRepository userReportRepository;
 
     public UserProfileDto getUserProfile(String userId) {
-        log.info("Fetching user profile for userId: {}", userId);
         UUID userUuid ;
         try{
             userUuid = UUID.fromString(userId);
@@ -42,7 +42,6 @@ public class UserService {
         UserProfileEntity profileEntity = userProfileRepository
                 .findAllUserProfileDetailByUserId(userUuid)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
-        log.info("User profile found for userId: {}", userId);
         return mapToUserProfileDto(profileEntity);
     }
 
@@ -219,7 +218,6 @@ public class UserService {
             throw new InvalidPatchRequestException("At least one social handle must be provided");
         }
 
-        // Fetch profile + user + social handles (your existing query with join fetch)
         UserProfileEntity profileEntity = userProfileRepository
                 .findAllUserProfileDetailByUserId(userUuid)
                 .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
@@ -232,14 +230,12 @@ public class UserService {
 
         List<SocialHandleEntity> existingHandles = user.getSocialHandleEntity();
 
-        // Map existing handles by platform for easy lookup
         Map<SocialHandle, SocialHandleEntity> existingByPlatform = existingHandles.stream()
                 .collect(Collectors.toMap(
                         SocialHandleEntity::getPlatform,
                         e -> e
                 ));
 
-        // Optional: avoid duplicates in request
         Set<SocialHandle> seen = new HashSet<>();
         for (SocialHandleDto dto : socialHandles) {
             if (!seen.add(dto.getPlatform())) {
@@ -249,15 +245,11 @@ public class UserService {
             }
         }
 
-        // Apply operations:
-        //  - url null/blank -> delete
-        //  - url present     -> add/update
         for (SocialHandleDto dto : socialHandles) {
             SocialHandle platform = dto.getPlatform();
             String url = dto.getUrl();
             SocialHandleEntity existing = existingByPlatform.get(platform);
 
-            // DELETE case
             if (url == null || url.isBlank()) {
                 if (existing != null) {
                     existingHandles.remove(existing);
@@ -266,7 +258,6 @@ public class UserService {
                 continue;
             }
 
-            // ADD / UPDATE case
             if (existing == null) {
                 SocialHandleEntity entity = new SocialHandleEntity();
                 entity.setUser(user);
@@ -282,6 +273,33 @@ public class UserService {
 
         log.info("Social handles updated for user {}", userId);
         return mapToUserProfileDto(profileEntity);
+    }
+
+    public void reportUser(String reportedUserId, String reporterUserId, UserReportRequestDto userReportRequestDto) {
+            UUID reportedUuid;
+            UUID reporterUuid;
+            try {
+                reportedUuid = UUID.fromString(reportedUserId);
+                reporterUuid = UUID.fromString(reporterUserId);
+            } catch (IllegalArgumentException ex) {
+                throw new InvalidUserIdException("Invalid user id(s): " + reportedUserId + ", " + reporterUserId);
+            }
+            if(reportedUuid.equals(reporterUuid)){
+                throw new InvalidReportRequestException("User cannot report themselves: " + reportedUserId);
+            }
+
+            if(userReportRepository.existsByReportedUserIdAndReporterUserId(reportedUuid,reporterUuid)){
+                throw new DuplicateReportException("User has already reported this user: " + reportedUserId);
+            }
+
+            UserReportEntity userReport = UserReportEntity.builder()
+                    .reportedUserId(reportedUuid)
+                    .reportingUserId(reporterUuid)
+                    .message(userReportRequestDto.getReportReasonMessage())
+                    .build();
+
+            userReportRepository.save(userReport);
+            log.info("User {} reported user {} successfully", reporterUserId, reportedUserId);
     }
 
 }
