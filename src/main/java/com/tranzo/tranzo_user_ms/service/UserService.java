@@ -288,7 +288,7 @@ public class UserService {
                 throw new InvalidReportRequestException("User cannot report themselves: " + reportedUserId);
             }
 
-            if(userReportRepository.existsByReportedUserIdAndReporterUserId(reportedUuid,reporterUuid)){
+            if(userReportRepository.existsByReportedUserIdAndReportingUserId(reportedUuid,reporterUuid)){
                 throw new DuplicateReportException("User has already reported this user: " + reportedUserId);
             }
 

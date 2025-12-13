@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 public interface UserReportRepository extends JpaRepository<UserReportEntity, UUID> {
-  boolean existsByReportedUserIdAndReporterUserId(UUID reportedUserId, UUID reporterUserId);
+  boolean existsByReportedUserIdAndReportingUserId(UUID reportedUserId, UUID reportingUserId);
 }
