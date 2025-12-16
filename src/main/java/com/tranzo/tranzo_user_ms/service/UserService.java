@@ -7,10 +7,8 @@ import com.tranzo.tranzo_user_ms.dto.UserReportRequestDto;
 import com.tranzo.tranzo_user_ms.enums.AccountStatus;
 import com.tranzo.tranzo_user_ms.enums.SocialHandle;
 import com.tranzo.tranzo_user_ms.exception.*;
-import com.tranzo.tranzo_user_ms.model.SocialHandleEntity;
-import com.tranzo.tranzo_user_ms.model.UserProfileEntity;
-import com.tranzo.tranzo_user_ms.model.UserReportEntity;
-import com.tranzo.tranzo_user_ms.model.UsersEntity;
+import com.tranzo.tranzo_user_ms.model.*;
+import com.tranzo.tranzo_user_ms.repository.UserProfileHistoryRepository;
 import com.tranzo.tranzo_user_ms.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.repository.UserReportRepository;
 import com.tranzo.tranzo_user_ms.repository.UserRepository;
@@ -30,6 +28,7 @@ public class UserService {
     private final UserProfileRepository userProfileRepository;
     private final UserRepository userRepository;
     private final UserReportRepository userReportRepository;
+    private final UserProfileHistoryRepository userProfileHistoryRepository;
 
     public UserProfileDto getUserProfile(String userId) {
         UUID userUuid ;
@@ -74,6 +73,23 @@ public class UserService {
                 .url(entity.getPlatformUrl())
                 .build();
     }
+    private UserProfileHistoryEntity mapToUserProfileHistoryEntity(UserProfileEntity profileEntity) {
+        UsersEntity user = profileEntity.getUser();
+        return UserProfileHistoryEntity.builder()
+                .userProfileUuid(profileEntity.getUserProfileUuid())
+                .profileVersion(profileEntity.getVersion())
+                .user(profileEntity.getUser())
+                .firstName(profileEntity.getFirstName())
+                .middleName(profileEntity.getMiddleName())
+                .lastName(profileEntity.getLastName())
+                .profilePictureUrl(profileEntity.getProfilePictureUrl())
+                .bio(profileEntity.getBio())
+                .gender(profileEntity.getGender())
+                .dob(profileEntity.getDob())
+                .location(profileEntity.getLocation())
+                .verificationStatus(profileEntity.getVerificationStatus())
+                .build();
+    }
 
     @Transactional
     public UserProfileDto updateUserProfile(String userId, UserProfileDto modifiedUserProfileDto) {
@@ -94,6 +110,8 @@ public class UserService {
                 .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
 
         UsersEntity user = profileEntity.getUser();
+
+        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
 
         if(modifiedUserProfileDto.getFirstName() != null) {
             profileEntity.setFirstName(modifiedUserProfileDto.getFirstName());
@@ -148,13 +166,22 @@ public class UserService {
             throw new InvalidUserIdException("Invalid user id: " + userId);
         }
 
-        UsersEntity user = userRepository
+       /* UsersEntity user = userRepository
                 .findUserByUserUuid(userUUID)
                 .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
+*/
+        UserProfileEntity profileEntity = userProfileRepository
+                .findAllUserProfileDetailByUserId(userUUID)
+                .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
 
-        if(user.getAccountStatus()== AccountStatus.DELETED){
+        UsersEntity user = profileEntity.getUser();
+
+        if(profileEntity.getUser().getAccountStatus()== AccountStatus.DELETED){
             throw new UserAlreadyDeletedExeption("User already deleted for id: " + userId);
         }
+
+        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+
         user.setAccountStatus(AccountStatus.DELETED);
         user.setUserProfileEntity(null);
         user.getSocialHandleEntity().clear();
@@ -186,7 +213,11 @@ public class UserService {
         UserProfileEntity profileEntity = userProfileRepository
                 .findAllUserProfileDetailByUserId(userUuid)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
+
+        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+
         profileEntity.setProfilePictureUrl(profilePictureUrl.getUrl());
+
         log.info("Profile picture updated for userId: {}", userId);
         return mapToUserProfileDto(profileEntity);
     }
@@ -202,6 +233,9 @@ public class UserService {
         UserProfileEntity profileEntity = userProfileRepository
                 .findAllUserProfileDetailByUserId(userUuid)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
+
+        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+
         profileEntity.setProfilePictureUrl(null);
         log.info("Profile picture deleted for userId: {}", userId);
         return mapToUserProfileDto(profileEntity);
