@@ -3,16 +3,14 @@ package com.tranzo.tranzo_user_ms.service;
 import com.tranzo.tranzo_user_ms.dto.SocialHandleDto;
 import com.tranzo.tranzo_user_ms.dto.UrlDto;
 import com.tranzo.tranzo_user_ms.dto.UserProfileDto;
+import com.tranzo.tranzo_user_ms.dto.UserReportRequestDto;
 import com.tranzo.tranzo_user_ms.enums.AccountStatus;
 import com.tranzo.tranzo_user_ms.enums.SocialHandle;
-import com.tranzo.tranzo_user_ms.exception.InvalidPatchRequestException;
-import com.tranzo.tranzo_user_ms.exception.InvalidUserIdException;
-import com.tranzo.tranzo_user_ms.exception.UserAlreadyDeletedExeption;
-import com.tranzo.tranzo_user_ms.exception.UserProfileNotFoundException;
-import com.tranzo.tranzo_user_ms.model.SocialHandleEntity;
-import com.tranzo.tranzo_user_ms.model.UserProfileEntity;
-import com.tranzo.tranzo_user_ms.model.UsersEntity;
+import com.tranzo.tranzo_user_ms.exception.*;
+import com.tranzo.tranzo_user_ms.model.*;
+import com.tranzo.tranzo_user_ms.repository.UserProfileHistoryRepository;
 import com.tranzo.tranzo_user_ms.repository.UserProfileRepository;
+import com.tranzo.tranzo_user_ms.repository.UserReportRepository;
 import com.tranzo.tranzo_user_ms.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +27,10 @@ public class UserService {
 
     private final UserProfileRepository userProfileRepository;
     private final UserRepository userRepository;
+    private final UserReportRepository userReportRepository;
+    private final UserProfileHistoryRepository userProfileHistoryRepository;
 
     public UserProfileDto getUserProfile(String userId) {
-        log.info("Fetching user profile for userId: {}", userId);
         UUID userUuid ;
         try{
             userUuid = UUID.fromString(userId);
@@ -42,7 +41,6 @@ public class UserService {
         UserProfileEntity profileEntity = userProfileRepository
                 .findAllUserProfileDetailByUserId(userUuid)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
-        log.info("User profile found for userId: {}", userId);
         return mapToUserProfileDto(profileEntity);
     }
 
@@ -75,6 +73,23 @@ public class UserService {
                 .url(entity.getPlatformUrl())
                 .build();
     }
+    private UserProfileHistoryEntity mapToUserProfileHistoryEntity(UserProfileEntity profileEntity) {
+        UsersEntity user = profileEntity.getUser();
+        return UserProfileHistoryEntity.builder()
+                .userProfileUuid(profileEntity.getUserProfileUuid())
+                .profileVersion(profileEntity.getVersion())
+                .user(profileEntity.getUser())
+                .firstName(profileEntity.getFirstName())
+                .middleName(profileEntity.getMiddleName())
+                .lastName(profileEntity.getLastName())
+                .profilePictureUrl(profileEntity.getProfilePictureUrl())
+                .bio(profileEntity.getBio())
+                .gender(profileEntity.getGender())
+                .dob(profileEntity.getDob())
+                .location(profileEntity.getLocation())
+                .verificationStatus(profileEntity.getVerificationStatus())
+                .build();
+    }
 
     @Transactional
     public UserProfileDto updateUserProfile(String userId, UserProfileDto modifiedUserProfileDto) {
@@ -95,6 +110,8 @@ public class UserService {
                 .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
 
         UsersEntity user = profileEntity.getUser();
+
+        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
 
         if(modifiedUserProfileDto.getFirstName() != null) {
             profileEntity.setFirstName(modifiedUserProfileDto.getFirstName());
@@ -149,14 +166,25 @@ public class UserService {
             throw new InvalidUserIdException("Invalid user id: " + userId);
         }
 
-        UsersEntity user = userRepository
+       /* UsersEntity user = userRepository
                 .findUserByUserUuid(userUUID)
                 .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
+*/
+        UserProfileEntity profileEntity = userProfileRepository
+                .findAllUserProfileDetailByUserId(userUUID)
+                .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
 
-        if(user.getAccountStatus()== AccountStatus.DELETED){
+        UsersEntity user = profileEntity.getUser();
+
+        if(profileEntity.getUser().getAccountStatus()== AccountStatus.DELETED){
             throw new UserAlreadyDeletedExeption("User already deleted for id: " + userId);
         }
+
+        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+
         user.setAccountStatus(AccountStatus.DELETED);
+        user.setUserProfileEntity(null);
+        user.getSocialHandleEntity().clear();
 
         // Additional cleanup logic can be added here if needed and after discussion we will implement it.
     }
@@ -185,7 +213,11 @@ public class UserService {
         UserProfileEntity profileEntity = userProfileRepository
                 .findAllUserProfileDetailByUserId(userUuid)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
+
+        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+
         profileEntity.setProfilePictureUrl(profilePictureUrl.getUrl());
+
         log.info("Profile picture updated for userId: {}", userId);
         return mapToUserProfileDto(profileEntity);
     }
@@ -201,6 +233,9 @@ public class UserService {
         UserProfileEntity profileEntity = userProfileRepository
                 .findAllUserProfileDetailByUserId(userUuid)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
+
+        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+
         profileEntity.setProfilePictureUrl(null);
         log.info("Profile picture deleted for userId: {}", userId);
         return mapToUserProfileDto(profileEntity);
@@ -219,7 +254,6 @@ public class UserService {
             throw new InvalidPatchRequestException("At least one social handle must be provided");
         }
 
-        // Fetch profile + user + social handles (your existing query with join fetch)
         UserProfileEntity profileEntity = userProfileRepository
                 .findAllUserProfileDetailByUserId(userUuid)
                 .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
@@ -232,14 +266,12 @@ public class UserService {
 
         List<SocialHandleEntity> existingHandles = user.getSocialHandleEntity();
 
-        // Map existing handles by platform for easy lookup
         Map<SocialHandle, SocialHandleEntity> existingByPlatform = existingHandles.stream()
                 .collect(Collectors.toMap(
                         SocialHandleEntity::getPlatform,
                         e -> e
                 ));
 
-        // Optional: avoid duplicates in request
         Set<SocialHandle> seen = new HashSet<>();
         for (SocialHandleDto dto : socialHandles) {
             if (!seen.add(dto.getPlatform())) {
@@ -249,15 +281,11 @@ public class UserService {
             }
         }
 
-        // Apply operations:
-        //  - url null/blank -> delete
-        //  - url present     -> add/update
         for (SocialHandleDto dto : socialHandles) {
             SocialHandle platform = dto.getPlatform();
             String url = dto.getUrl();
             SocialHandleEntity existing = existingByPlatform.get(platform);
 
-            // DELETE case
             if (url == null || url.isBlank()) {
                 if (existing != null) {
                     existingHandles.remove(existing);
@@ -266,7 +294,6 @@ public class UserService {
                 continue;
             }
 
-            // ADD / UPDATE case
             if (existing == null) {
                 SocialHandleEntity entity = new SocialHandleEntity();
                 entity.setUser(user);
@@ -282,6 +309,47 @@ public class UserService {
 
         log.info("Social handles updated for user {}", userId);
         return mapToUserProfileDto(profileEntity);
+    }
+
+    public void reportUser(String reportedUserId, String reporterUserId, UserReportRequestDto userReportRequestDto) {
+            UUID reportedUuid;
+            UUID reporterUuid;
+            try {
+                reportedUuid = UUID.fromString(reportedUserId);
+                reporterUuid = UUID.fromString(reporterUserId);
+            } catch (IllegalArgumentException ex) {
+                throw new InvalidUserIdException("Invalid user id(s): " + reportedUserId + ", " + reporterUserId);
+            }
+            if(reportedUuid.equals(reporterUuid)){
+                throw new InvalidReportRequestException("User cannot report themselves: " + reportedUserId);
+            }
+
+            if(userReportRepository.existsByReportedUserIdAndReportingUserId(reportedUuid,reporterUuid)){
+                throw new DuplicateReportException("User has already reported this user: " + reportedUserId);
+            }
+
+            if(!userProfileExists(reportedUuid)){
+                throw new UserProfileNotFoundException("Reported user does not exist: " + reportedUserId);
+            }
+
+            UserReportEntity userReport = UserReportEntity.builder()
+                    .reportedUserId(reportedUuid)
+                    .reportingUserId(reporterUuid)
+                    .message(userReportRequestDto.getReportReasonMessage())
+                    .build();
+
+            userReportRepository.save(userReport);
+            log.info("User {} reported user {} successfully", reporterUserId, reportedUserId);
+    }
+
+    boolean userProfileExists(UUID userProfileId) {
+        UsersEntity user = userRepository
+                .findUserByUserUuid(userProfileId)
+                .orElse(null);
+        if (user == null || user.getAccountStatus() == AccountStatus.DELETED) {
+            return false;
+        }
+        return true;
     }
 
 }
