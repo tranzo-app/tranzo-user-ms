@@ -65,7 +65,7 @@ public class SessionService {
         UUID userUuid = jwtService.extractUserUuid(refreshToken);
         RefreshTokenEntity storedToken =
                 refreshTokenRepository
-                        .findByUserUuidAndRevokedFalse(userUuid)
+                        .findByUser_UserUuidAndRevokedFalse(userUuid)
                         .orElseThrow(() -> new AuthException("Session expired"));
         if (!passwordEncoder.matches(refreshToken, storedToken.getTokenHash())) {
             throw new AuthException("Invalid refresh token");
@@ -92,7 +92,7 @@ public class SessionService {
             try {
                 UUID userUuid = jwtService.extractUserUuid(refreshToken);
                 refreshTokenRepository
-                        .findByUserUuidAndRevokedFalse(userUuid)
+                        .findByUser_UserUuidAndRevokedFalse(userUuid)
                         .ifPresent(token -> {
                             token.setRevoked(true);
 //                            token.setUpdatedAt(LocalDateTime.now());

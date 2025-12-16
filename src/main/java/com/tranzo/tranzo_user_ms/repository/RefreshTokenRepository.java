@@ -12,7 +12,7 @@ public interface RefreshTokenRepository
 
     Optional<RefreshTokenEntity> findByTokenHashAndRevokedFalse(String token);
 
-    Optional<RefreshTokenEntity> findByUserUuidAndRevokedFalse(UUID uuid);
+    Optional<RefreshTokenEntity> findByUser_UserUuidAndRevokedFalse(UUID uuid);
 
     void deleteAllByUser(UsersEntity user);
 }

@@ -61,7 +61,7 @@ class UserControllerTest {
 
     private UrlDto validUrlDto() {
         return UrlDto.builder()
-                .Url("https://cdn.tranzo.com/profile/12345.png")
+                .url("https://cdn.tranzo.com/profile/12345.png")
                 .build();
     }
 
@@ -319,7 +319,7 @@ class UserControllerTest {
         @DisplayName("should return 400 when URL is invalid (validation)")
         void updatePicture_validationError() throws Exception {
             UrlDto invalid = UrlDto.builder()
-                    .Url("not-a-url")
+                    .url("not-a-url")
                     .build();
 
             mockMvc.perform(put("/user/{userId}/profile-picture", "5b48b1e7-7e33-4a32-b3c8-7fd37e13cccc")
