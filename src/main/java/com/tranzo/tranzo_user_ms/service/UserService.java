@@ -156,6 +156,8 @@ public class UserService {
             throw new UserAlreadyDeletedExeption("User already deleted for id: " + userId);
         }
         user.setAccountStatus(AccountStatus.DELETED);
+        user.setUserProfileEntity(null);
+        user.getSocialHandleEntity().clear();
 
         // Additional cleanup logic can be added here if needed and after discussion we will implement it.
     }
@@ -292,6 +294,10 @@ public class UserService {
                 throw new DuplicateReportException("User has already reported this user: " + reportedUserId);
             }
 
+            if(!userProfileExists(reportedUuid)){
+                throw new UserProfileNotFoundException("Reported user does not exist: " + reportedUserId);
+            }
+
             UserReportEntity userReport = UserReportEntity.builder()
                     .reportedUserId(reportedUuid)
                     .reportingUserId(reporterUuid)
@@ -300,6 +306,16 @@ public class UserService {
 
             userReportRepository.save(userReport);
             log.info("User {} reported user {} successfully", reporterUserId, reportedUserId);
+    }
+
+    boolean userProfileExists(UUID userProfileId) {
+        UsersEntity user = userRepository
+                .findUserByUserUuid(userProfileId)
+                .orElse(null);
+        if (user == null || user.getAccountStatus() == AccountStatus.DELETED) {
+            return false;
+        }
+        return true;
     }
 
 }
