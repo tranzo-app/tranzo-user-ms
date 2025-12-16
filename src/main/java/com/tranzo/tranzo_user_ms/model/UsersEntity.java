@@ -59,10 +59,10 @@ public class UsersEntity {
     @Column(name = "account_status", nullable = false)
     private AccountStatus accountStatus = AccountStatus.ACTIVE;
 
-    @OneToOne(mappedBy = "user" , fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "user" , fetch = FetchType.LAZY,cascade = CascadeType.ALL, orphanRemoval = true)
     private UserProfileEntity userProfileEntity;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY,cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SocialHandleEntity> socialHandleEntity = new ArrayList<>();
 
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)

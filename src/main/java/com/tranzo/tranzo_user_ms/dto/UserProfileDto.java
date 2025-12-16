@@ -1,6 +1,7 @@
 package com.tranzo.tranzo_user_ms.dto;
 
 import com.tranzo.tranzo_user_ms.enums.Gender;
+import com.tranzo.tranzo_user_ms.enums.VerificationStatus;
 import jakarta.persistence.Column;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -50,4 +51,8 @@ public class UserProfileDto {
 
     @Valid
     private List<SocialHandleDto> socialHandleDtoList;
+
+    @NotBlank
+    @NotNull
+    private VerificationStatus verificationStatus;
 }
