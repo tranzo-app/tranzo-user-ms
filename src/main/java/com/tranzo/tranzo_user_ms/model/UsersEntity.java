@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.tranzo.tranzo_user_ms.enums.AccountStatus;
 import com.tranzo.tranzo_user_ms.enums.UserRole;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,7 +21,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "users" , uniqueConstraints = {
-    @UniqueConstraint(name = "uk_app_user_mobile",columnNames = "mobileNumber"),
+    @UniqueConstraint(name = "uk_app_user_mobile",columnNames = {"country_code", "mobile_number"}),
     @UniqueConstraint(name = "uk_app_user_email",columnNames = "email")
 })
 @Getter
@@ -34,6 +35,9 @@ public class UsersEntity {
     @EqualsAndHashCode.Include
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID userUuid;
+
+    @Pattern(regexp = "\\+[0-9]{1,4}")
+    private String countryCode;
 
     @Column(name = "email")
     private String email;
@@ -67,4 +71,7 @@ public class UsersEntity {
 
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private VerificationEntity verificationEntity;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<RefreshTokenEntity> refreshTokenEntities = new ArrayList<>();
 }

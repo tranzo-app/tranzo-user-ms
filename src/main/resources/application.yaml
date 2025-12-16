@@ -22,3 +22,14 @@ spring:
     console:
       enabled: true      # allows web access to H2 console
       path: /h2-console  # the URL path for the H2 dashboard
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  jwt:
+    secret: 7kP9xQeZyWvT2A1bNcLmJkHGFdsapOiuRANDOMKEY
+    access-token-expiry-minutes: 15
+    refresh-token-expiry-days: 7
+    issuer: tranzo-auth

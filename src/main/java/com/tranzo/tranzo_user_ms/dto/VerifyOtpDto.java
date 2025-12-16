@@ -15,8 +15,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @VerifyEitherEmailOrMobile
-public class VerifyOtpDto {
+public class VerifyOtpDto implements IdentifierAware{
 //    Is country code needed here?
+    @Pattern(regexp = "\\+[0-9]{1,4}", message = "Country code must start with + and contain 1–4 digits")
+    private String countryCode;
 
     @Pattern(regexp = "[0-9]{7,15}", message = "Mobile number must be 7–15 digits")
     private String mobileNumber;

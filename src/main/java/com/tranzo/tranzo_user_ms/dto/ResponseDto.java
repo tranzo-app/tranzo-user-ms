@@ -43,7 +43,7 @@ public class ResponseDto<T> {
                 .build();
     }
 
-    public static <T> ResponseDto<T> failure(int statusCode, String message, T data) {
+    public static <T> ResponseDto<T> failure(int statusCode, String message) {
         return ResponseDto.<T>builder()
                 .statusCode(statusCode)
                 .status("FAILURE")
@@ -52,7 +52,7 @@ public class ResponseDto<T> {
                 .build();
     }
 
-    public static <T> ResponseDto<T> error(int statusCode, String message, T data) {
+    public static <T> ResponseDto<T> error(int statusCode, String message) {
         return ResponseDto.<T>builder()
                 .statusCode(statusCode)
                 .status("ERROR")

@@ -14,5 +14,5 @@ import org.hibernate.validator.constraints.URL;
 public class UrlDto {
     @NotBlank(message = "URL is required")
     @URL(message = "Invalid URL format")
-    private String Url;
+    private String url;
 }

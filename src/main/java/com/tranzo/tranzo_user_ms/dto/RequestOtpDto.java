@@ -10,7 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RequestOtpDto {
+public class RequestOtpDto implements IdentifierAware {
     @Pattern(regexp = "\\+[0-9]{1,4}", message = "Country code must start with + and contain 1–4 digits")
     private String countryCode;
 
