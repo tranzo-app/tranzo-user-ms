@@ -2,6 +2,8 @@ package com.tranzo.tranzo_user_ms.controller;
 
 import com.tranzo.tranzo_user_ms.dto.*;
 import com.tranzo.tranzo_user_ms.service.UserService;
+import com.tranzo.tranzo_user_ms.utility.SecurityUtils;
+import jakarta.security.auth.message.AuthException;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -21,8 +23,9 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<ResponseDto> getUser(@PathVariable String userId) {
+    @GetMapping("/user")
+    public ResponseEntity<ResponseDto<UserProfileDto>> getUser() throws AuthException {
+        String userId = SecurityUtils.getCurrentUserUuid();
         UserProfileDto userProfileDto = userService.getUserProfile(userId);
         return ResponseEntity.ok(ResponseDto.success(200,"User profile fetched successfully", userProfileDto));
     }

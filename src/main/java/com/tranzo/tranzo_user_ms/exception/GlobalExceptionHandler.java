@@ -62,16 +62,23 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ResponseDto<Map<String, String>>> handleValidationErrors(
             MethodArgumentNotValidException ex) {
 
-        Map<String, String> fieldErrors = new HashMap<>();
+        Map<String, String> errors = new HashMap<>();
+
+        // Field level errors
         ex.getBindingResult().getFieldErrors().forEach(error ->
-                fieldErrors.put(error.getField(), error.getDefaultMessage())
+                errors.put(error.getField(), error.getDefaultMessage())
+        );
+
+        // Class level errors
+        ex.getBindingResult().getGlobalErrors().forEach(error ->
+                errors.put(error.getObjectName(), error.getDefaultMessage())
         );
 
         ResponseDto<Map<String, String>> body = ResponseDto.<Map<String, String>>builder()
                 .status("ERROR")
                 .statusCode(400)
                 .statusMessage("Validation failed")
-                .data(fieldErrors)
+                .data(errors)
                 .build();
 
         return ResponseEntity.badRequest().body(body);

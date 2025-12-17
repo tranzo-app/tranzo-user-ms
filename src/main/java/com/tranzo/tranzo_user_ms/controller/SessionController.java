@@ -16,13 +16,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/auth/session")
 @RequiredArgsConstructor
 public class SessionController {
 
     private final SessionService sessionService;
 
-    @PostMapping("/session")
+    @PostMapping("/login")
     public ResponseEntity<ResponseDto<SessionResponseDto>> createSession(
             @Valid @RequestBody SessionRequestDto request,
             HttpServletResponse response
@@ -31,7 +31,7 @@ public class SessionController {
         return ResponseEntity.ok(ResponseDto.success(200, "Session created successfully", sessionResponse));
     }
 
-    @PostMapping("/session/refresh")
+    @PostMapping("/refresh")
     public ResponseEntity<ResponseDto<SessionResponseDto>> refreshSession(
             HttpServletRequest request,
             HttpServletResponse response
@@ -46,7 +46,7 @@ public class SessionController {
             HttpServletResponse response
     ) {
         sessionService.logout(request, response);
-        return ResponseEntity.ok(ResponseDto.success(200, "Session refreshed successfully", null));
+        return ResponseEntity.ok(ResponseDto.success(200, "Session logged out successfully", null));
     }
 }
 

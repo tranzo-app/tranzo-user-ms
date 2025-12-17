@@ -5,7 +5,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import jakarta.security.auth.message.AuthException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -69,45 +68,26 @@ public class JwtServiceImpl implements JwtService {
     }
 
     @Override
-    public boolean validateToken(String token) {
+    public boolean validateAccessToken(String token) {
         try {
-            parseClaims(token);
-            return false;
+            Claims claims = parseClaims(token);
+            String tokenType = claims.get("type", String.class);
+            return "ACCESS".equals(tokenType);
         } catch (JwtException | IllegalArgumentException e) {
-            return true;
+            return false;
         }
     }
 
     @Override
-    public void validateAccessToken(String token) throws AuthException {
-        if (validateToken(token)) {
-            throw new AuthException("Invalid JWT token");
-        }
-        String tokenType = extractTokenType(token);
-        if (!"ACCESS".equals(tokenType)) {
-            throw new AuthException("Provided token is not an access token");
-        }
-        Claims claims = parseClaims(token);
-        if (claims.getExpiration().before(new Date())) {
-            throw new AuthException("Access token expired");
+    public boolean validateRefreshToken(String token) {
+        try {
+            Claims claims = parseClaims(token);
+            String tokenType = claims.get("type", String.class);
+            return "REFRESH".equals(tokenType);
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
         }
     }
-
-    @Override
-    public void validateRefreshToken(String token) throws AuthException {
-        if (validateToken(token)) {
-            throw new AuthException("Invalid JWT token");
-        }
-        String tokenType = extractTokenType(token);
-        if (!"REFRESH".equals(tokenType)) {
-            throw new AuthException("Provided token is not a refresh token");
-        }
-        Claims claims = parseClaims(token);
-        if (claims.getExpiration().before(new Date())) {
-            throw new AuthException("Refresh token expired");
-        }
-    }
-
 
     @Override
     public UUID extractUserUuid(String token) {

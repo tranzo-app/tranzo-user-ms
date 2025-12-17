@@ -22,14 +22,14 @@ public class RequestOtpDto implements IdentifierAware {
 
     @AssertTrue(message = "Either (country code and mobile number) or email id must be provided, not both")
     public boolean isValidInput() {
-
-        boolean hasMobile =
-                countryCode != null && !countryCode.isBlank() &&
-                        mobileNumber != null && !mobileNumber.isBlank();
-
-        boolean hasEmail =
-                emailId != null && !emailId.isBlank();
-
-        return hasMobile ^ hasEmail;
+        if (countryCode != null && !countryCode.isBlank() && mobileNumber != null && !mobileNumber.isBlank())
+        {
+            return emailId == null || emailId.isBlank();
+        }
+        if (emailId != null && !emailId.isBlank())
+        {
+            return (countryCode == null || countryCode.isBlank()) && (mobileNumber == null || mobileNumber.isBlank());
+        }
+        return false;
     }
 }

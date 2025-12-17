@@ -3,6 +3,8 @@ package com.tranzo.tranzo_user_ms.service;
 import com.tranzo.tranzo_user_ms.dto.RequestOtpDto;
 import com.tranzo.tranzo_user_ms.dto.VerifyOtpDto;
 import com.tranzo.tranzo_user_ms.dto.VerifyOtpResponseDto;
+import com.tranzo.tranzo_user_ms.enums.AccountStatus;
+import com.tranzo.tranzo_user_ms.enums.UserRole;
 import com.tranzo.tranzo_user_ms.exception.OtpException;
 import com.tranzo.tranzo_user_ms.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.repository.UserRepository;
@@ -46,7 +48,7 @@ public class OtpService {
         log.info("OTP for {} is {}", identifier, otp);
     }
 
-    @Transactional()
+    @Transactional
     public VerifyOtpResponseDto verifyOtp(VerifyOtpDto verifyOtpDto)
     {
         String identifier = otpUtility.resolveIdentifier(verifyOtpDto);
@@ -64,18 +66,10 @@ public class OtpService {
         otpMap.remove(key);
         Optional<UsersEntity> user = findUserByIdentifier(verifyOtpDto);
         boolean userExists = user.isPresent();
+        createNewUser(verifyOtpDto);
         return VerifyOtpResponseDto.builder()
                 .userExists(userExists)
                 .build();
-//        if (verifyOtpDto.getOtp().equals(cachedOtp))
-//        {
-//            UsersEntity usersEntity = new UsersEntity();
-//            if (verifyOtpDto.getEmailId() != null && !verifyOtpDto.getEmailId().isBlank()) usersEntity.setEmail(verifyOtpDto.getEmailId());
-//            if (verifyOtpDto.getMobileNumber() != null && !verifyOtpDto.getMobileNumber().isBlank()) usersEntity.setMobileNumber(verifyOtpDto.getMobileNumber());
-//            usersEntity.setUserRole(UserRole.NORMAL_USER);
-//            usersEntity.setAccountStatus(AccountStatus.ACTIVE);
-//            userRepository.save(usersEntity);
-//        }
     }
 
     private String buildKey(String identifier)
@@ -90,5 +84,15 @@ public class OtpService {
         }
 
         return userRepository.findByMobileNumber(dto.getMobileNumber());
+    }
+
+    private void createNewUser(VerifyOtpDto verifyOtpDto)
+    {
+        UsersEntity usersEntity = new UsersEntity();
+        if (verifyOtpDto.getEmailId() != null && !verifyOtpDto.getEmailId().isBlank()) usersEntity.setEmail(verifyOtpDto.getEmailId());
+        if (verifyOtpDto.getMobileNumber() != null && !verifyOtpDto.getMobileNumber().isBlank()) usersEntity.setMobileNumber(verifyOtpDto.getMobileNumber());
+        usersEntity.setUserRole(UserRole.NORMAL_USER);
+        usersEntity.setAccountStatus(AccountStatus.ACTIVE);
+        userRepository.save(usersEntity);
     }
 }

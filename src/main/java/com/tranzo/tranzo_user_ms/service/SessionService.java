@@ -12,8 +12,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -23,12 +24,12 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SessionService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
-    private final PasswordEncoder passwordEncoder;
 
     @Value("${spring.jwt.access-token-expiry-minutes}")
     private long accessExpiryMinutes;
@@ -46,6 +47,9 @@ public class SessionService {
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
+        log.info("Access token : {}", accessToken);
+        log.info("Refresh token : {}", refreshToken);
+
         saveNewRefreshToken(refreshToken, user);
         setCookie(response, "ACCESS_TOKEN", accessToken, (int) (accessExpiryMinutes * 60));
         setCookie(response, "REFRESH_TOKEN", refreshToken, (int) (refreshExpiryDays * 24 * 60 * 60));
@@ -60,24 +64,25 @@ public class SessionService {
             HttpServletRequest request,
             HttpServletResponse response
     ) throws AuthException {
-
         String refreshToken = extractRefreshToken(request);
         UUID userUuid = jwtService.extractUserUuid(refreshToken);
         RefreshTokenEntity storedToken =
                 refreshTokenRepository
                         .findByUser_UserUuidAndRevokedFalse(userUuid)
                         .orElseThrow(() -> new AuthException("Session expired"));
-        if (!passwordEncoder.matches(refreshToken, storedToken.getTokenHash())) {
+        if (!hash(refreshToken).equals(storedToken.getTokenHash())) {
             throw new AuthException("Invalid refresh token");
         }
         jwtService.validateRefreshToken(refreshToken);
         UsersEntity user = storedToken.getUser();
         String newRefreshToken = jwtService.generateRefreshToken(user);
-        storedToken.setTokenHash(passwordEncoder.encode(newRefreshToken));
+        storedToken.setTokenHash(hash(newRefreshToken));
         storedToken.setExpiresAt(LocalDateTime.now().plusDays(refreshExpiryDays));
 //        storedToken.setUpdatedAt(LocalDateTime.now());
         refreshTokenRepository.save(storedToken);
         String newAccessToken = jwtService.generateAccessToken(user);
+        log.info("Access token : {}", newAccessToken);
+        log.info("Refresh token : {}", newRefreshToken);
         setCookie(response, "ACCESS_TOKEN", newAccessToken, (int) (accessExpiryMinutes * 60));
         setCookie(response, "REFRESH_TOKEN", newRefreshToken, (int) (refreshExpiryDays * 24 * 60 * 60));
         return SessionResponseDto.builder()
@@ -118,6 +123,10 @@ public class SessionService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+    private String hash(String token) {
+        return DigestUtils.sha256Hex(token);
+    }
+
     private void setCookie(HttpServletResponse response,
                            String name,
                            String value,
@@ -142,7 +151,7 @@ public class SessionService {
     private void saveNewRefreshToken(String token, UsersEntity user) {
         refreshTokenRepository.save(
                 RefreshTokenEntity.builder()
-                        .tokenHash(passwordEncoder.encode(token))
+                        .tokenHash(hash(token))
                         .user(user)
                         .expiresAt(LocalDateTime.now().plusDays(7))
                         .revoked(false)
