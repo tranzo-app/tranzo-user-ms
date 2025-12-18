@@ -2,6 +2,7 @@ package com.tranzo.tranzo_user_ms.dto;
 
 import com.tranzo.tranzo_user_ms.enums.SocialHandle;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,7 +15,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class SocialHandleDto {
 
-    @NotBlank(message = "Platform is required")
+    @NotNull(message = "Platform is required")
     private SocialHandle platform;
 
     @NotBlank(message = "URL is required")

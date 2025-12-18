@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = VerifyEitherEmailOrMobileValidator.class)
 public @interface VerifyEitherEmailOrMobile {
-    String message() default "Either email id or mobile number must be provided, but not both";
+    String message() default "Either (country code and mobile number) or email id must be provided, not both";
 
     Class<?>[] groups() default {};
 

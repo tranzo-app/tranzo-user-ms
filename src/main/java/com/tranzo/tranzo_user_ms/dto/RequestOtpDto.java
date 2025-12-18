@@ -10,7 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RequestOtpDto {
+public class RequestOtpDto implements IdentifierAware {
     @Pattern(regexp = "\\+[0-9]{1,4}", message = "Country code must start with + and contain 1–4 digits")
     private String countryCode;
 
@@ -22,14 +22,14 @@ public class RequestOtpDto {
 
     @AssertTrue(message = "Either (country code and mobile number) or email id must be provided, not both")
     public boolean isValidInput() {
-
-        boolean hasMobile =
-                countryCode != null && !countryCode.isBlank() &&
-                        mobileNumber != null && !mobileNumber.isBlank();
-
-        boolean hasEmail =
-                emailId != null && !emailId.isBlank();
-
-        return hasMobile ^ hasEmail;
+        if (countryCode != null && !countryCode.isBlank() && mobileNumber != null && !mobileNumber.isBlank())
+        {
+            return emailId == null || emailId.isBlank();
+        }
+        if (emailId != null && !emailId.isBlank())
+        {
+            return (countryCode == null || countryCode.isBlank()) && (mobileNumber == null || mobileNumber.isBlank());
+        }
+        return false;
     }
 }

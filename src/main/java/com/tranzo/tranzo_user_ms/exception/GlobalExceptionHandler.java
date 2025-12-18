@@ -17,10 +17,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidUserIdException.class)
     public ResponseEntity<ResponseDto<Void>> handleInvalidUserIdException(InvalidUserIdException ex) {
         ResponseDto<Void> response = ResponseDto.<Void>builder()
-                .status("error")
+                .status("ERROR")
                 .statusCode(400)
                 .statusMessage(ex.getMessage())
-                .data(null )
+                .data(null)
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
@@ -28,7 +28,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserProfileNotFoundException.class)
     public ResponseEntity<ResponseDto<Void>> handleUserProfileNotFoundException(UserProfileNotFoundException ex) {
         ResponseDto<Void> response = ResponseDto.<Void>builder()
-                .status("error")
+                .status("ERROR")
                 .statusCode(404)
                 .statusMessage(ex.getMessage())
                 .data(null)
@@ -39,7 +39,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidPatchRequestException.class)
     public ResponseEntity<ResponseDto<Void>> handleInvalidPatchRequestException(InvalidPatchRequestException ex) {
         ResponseDto<Void> response = ResponseDto.<Void>builder()
-                .status("error")
+                .status("ERROR")
                 .statusCode(400)
                 .statusMessage(ex.getMessage())
                 .data(null)
@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserAlreadyDeletedExeption.class)
     public ResponseEntity<ResponseDto<Void>> handleUserAlreadyDeletedException(UserAlreadyDeletedExeption ex) {
         ResponseDto<Void> response = ResponseDto.<Void>builder()
-                .status("error")
+                .status("ERROR")
                 .statusCode(400)
                 .statusMessage(ex.getMessage())
                 .data(null)
@@ -62,19 +62,38 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ResponseDto<Map<String, String>>> handleValidationErrors(
             MethodArgumentNotValidException ex) {
 
-        Map<String, String> fieldErrors = new HashMap<>();
+        Map<String, String> errors = new HashMap<>();
+
+        // Field level errors
         ex.getBindingResult().getFieldErrors().forEach(error ->
-                fieldErrors.put(error.getField(), error.getDefaultMessage())
+                errors.put(error.getField(), error.getDefaultMessage())
+        );
+
+        // Class level errors
+        ex.getBindingResult().getGlobalErrors().forEach(error ->
+                errors.put(error.getObjectName(), error.getDefaultMessage())
         );
 
         ResponseDto<Map<String, String>> body = ResponseDto.<Map<String, String>>builder()
-                .status("error")
+                .status("ERROR")
                 .statusCode(400)
                 .statusMessage("Validation failed")
-                .data(fieldErrors)
+                .data(errors)
                 .build();
 
         return ResponseEntity.badRequest().body(body);
+    }
+
+    @ExceptionHandler(OtpException.class)
+    public ResponseEntity<ResponseDto<Void>> handleOtpException(OtpException ex)
+    {
+        return ResponseEntity.badRequest()
+                .body(ResponseDto.<Void>builder()
+                .status("ERROR")
+                .statusCode(400)
+                .statusMessage(ex.getMessage())
+                .data(null)
+                .build());
     }
 
     @ExceptionHandler(InvalidReportRequestException.class)
