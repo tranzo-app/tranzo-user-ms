@@ -62,7 +62,4 @@ UsersEntity ||--o{ SocialHandleEntity : user_uuid
 UsersEntity ||--|| VerificationEntity : user_uuid
 UsersEntity ||--o{ RefreshTokenEntity : user_uuid
 
-UsersEntity ||--o{ UserReportEntity : reporting_user_id
-UsersEntity ||--o{ UserReportEntity : reported_user_id
-
 @enduml
