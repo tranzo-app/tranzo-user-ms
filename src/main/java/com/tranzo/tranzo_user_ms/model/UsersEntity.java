@@ -69,9 +69,9 @@ public class UsersEntity {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY,cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SocialHandleEntity> socialHandleEntity = new ArrayList<>();
 
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private VerificationEntity verificationEntity;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<RefreshTokenEntity> refreshTokenEntities = new ArrayList<>();
 }

@@ -1,0 +1,171 @@
+@startuml
+title Trip Service – ER Diagram
+hide methods
+hide stereotypes
+skinparam linetype ortho
+skinparam entity {
+  BackgroundColor White
+  BorderColor Black
+}
+
+' =========================
+' CORE TRIP
+' =========================
+entity "Trip" as trips {
+  + trip_id : UUID <<PK>>
+  --
+  host_user_id : UUID
+  title : varchar
+  description : text
+  join_policy : OPEN | APPROVAL_REQUIRED
+  status : DRAFT | PUBLISHED | CANCELLED | COMPLETED
+  visibility : PUBLIC | PRIVATE
+  max_people : int
+  estimated_cost : int
+  created_at : timestamp
+  updated_at : timestamp
+}
+
+' =========================
+' TRIP POLICIES
+' =========================
+entity "TripPolicies" as trip_policies {
+  + trip_id : UUID <<PK, FK>>
+  --
+  cancellation_policy : text
+  refund_policy : text
+}
+
+' =========================
+' TRIP METADATA
+' =========================
+entity "TripMetadata" as trip_metadata {
+  + trip_id : UUID <<PK, FK>>
+  --
+  trip_summary : jsonb
+  whats_included : jsonb
+  whats_excluded : jsonb
+  essentials : jsonb
+}
+
+' =========================
+' TAGS
+' =========================
+entity "Tag" as tags {
+  + id : int <<PK>>
+  --
+  name : varchar
+}
+
+entity "TripTag" as trip_tags {
+  + trip_id : UUID <<PK, FK>>
+  + tag_id : int <<PK, FK>>
+}
+
+' =========================
+' ITINERARY
+' =========================
+entity "TripItinerary" as trip_itineraries {
+  + itinerary_id : UUID <<PK>>
+  --
+  trip_id : UUID <<FK>>
+  day_number : int
+  title : varchar
+  description : text
+  activities : jsonb
+  meals : jsonb
+  stay : jsonb
+  created_at : timestamp
+}
+
+' =========================
+' INVITES
+' =========================
+entity "TripInvite" as trip_invites {
+  + invite_id : UUID <<PK>>
+  --
+  trip_id : UUID <<FK>>
+  invited_by : UUID
+  invited_user_id : UUID
+  invited_email : varchar
+  invited_phone : varchar
+  invite_type : IN_APP | LINK | EMAIL | PHONE
+  token_hash : text
+  status : PENDING | ACCEPTED | DECLINED | EXPIRED
+  expires_at : timestamp
+  last_reminded_at : timestamp
+  created_at : timestamp
+}
+
+' =========================
+' JOIN REQUESTS
+' =========================
+entity "TripJoinRequest" as trip_join_requests {
+  + request_id : UUID <<PK>>
+  --
+  trip_id : UUID <<FK>>
+  user_id : UUID
+  source : DIRECT | INVITE
+  status : PENDING | APPROVED | REJECTED
+  reviewed_by : UUID
+  reviewed_at : timestamp
+  created_at : timestamp
+}
+
+' =========================
+' MEMBERS
+' =========================
+entity "TripMember" as trip_members {
+  + membership_id : UUID <<PK>>
+  --
+  trip_id : UUID <<FK>>
+  user_id : UUID
+  role : HOST | CO_HOST | MEMBER
+  status : ACTIVE | LEFT | REMOVED
+  joined_at : timestamp
+  exited_at : timestamp
+  exited_by : UUID
+}
+
+' =========================
+' PRE-JOIN QUERIES
+' =========================
+entity "TripQuery" as trip_queries {
+  + query_id : UUID <<PK>>
+  --
+  trip_id : UUID <<FK>>
+  asked_by : UUID
+  question : text
+  answer : text
+  visibility : HOST_ONLY | HOST_AND_CO_HOSTS
+  created_at : timestamp
+  answered_at : timestamp
+}
+
+' =========================
+' RELATIONSHIPS
+' =========================
+trips ||--|| trip_policies : has
+trips ||--|| trip_metadata : has
+
+trips ||--o{ trip_itineraries : contains
+trips ||--o{ trip_invites : sends
+trips ||--o{ trip_join_requests : receives
+trips ||--o{ trip_members : has
+trips ||--o{ trip_queries : receives
+
+trips ||--o{ trip_tags : tagged_with
+tags  ||--o{ trip_tags : categorizes
+
+' =========================
+' NOTES
+' =========================
+note right of trip_members
+  Retired Users are derived:
+  - LEFT / REMOVED members
+  - DECLINED / EXPIRED invites
+  - REJECTED join requests
+  (No physical table)
+end note
+
+@enduml

@@ -199,7 +199,7 @@ class UserServiceTest {
     @Test
     @DisplayName("PUT profile-picture — success")
     void updateProfilePicture_success() {
-        UrlDto dto = UrlDto.builder().Url("https://cdn.com/img123.png").build();
+        UrlDto dto = UrlDto.builder().url("https://cdn.com/img123.png").build();
         when(userProfileRepository.findAllUserProfileDetailByUserId(userUuid))
                 .thenReturn(Optional.of(profileEntity));
 
@@ -211,7 +211,7 @@ class UserServiceTest {
     @Test
     @DisplayName("PUT profile-picture — invalid uuid")
     void updateProfilePicture_invalidUuid() {
-        UrlDto dto = UrlDto.builder().Url("https://img.png").build();
+        UrlDto dto = UrlDto.builder().url("https://img.png").build();
         assertThrows(InvalidUserIdException.class,
                 () -> userService.updateProfilePicture("bad-uuid", dto));
     }
@@ -219,7 +219,7 @@ class UserServiceTest {
     @Test
     @DisplayName("PUT profile-picture — profile not found")
     void updateProfilePicture_notFound() {
-        UrlDto dto = UrlDto.builder().Url("https://img.png").build();
+        UrlDto dto = UrlDto.builder().url("https://img.png").build();
 
         when(userProfileRepository.findAllUserProfileDetailByUserId(userUuid))
                 .thenReturn(Optional.empty());

@@ -1,0 +1,65 @@
+@startuml
+hide methods
+hide stereotypes
+skinparam linetype ortho
+
+class UsersEntity {
+  userUuid : UUID <<PK>>
+  countryCode : String
+  email : String
+  mobileNumber : String
+  userRole : UserRole
+  accountStatus : AccountStatus
+  createdAt : LocalDateTime
+  updatedAt : LocalDateTime
+}
+
+class UserProfileEntity {
+  userProfileUuid : UUID <<PK>>
+  userUuid : UUID <<FK>>
+  firstName : String
+  middleName : String
+  lastName : String
+  gender : Gender
+  dob : LocalDate
+  verificationStatus : VerificationStatus
+}
+
+class SocialHandleEntity {
+  socialHandleUuid : UUID <<PK>>
+  userUuid : UUID <<FK>>
+  platform : SocialHandle
+  platformUrl : String
+}
+
+class VerificationEntity {
+  verificationUuid : UUID <<PK>>
+  userUuid : UUID <<FK>>
+  documentType : DocumentType
+  documentNumber : String
+  verificationStatus : VerificationStatus
+}
+
+class RefreshTokenEntity {
+  refreshTokenUuid : UUID <<PK>>
+  userUuid : UUID <<FK>>
+  tokenHash : String
+  expiresAt : LocalDateTime
+  revoked : boolean
+}
+
+class UserReportEntity {
+  reportId : UUID <<PK>>
+  reportedUserId : UUID
+  reportingUserId : UUID
+  message : String
+}
+
+' ================= RELATIONSHIPS =================
+
+UsersEntity ||--|| UserProfileEntity : user_uuid
+UsersEntity ||--o{ SocialHandleEntity : user_uuid
+UsersEntity ||--|| VerificationEntity : user_uuid
+UsersEntity ||--o{ RefreshTokenEntity : user_uuid
+
+@enduml
