@@ -6,6 +6,7 @@ import com.tranzo.tranzo_user_ms.dto.UserProfileDto;
 import com.tranzo.tranzo_user_ms.dto.UserReportRequestDto;
 import com.tranzo.tranzo_user_ms.enums.AccountStatus;
 import com.tranzo.tranzo_user_ms.enums.SocialHandle;
+import com.tranzo.tranzo_user_ms.enums.VerificationStatus;
 import com.tranzo.tranzo_user_ms.exception.*;
 import com.tranzo.tranzo_user_ms.model.*;
 import com.tranzo.tranzo_user_ms.repository.UserProfileHistoryRepository;
@@ -42,6 +43,47 @@ public class UserService {
                 .findAllUserProfileDetailByUserId(userUuid)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
         return mapToUserProfileDto(profileEntity);
+    }
+
+    @Transactional
+    public void createUserProfile(UserProfileDto userProfileDto, String userId) {
+        UUID userUuid;
+        try{
+            userUuid = UUID.fromString(userId);
+        }catch(IllegalArgumentException e){
+            throw new InvalidUserIdException("Invalid user id: " + userId);
+        }
+        UsersEntity user = userRepository.findById(userUuid)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        // Prevent duplicate profile creation
+        if (user.getUserProfileEntity() != null) {
+            throw new RuntimeException("User profile already exists");
+        }
+        UserProfileEntity userProfileEntity = new UserProfileEntity();
+        userProfileEntity.setFirstName(userProfileDto.getFirstName());
+        userProfileEntity.setMiddleName(userProfileDto.getMiddleName());
+        userProfileEntity.setLastName(userProfileDto.getLastName());
+        userProfileEntity.setBio(userProfileDto.getBio());
+        userProfileEntity.setGender(userProfileDto.getGender());
+        userProfileEntity.setDob(userProfileDto.getDob());
+        userProfileEntity.setLocation(userProfileDto.getLocation());
+        userProfileEntity.setProfilePictureUrl(userProfileDto.getProfilePictureUrl());
+        userProfileEntity.setVerificationStatus(VerificationStatus.NOT_VERIFIED);
+        if (userProfileDto.getSocialHandleDtoList() != null && !userProfileDto.getSocialHandleDtoList().isEmpty())
+        {
+            List<SocialHandleEntity> socialHandles = userProfileDto.getSocialHandleDtoList().stream()
+                    .map(sh -> {
+                        SocialHandleEntity socialHandleEntity = new SocialHandleEntity();
+                        socialHandleEntity.setPlatform(sh.getPlatform());
+                        socialHandleEntity.setPlatformUrl(sh.getUrl());
+                        socialHandleEntity.setUser(user);
+                        return socialHandleEntity;
+                    }).toList();
+            user.setSocialHandleEntity(socialHandles);
+        }
+        userProfileEntity.setUser(user);
+        user.setUserProfileEntity(userProfileEntity);
+        userRepository.save(user);
     }
 
     private UserProfileDto mapToUserProfileDto(UserProfileEntity profileEntity) {
@@ -351,5 +393,4 @@ public class UserService {
         }
         return true;
     }
-
 }

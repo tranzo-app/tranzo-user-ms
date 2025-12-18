@@ -30,42 +30,53 @@ public class UserController {
         return ResponseEntity.ok(ResponseDto.success(200,"User profile fetched successfully", userProfileDto));
     }
 
-    @PatchMapping("/user/update/{userId}")
-    public ResponseEntity<ResponseDto> updateUserProfile(@PathVariable String userId, @RequestBody @Valid UserProfileDto userProfileDto) {
-        UserProfileDto updatedUserProfile = userService.updateUserProfile(userId, userProfileDto);
-        return ResponseEntity.ok(ResponseDto.success(200,"User profile updated successfully", userProfileDto));
+    @PostMapping("/user/create")
+    public ResponseEntity<ResponseDto<Void>> registerUser(@Valid @RequestBody UserProfileDto userProfileDto) throws  AuthException {
+        String userId = SecurityUtils.getCurrentUserUuid();
+        userService.createUserProfile(userProfileDto, userId);
+        return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", null));
     }
 
-    @DeleteMapping("/user/delete-user/{userId}")
-    public ResponseEntity<ResponseDto> deleteUser(@PathVariable String userId) {
+    @PatchMapping("/user/update")
+    public ResponseEntity<ResponseDto<UserProfileDto>> updateUserProfile(@RequestBody @Valid UserProfileDto userProfileDto) throws AuthException {
+        String userId = SecurityUtils.getCurrentUserUuid();
+        UserProfileDto updatedUserProfile = userService.updateUserProfile(userId, userProfileDto);
+        return ResponseEntity.ok(ResponseDto.success(200,"User profile updated successfully", updatedUserProfile));
+    }
+
+    @DeleteMapping("/user/delete-user")
+    public ResponseEntity<ResponseDto<Void>> deleteUser() throws AuthException {
+        String userId = SecurityUtils.getCurrentUserUuid();
         userService.deleteUserProfile(userId);
         return ResponseEntity.ok(ResponseDto.success(200,"User profile deleted successfully", null));
     }
 
-    @PutMapping("/user/{userId}/profile-picture")
-    public ResponseEntity<ResponseDto<UserProfileDto>> updateProfilePicture(@PathVariable String userId, @RequestBody @Valid UrlDto profilePictureUrl) {
+    @PutMapping("/user/profile-picture")
+    public ResponseEntity<ResponseDto<UserProfileDto>> updateProfilePicture(@RequestBody @Valid UrlDto profilePictureUrl) throws AuthException {
+        String userId = SecurityUtils.getCurrentUserUuid();
         UserProfileDto updatedProfile = userService.updateProfilePicture(userId, profilePictureUrl);
         return ResponseEntity.ok(ResponseDto.success(200,"Profile picture updated  successfully", updatedProfile));
     }
 
-    @DeleteMapping("/user/{userId}/profile-picture")
-    public ResponseEntity<ResponseDto<UserProfileDto>> deleteProfilePicture(@PathVariable String userId) {
+    @DeleteMapping("/user/profile-picture")
+    public ResponseEntity<ResponseDto<UserProfileDto>> deleteProfilePicture() throws AuthException {
+        String userId = SecurityUtils.getCurrentUserUuid();
         UserProfileDto updatedProfile = userService.deleteProfilePicture(userId);
         return ResponseEntity.ok(ResponseDto.success(200,"Profile picture deleted successfully", updatedProfile));
     }
 
-    @PatchMapping("/user/{userId}/social-handles")
-    public ResponseEntity<ResponseDto<UserProfileDto>> upsertSocialHandles(
-            @PathVariable String userId,
-            @RequestBody @Valid List<SocialHandleDto> socialHandles) {
+    @PatchMapping("/user/social-handles")
+    public ResponseEntity<ResponseDto<UserProfileDto>> upsertSocialHandles(@RequestBody @Valid List<SocialHandleDto> socialHandles) throws AuthException {
+        String userId = SecurityUtils.getCurrentUserUuid();
         UserProfileDto updatedProfile = userService.upsertSocialHandles(userId, socialHandles);
         return ResponseEntity.ok(
                 ResponseDto.success(200, "Social handles updated successfully", updatedProfile)
         );
     }
 
-    @PostMapping("/User/{reportedUserId}/{reporterUserId}/report")
-    public ResponseEntity<ResponseDto<Void>> reportUser(@PathVariable String reportedUserId,@PathVariable String reporterUserId, @RequestBody @Valid UserReportRequestDto userReportRequestDto) {
+    @PostMapping("/User/{reportedUserId}/report")
+    public ResponseEntity<ResponseDto<Void>> reportUser(@PathVariable String reportedUserId, @RequestBody @Valid UserReportRequestDto userReportRequestDto) throws AuthException {
+        String reporterUserId = SecurityUtils.getCurrentUserUuid();
         userService.reportUser(reportedUserId,reporterUserId, userReportRequestDto);
         return ResponseEntity.ok(
                 ResponseDto.success(200, "User reported successfully", null)
