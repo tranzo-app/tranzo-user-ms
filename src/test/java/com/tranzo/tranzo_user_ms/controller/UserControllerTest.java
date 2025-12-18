@@ -1,13 +1,14 @@
 package com.tranzo.tranzo_user_ms.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tranzo.tranzo_user_ms.dto.UrlDto;
-import com.tranzo.tranzo_user_ms.dto.UserProfileDto;
-import com.tranzo.tranzo_user_ms.enums.Gender;
-import com.tranzo.tranzo_user_ms.exception.InvalidUserIdException;
-import com.tranzo.tranzo_user_ms.exception.UserAlreadyDeletedExeption;
-import com.tranzo.tranzo_user_ms.exception.UserProfileNotFoundException;
-import com.tranzo.tranzo_user_ms.service.UserService;
+import com.tranzo.tranzo_user_ms.user.controller.UserController;
+import com.tranzo.tranzo_user_ms.user.dto.UrlDto;
+import com.tranzo.tranzo_user_ms.user.dto.UserProfileDto;
+import com.tranzo.tranzo_user_ms.user.enums.Gender;
+import com.tranzo.tranzo_user_ms.commons.exception.InvalidUserIdException;
+import com.tranzo.tranzo_user_ms.commons.exception.UserAlreadyDeletedExeption;
+import com.tranzo.tranzo_user_ms.commons.exception.UserProfileNotFoundException;
+import com.tranzo.tranzo_user_ms.user.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
