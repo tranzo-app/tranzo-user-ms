@@ -1,10 +1,10 @@
-
 package com.tranzo.tranzo_user_ms.user.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.tranzo.tranzo_user_ms.user.enums.AccountStatus;
 import com.tranzo.tranzo_user_ms.user.enums.UserRole;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -36,13 +36,16 @@ public class UsersEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID userUuid;
 
-    @Pattern(regexp = "\\+[0-9]{1,4}")
+    @Pattern(regexp = "\\+[0-9]{1,4}", message = "Country code must start with + and contain 1–4 digits")
+    @Column(name = "country_code")
     private String countryCode;
 
+    @Email(message = "Invalid email format")
     @Column(name = "email")
     private String email;
 
-    @Column(name = "mobile_number" , nullable = false)
+    @Pattern(regexp = "[0-9]{7,15}", message = "Mobile number must be 7–15 digits")
+    @Column(name = "mobile_number")
     private String mobileNumber;
 
     @Column(name = "created_at", updatable = false, nullable = false)
