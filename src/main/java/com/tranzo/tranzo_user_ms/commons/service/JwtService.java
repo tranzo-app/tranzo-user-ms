@@ -7,6 +7,7 @@ import java.util.UUID;
 public interface JwtService {
     String generateAccessToken(UsersEntity user);
     String generateRefreshToken(UsersEntity user);
+    String generateRegistrationToken(String identifier);
     boolean validateAccessToken(String token);
     boolean validateRefreshToken(String token);
     UUID extractUserUuid(String token);

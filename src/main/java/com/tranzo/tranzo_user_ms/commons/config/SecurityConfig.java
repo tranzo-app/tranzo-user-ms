@@ -33,9 +33,11 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/auth/**",
+                                "/auth/otp/**",
+                                "/auth/session/**",
                                 "/h2-console/**"
                         ).permitAll()
+                        .requestMatchers("/user/register").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(

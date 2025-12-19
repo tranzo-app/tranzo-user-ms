@@ -68,6 +68,19 @@ public class JwtServiceImpl implements JwtService {
     }
 
     @Override
+    public String generateRegistrationToken(String identifier)
+    {
+        return Jwts.builder()
+                .setSubject(identifier)
+                .setIssuer(issuer)
+                .claim("type", "REGISTRATION")
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 10 * 60 * 1000))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    @Override
     public boolean validateAccessToken(String token) {
         try {
             Claims claims = parseClaims(token);

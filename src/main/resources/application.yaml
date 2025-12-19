@@ -33,3 +33,15 @@ spring:
     access-token-expiry-minutes: 15
     refresh-token-expiry-days: 7
     issuer: tranzo-auth
+
+logging:
+  level:
+    org:
+      springframework:
+        transaction: DEBUG
+      hibernate:
+        SQL: DEBUG
+        type:
+          descriptor:
+            sql: TRACE
+
