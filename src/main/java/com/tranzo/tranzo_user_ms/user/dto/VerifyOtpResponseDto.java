@@ -9,4 +9,5 @@ import lombok.NoArgsConstructor;
 @Builder
 public class VerifyOtpResponseDto {
     private boolean userExists;
+    private String registrationToken;
 }

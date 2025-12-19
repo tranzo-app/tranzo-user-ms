@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.user.service;
 
+import com.tranzo.tranzo_user_ms.commons.service.JwtService;
 import com.tranzo.tranzo_user_ms.user.dto.RequestOtpDto;
 import com.tranzo.tranzo_user_ms.user.dto.VerifyOtpDto;
 import com.tranzo.tranzo_user_ms.user.dto.VerifyOtpResponseDto;
@@ -28,6 +29,7 @@ public class OtpService {
     private final OtpUtility otpUtility;
     private final StringRedisTemplate stringRedisTemplate;
     private final UserRepository userRepository;
+    private final JwtService jwtService;
 
     private Map<String, String> otpMap = new HashMap<>();
 
@@ -48,7 +50,6 @@ public class OtpService {
         log.info("OTP for {} is {}", identifier, otp);
     }
 
-    @Transactional
     public VerifyOtpResponseDto verifyOtp(VerifyOtpDto verifyOtpDto)
     {
         String identifier = otpUtility.resolveIdentifier(verifyOtpDto);
@@ -63,10 +64,19 @@ public class OtpService {
         {
             throw new OtpException("Invalid OTP");
         }
-        otpMap.remove(key);
         Optional<UsersEntity> user = findUserByIdentifier(verifyOtpDto);
         boolean userExists = user.isPresent();
-        createNewUser(verifyOtpDto);
+        if (!userExists)
+        {
+            createNewUser(verifyOtpDto);
+            String registrationToken = jwtService.generateRegistrationToken(identifier);
+            otpMap.remove(key);
+            return VerifyOtpResponseDto.builder()
+                    .userExists(userExists)
+                    .registrationToken(registrationToken)
+                    .build();
+        }
+        otpMap.remove(key);
         return VerifyOtpResponseDto.builder()
                 .userExists(userExists)
                 .build();
@@ -86,10 +96,12 @@ public class OtpService {
         return userRepository.findByMobileNumber(dto.getMobileNumber());
     }
 
+    @Transactional
     private void createNewUser(VerifyOtpDto verifyOtpDto)
     {
         UsersEntity usersEntity = new UsersEntity();
         if (verifyOtpDto.getEmailId() != null && !verifyOtpDto.getEmailId().isBlank()) usersEntity.setEmail(verifyOtpDto.getEmailId());
+        if (verifyOtpDto.getCountryCode() != null && !verifyOtpDto.getCountryCode().isBlank()) usersEntity.setCountryCode(verifyOtpDto.getCountryCode());
         if (verifyOtpDto.getMobileNumber() != null && !verifyOtpDto.getMobileNumber().isBlank()) usersEntity.setMobileNumber(verifyOtpDto.getMobileNumber());
         usersEntity.setUserRole(UserRole.NORMAL_USER);
         usersEntity.setAccountStatus(AccountStatus.ACTIVE);
