@@ -1,0 +1,58 @@
+package com.tranzo.tranzo_user_ms.trip.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.UUID;
+
+@Entity
+@Table(
+        name = "trip_itineraries",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"trip_id", "day_number"})
+        }
+)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+public class TripItenaryEntity {
+
+    @Id
+    @EqualsAndHashCode.Include
+    @Column(name = "itinerary_id", nullable = false, updatable = false)
+    private UUID itineraryId;
+
+    @Column(name = "trip_id", nullable = false,  updatable = false)
+    private UUID tripId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trip_id", nullable = false)
+    private TripEntity trip;
+
+    @Column(name = "day_number", nullable = false)
+    private Integer dayNumber;
+
+    @Column(name = "title", length = 255)
+    private String title;
+
+    @Column(name = "description")
+    private String description;
+
+    @Column(name = "activities", columnDefinition = "jsonb")
+    private Map<String, Object> activities;
+
+    @Column(name = "meals", columnDefinition = "jsonb")
+    private Map<String, Object> meals;
+
+    @Column(name = "stay", columnDefinition = "jsonb")
+    private Map<String, Object> stay;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+}
