@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -16,7 +17,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AccessTokenFilter accessTokenFilter;
+    private final RegistrationTokenFilter registrationTokenFilter;
     private final JwtAuthEntryPoint jwtAuthEntryPoint;
 
     @Bean
@@ -25,6 +27,7 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers ->
                         headers.frameOptions(frame -> frame.disable()) // Required for H2
                 )
@@ -41,7 +44,11 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(
-                        jwtAuthenticationFilter,
+                        registrationTokenFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                )
+                .addFilterBefore(
+                        accessTokenFilter,
                         UsernamePasswordAuthenticationFilter.class
                 );
         return http.build();

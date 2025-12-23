@@ -1,9 +1,11 @@
 package com.tranzo.tranzo_user_ms.user.controller;
 
+import com.tranzo.tranzo_user_ms.commons.service.JwtService;
 import com.tranzo.tranzo_user_ms.user.dto.*;
 import com.tranzo.tranzo_user_ms.user.service.UserService;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
 import jakarta.security.auth.message.AuthException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -14,13 +16,12 @@ import java.util.List;
 @Slf4j
 @RestController
 public class UserController {
-
-    // After Implementation of JWT Authentication, userId can be fetched from the token itself.
-
     private final UserService userService;
+    private final JwtService jwtService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, JwtService jwtService) {
         this.userService = userService;
+        this.jwtService = jwtService;
     }
 
     @GetMapping("/user")
@@ -30,10 +31,10 @@ public class UserController {
         return ResponseEntity.ok(ResponseDto.success(200,"User profile fetched successfully", userProfileDto));
     }
 
-    @PostMapping("/user/create")
-    public ResponseEntity<ResponseDto<Void>> registerUser(@Valid @RequestBody UserProfileDto userProfileDto) throws  AuthException {
-        String userId = SecurityUtils.getCurrentUserUuid();
-        userService.createUserProfile(userProfileDto, userId);
+    @PostMapping("/user/register")
+    public ResponseEntity<ResponseDto<Void>> registerUser(HttpServletRequest request, @Valid @RequestBody UserProfileDto userProfileDto) throws  AuthException {
+        String identifier = (String) request.getAttribute("registrationIdentifier");
+        userService.createUserProfile(userProfileDto, identifier);
         return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", null));
     }
 

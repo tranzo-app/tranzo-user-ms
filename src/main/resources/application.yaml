@@ -32,6 +32,7 @@ spring:
     secret: 7kP9xQeZyWvT2A1bNcLmJkHGFdsapOiuRANDOMKEY
     access-token-expiry-minutes: 15
     refresh-token-expiry-days: 7
+    registration-token-expiry-minutes: 10
     issuer: tranzo-auth
 
 logging:

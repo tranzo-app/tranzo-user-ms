@@ -1,5 +1,7 @@
 package com.tranzo.tranzo_user_ms.user.service;
 
+import com.tranzo.tranzo_user_ms.commons.exception.UnauthorizedException;
+import com.tranzo.tranzo_user_ms.commons.exception.UserNotFoundException;
 import com.tranzo.tranzo_user_ms.commons.service.JwtService;
 import com.tranzo.tranzo_user_ms.user.dto.SessionRequestDto;
 import com.tranzo.tranzo_user_ms.user.dto.SessionResponseDto;
@@ -48,8 +50,8 @@ public class SessionService {
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
-        log.info("Access token : {}", accessToken);
-        log.info("Refresh token : {}", refreshToken);
+        log.info("Access token after creating the session : {}", accessToken);
+        log.info("Refresh token after creating the session : {}", refreshToken);
 
         saveNewRefreshToken(refreshToken, user);
         setCookie(response, "ACCESS_TOKEN", accessToken, (int) (accessExpiryMinutes * 60));
@@ -66,7 +68,7 @@ public class SessionService {
             HttpServletResponse response
     ) throws AuthException {
         String refreshToken = extractRefreshToken(request);
-        UUID userUuid = jwtService.extractUserUuid(refreshToken);
+        UUID userUuid = UUID.fromString(jwtService.extractSubject(refreshToken));
         RefreshTokenEntity storedToken =
                 refreshTokenRepository
                         .findByUser_UserUuidAndRevokedFalse(userUuid)
@@ -74,7 +76,10 @@ public class SessionService {
         if (!hash(refreshToken).equals(storedToken.getTokenHash())) {
             throw new AuthException("Invalid refresh token");
         }
-        jwtService.validateRefreshToken(refreshToken);
+        jwtService.validateTokenOrThrow(refreshToken);
+        if ("REFRESH".equals(jwtService.extractTokenType(refreshToken))) {
+            throw new UnauthorizedException("Invalid token type for refresh");
+        }
         UsersEntity user = storedToken.getUser();
         String newRefreshToken = jwtService.generateRefreshToken(user);
         storedToken.setTokenHash(hash(newRefreshToken));
@@ -82,8 +87,8 @@ public class SessionService {
 //        storedToken.setUpdatedAt(LocalDateTime.now());
         refreshTokenRepository.save(storedToken);
         String newAccessToken = jwtService.generateAccessToken(user);
-        log.info("Access token : {}", newAccessToken);
-        log.info("Refresh token : {}", newRefreshToken);
+        log.info("Access token after refreshing the session : {}", newAccessToken);
+        log.info("Refresh token after refreshing the session : {}", newRefreshToken);
         setCookie(response, "ACCESS_TOKEN", newAccessToken, (int) (accessExpiryMinutes * 60));
         setCookie(response, "REFRESH_TOKEN", newRefreshToken, (int) (refreshExpiryDays * 24 * 60 * 60));
         return SessionResponseDto.builder()
@@ -96,7 +101,7 @@ public class SessionService {
         String refreshToken = extractRefreshToken(request);
         if (refreshToken != null) {
             try {
-                UUID userUuid = jwtService.extractUserUuid(refreshToken);
+                UUID userUuid = UUID.fromString(jwtService.extractSubject(refreshToken));
                 refreshTokenRepository
                         .findByUser_UserUuidAndRevokedFalse(userUuid)
                         .ifPresent(token -> {
@@ -119,9 +124,9 @@ public class SessionService {
 
         return dto.getEmailId() != null
                 ? userRepository.findByEmail(dto.getEmailId().toLowerCase())
-                .orElseThrow(() -> new RuntimeException("User not found"))
+                .orElseThrow(() -> new UserNotFoundException("User not found for identifier: " + dto.getEmailId()))
                 : userRepository.findByMobileNumber(dto.getMobileNumber())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found for identifier: " + dto.getMobileNumber()));
     }
 
     private String hash(String token) {
