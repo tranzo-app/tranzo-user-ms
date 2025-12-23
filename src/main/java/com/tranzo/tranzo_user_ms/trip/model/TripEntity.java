@@ -30,9 +30,6 @@ public class TripEntity {
     @Column(name = "trip_id", updatable = false, nullable = false)
     private UUID tripId;
 
-    @Column(name = "host_user_id", nullable = false)
-    private UUID hostUserId;
-
     @Column(name = "trip_description", nullable = false, length = 500)
     private String tripDescription;
 
@@ -87,21 +84,46 @@ public class TripEntity {
     @OneToOne(
             mappedBy = "trip",
             cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY,
-            optional = true
+            fetch = FetchType.LAZY
     )
     private TripPolicy tripPolicy;
 
     @OneToOne(
             mappedBy = "trip",
             cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY,
-            optional = true
+            fetch = FetchType.LAZY
     )
     private TripMetaDataEntity tripMetaData;
 
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "trip_tag",
+            joinColumns = @JoinColumn(name = "trip_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<TagEntity> tripTags = new HashSet<>();
+
     @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<TripTagEntity> tripTags = new HashSet<>();
+    private Set<TripItenaryEntity> tripIteneraries = new HashSet<>();
+
+    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<TripInviteEntity> tripInvites = new HashSet<>();
+
+    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<TripJoinRequestEntity> tripJoinRequests = new HashSet<>();
+
+    @OneToMany(
+            mappedBy = "trip",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Set<TripMemberEntity> tripMembers = new HashSet<>();
+
+    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<TripQueryEntity> tripQueries = new HashSet<>();
+
+    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<TripReportEntity> tripReports = new HashSet<>();
 }
 
 

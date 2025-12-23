@@ -14,6 +14,9 @@ import java.util.UUID;
         indexes = {
                 @Index(name = "idx_trip_reports_trip", columnList = "trip_id"),
                 @Index(name = "idx_trip_reports_status", columnList = "status")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"trip_id", "reported_by"})
         }
 )
 @Getter
@@ -30,6 +33,10 @@ public class TripReportEntity {
 
     @Column(name = "trip_id", nullable = false)
     private UUID tripId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trip_id", nullable = false)
+    private TripEntity trip;
 
     @Column(name = "reported_by", nullable = false)
     private UUID reportedBy;

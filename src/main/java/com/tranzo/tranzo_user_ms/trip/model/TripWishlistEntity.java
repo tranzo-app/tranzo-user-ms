@@ -13,7 +13,6 @@ import java.util.UUID;
                 @UniqueConstraint(columnNames = {"trip_id", "user_id"})
         }
 )
-
 public class TripWishlistEntity {
 
     @Id
@@ -23,6 +22,7 @@ public class TripWishlistEntity {
     @Column(name = "trip_id", nullable = false)
     private UUID tripId;
 
+    // Logical foreign key
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 

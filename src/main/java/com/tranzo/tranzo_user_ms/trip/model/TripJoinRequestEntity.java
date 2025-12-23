@@ -34,6 +34,10 @@ public class TripJoinRequestEntity {
     @Column(name = "trip_id", nullable = false)
     private UUID tripId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trip_id", nullable = false)
+    private TripEntity trip;
+
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
