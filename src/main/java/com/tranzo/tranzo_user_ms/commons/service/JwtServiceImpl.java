@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.commons.service;
 
+import com.tranzo.tranzo_user_ms.commons.exception.UnauthorizedException;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -13,7 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.UUID;
 
 @Service
 public class JwtServiceImpl implements JwtService {
@@ -26,6 +26,9 @@ public class JwtServiceImpl implements JwtService {
 
     @Value("${spring.jwt.refresh-token-expiry-days}")
     private long refreshExpiryDays;
+
+    @Value("${spring.jwt.registration-token-expiry-minutes}")
+    private long registrationExpiryMinutes;
 
     @Value("${spring.jwt.issuer}")
     private String issuer;
@@ -75,36 +78,35 @@ public class JwtServiceImpl implements JwtService {
                 .setIssuer(issuer)
                 .claim("type", "REGISTRATION")
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 10 * 60 * 1000))
+                .setExpiration(Date.from(
+                        Instant.now().plus(registrationExpiryMinutes, ChronoUnit.MINUTES)
+                ))
                 .signWith(getSigningKey())
                 .compact();
     }
 
-    @Override
-    public boolean validateAccessToken(String token) {
+    public boolean validateToken(String token) {
         try {
-            Claims claims = parseClaims(token);
-            String tokenType = claims.get("type", String.class);
-            return "ACCESS".equals(tokenType);
-        } catch (JwtException | IllegalArgumentException e) {
+            parseClaims(token);
+            return true;
+        }
+        catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }
 
-    @Override
-    public boolean validateRefreshToken(String token) {
+    public void validateTokenOrThrow(String token) {
         try {
-            Claims claims = parseClaims(token);
-            String tokenType = claims.get("type", String.class);
-            return "REFRESH".equals(tokenType);
+            parseClaims(token);
         } catch (JwtException | IllegalArgumentException e) {
-            return false;
+            throw new UnauthorizedException("Invalid or expired token");
         }
     }
 
+
     @Override
-    public UUID extractUserUuid(String token) {
-        return UUID.fromString(parseClaims(token).getSubject());
+    public String extractSubject(String token) {
+        return parseClaims(token).getSubject();
     }
 
     @Override

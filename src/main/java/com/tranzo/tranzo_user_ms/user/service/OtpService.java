@@ -10,6 +10,7 @@ import com.tranzo.tranzo_user_ms.commons.exception.OtpException;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.user.utility.OtpUtility;
+import com.tranzo.tranzo_user_ms.user.utility.UserUtility;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class OtpService {
     private final StringRedisTemplate stringRedisTemplate;
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final UserUtility userUtility;
 
     private Map<String, String> otpMap = new HashMap<>();
 
@@ -64,7 +66,7 @@ public class OtpService {
         {
             throw new OtpException("Invalid OTP");
         }
-        Optional<UsersEntity> user = findUserByIdentifier(verifyOtpDto);
+        Optional<UsersEntity> user = userUtility.findUserByIdentifier(verifyOtpDto);
         boolean userExists = user.isPresent();
         if (!userExists)
         {
@@ -85,15 +87,6 @@ public class OtpService {
     private String buildKey(String identifier)
     {
         return "OTP:" + identifier;
-    }
-
-    private Optional<UsersEntity> findUserByIdentifier(VerifyOtpDto dto) {
-
-        if (dto.getEmailId() != null && !dto.getEmailId().isBlank()) {
-            return userRepository.findByEmail(dto.getEmailId().toLowerCase());
-        }
-
-        return userRepository.findByMobileNumber(dto.getMobileNumber());
     }
 
     @Transactional

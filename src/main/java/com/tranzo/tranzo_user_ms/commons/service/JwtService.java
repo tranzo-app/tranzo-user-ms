@@ -8,8 +8,8 @@ public interface JwtService {
     String generateAccessToken(UsersEntity user);
     String generateRefreshToken(UsersEntity user);
     String generateRegistrationToken(String identifier);
-    boolean validateAccessToken(String token);
-    boolean validateRefreshToken(String token);
-    UUID extractUserUuid(String token);
+    boolean validateToken(String token);
+    void validateTokenOrThrow(String token);
+    String extractSubject(String token);
     String extractTokenType(String token);
 }
