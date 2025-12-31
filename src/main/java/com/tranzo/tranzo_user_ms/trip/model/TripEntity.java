@@ -25,40 +25,43 @@ import java.util.UUID;
 public class TripEntity {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     @EqualsAndHashCode.Include
     @Column(name = "trip_id", updatable = false, nullable = false)
     private UUID tripId;
 
-    @Column(name = "trip_description", nullable = false, length = 500)
+    @Column(name = "trip_description")
     private String tripDescription;
 
-    @Column(name = "trip_title", nullable = false)
+    @Column(name = "trip_title")
     private String tripTitle;
 
-    @Column(name = "trip_destination", nullable = false)
+    @Column(name = "trip_destination")
     private String tripDestination;
 
-    @Column(name = "trip_start_date", nullable = false)
+    @Column(name = "trip_start_date")
     private LocalDate tripStartDate;
 
-    @Column(name = "trip_end_date", nullable = false)
+    @Column(name = "trip_end_date")
     private LocalDate tripEndDate;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "trip_status", nullable = false)
     private TripStatus tripStatus;
 
-    @Column(name = "estimated_budget", nullable = false)
+    @Column(name = "estimated_budget")
     private Double estimatedBudget;
 
-    @Column(name = "max_participants", nullable = false)
+    @Column(name = "max_participants")
     private Integer maxParticipants;
 
-    @Column(name = "is_full", nullable = false)
-    private Boolean isFull;
+    @Column(name = "current_participants")
+    private Integer currentParticipants = 0;
 
-    @Column(name = "trip_full_reason", length = 300)
+    @Column(name = "is_full")
+    private Boolean isFull = false;
+
+    @Column(name = "trip_full_reason")
     private String tripFullReason;
 
     @Column(name = "full_marked_at")
@@ -66,32 +69,36 @@ public class TripEntity {
     private LocalDateTime fullMarkedAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "join_policy", nullable = false)
+    @Column(name = "join_policy")
     private JoinPolicy joinPolicy;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "visibility_status", nullable = false)
+    @Column(name = "visibility_status")
     private VisibilityStatus visibilityStatus;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false, nullable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
 
     @OneToOne(
             mappedBy = "trip",
             cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY
+            fetch = FetchType.LAZY,
+            orphanRemoval = true
     )
-    private TripPolicy tripPolicy;
+    private TripPolicyEntity tripPolicyEntity;
 
     @OneToOne(
             mappedBy = "trip",
             cascade = CascadeType.ALL,
-            fetch = FetchType.LAZY
+            fetch = FetchType.LAZY,
+            orphanRemoval = true
     )
     private TripMetaDataEntity tripMetaData;
 
@@ -104,12 +111,12 @@ public class TripEntity {
     private Set<TagEntity> tripTags = new HashSet<>();
 
     @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<TripItenaryEntity> tripIteneraries = new HashSet<>();
+    private Set<TripItineraryEntity> tripItineraries = new HashSet<>();
 
-    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "trip", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<TripInviteEntity> tripInvites = new HashSet<>();
 
-    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "trip", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<TripJoinRequestEntity> tripJoinRequests = new HashSet<>();
 
     @OneToMany(
@@ -119,11 +126,14 @@ public class TripEntity {
     )
     private Set<TripMemberEntity> tripMembers = new HashSet<>();
 
-    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "trip", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     private Set<TripQueryEntity> tripQueries = new HashSet<>();
 
-    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "trip", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<TripReportEntity> tripReports = new HashSet<>();
+
+    @OneToMany(mappedBy = "trip", fetch = FetchType.LAZY)
+    private Set<TripWishlistEntity> tripWishlists = new HashSet<>();
 }
 
 

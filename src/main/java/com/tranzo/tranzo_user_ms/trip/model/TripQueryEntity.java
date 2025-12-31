@@ -25,6 +25,7 @@ public class TripQueryEntity {
     @Id
     @EqualsAndHashCode.Include
     @Column(name = "query_id", nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID queryId;
 
     @Column(name = "trip_id", nullable = false)

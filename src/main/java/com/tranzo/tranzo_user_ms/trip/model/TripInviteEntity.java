@@ -33,6 +33,7 @@ public class TripInviteEntity {
     @Id
     @EqualsAndHashCode.Include
     @Column(name = "invite_id", nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID inviteId;
 
     @Column(name = "trip_id", nullable = false)

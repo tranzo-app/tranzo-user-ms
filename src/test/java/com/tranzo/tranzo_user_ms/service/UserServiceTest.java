@@ -11,7 +11,7 @@ import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
-import com.tranzo.tranzo_user_ms.commons.exception.UserAlreadyDeletedExeption;
+import com.tranzo.tranzo_user_ms.commons.exception.UserAlreadyDeletedException;
 import com.tranzo.tranzo_user_ms.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -191,7 +191,7 @@ class UserServiceTest {
         when(userRepository.findUserByUserUuid(userUuid))
                 .thenReturn(Optional.of(userEntity));
 
-        assertThrows(UserAlreadyDeletedExeption.class,
+        assertThrows(UserAlreadyDeletedException.class,
                 () -> userService.deleteUserProfile(userUuid.toString()));
     }
 

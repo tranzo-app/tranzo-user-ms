@@ -17,7 +17,7 @@ import java.util.UUID;
 public class TagEntity {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     @EqualsAndHashCode.Include
     @Column(name = "tag_id", updatable = false, nullable = false)
     private UUID tagId;

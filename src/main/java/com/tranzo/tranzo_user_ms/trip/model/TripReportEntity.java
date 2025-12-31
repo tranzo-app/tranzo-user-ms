@@ -29,6 +29,7 @@ public class TripReportEntity {
     @Id
     @EqualsAndHashCode.Include
     @Column(name = "report_id", nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID reportId;
 
     @Column(name = "trip_id", nullable = false)

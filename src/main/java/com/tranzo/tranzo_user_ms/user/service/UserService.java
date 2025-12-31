@@ -13,7 +13,7 @@ import com.tranzo.tranzo_user_ms.user.repository.UserProfileHistoryRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserReportRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +30,11 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserReportRepository userReportRepository;
     private final UserProfileHistoryRepository userProfileHistoryRepository;
+
+    public void findUserByUserId(UUID userUuid) {
+        userRepository.findUserByUserUuid(userUuid)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+    }
 
     public UserProfileDto getUserProfile(String userId) {
         UUID userUuid ;
@@ -219,7 +224,7 @@ public class UserService {
         UsersEntity user = profileEntity.getUser();
 
         if(profileEntity.getUser().getAccountStatus()== AccountStatus.DELETED){
-            throw new UserAlreadyDeletedExeption("User already deleted for id: " + userId);
+            throw new UserAlreadyDeletedException("User already deleted for id: " + userId);
         }
 
         userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
@@ -303,7 +308,7 @@ public class UserService {
         UsersEntity user = profileEntity.getUser();
 
         if (user.getAccountStatus() == AccountStatus.DELETED) {
-            throw new UserAlreadyDeletedExeption("User account is deleted for id: " + userId);
+            throw new UserAlreadyDeletedException("User account is deleted for id: " + userId);
         }
 
         List<SocialHandleEntity> existingHandles = user.getSocialHandleEntity();
