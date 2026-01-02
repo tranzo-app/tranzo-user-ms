@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "tags")
+@Table(name = "tags", uniqueConstraints = {@UniqueConstraint(columnNames = {"tag_name"})})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,7 +17,7 @@ import java.util.UUID;
 public class TagEntity {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.UUID)
     @EqualsAndHashCode.Include
     @Column(name = "tag_id", updatable = false, nullable = false)
     private UUID tagId;
@@ -25,6 +25,6 @@ public class TagEntity {
     @Column(name = "tag_name", nullable = false, unique = true)
     private String tagName;
 
-    @OneToMany(mappedBy = "tag")
-    private Set<TripTagEntity> tripTags = new HashSet<>();
+    @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
+    private Set<TripEntity> trips = new HashSet<>();
 }

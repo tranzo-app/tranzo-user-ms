@@ -6,7 +6,7 @@ import com.tranzo.tranzo_user_ms.user.dto.UrlDto;
 import com.tranzo.tranzo_user_ms.user.dto.UserProfileDto;
 import com.tranzo.tranzo_user_ms.user.enums.Gender;
 import com.tranzo.tranzo_user_ms.commons.exception.InvalidUserIdException;
-import com.tranzo.tranzo_user_ms.commons.exception.UserAlreadyDeletedExeption;
+import com.tranzo.tranzo_user_ms.commons.exception.UserAlreadyDeletedException;
 import com.tranzo.tranzo_user_ms.commons.exception.UserProfileNotFoundException;
 import com.tranzo.tranzo_user_ms.user.service.UserService;
 import org.junit.jupiter.api.DisplayName;
@@ -125,7 +125,7 @@ class UserControllerTest {
             String userId = "5b48b1e7-7e33-4a32-b3c8-7fd37e13c333";
 
             when(userService.getUserProfile(eq(userId)))
-                    .thenThrow(new UserAlreadyDeletedExeption("User account is deleted for id: " + userId));
+                    .thenThrow(new UserAlreadyDeletedException("User account is deleted for id: " + userId));
 
             mockMvc.perform(get("/user/{userId}", userId))
                     .andExpect(status().isBadRequest())
@@ -217,7 +217,7 @@ class UserControllerTest {
             String userId = "5b48b1e7-7e33-4a32-b3c8-7fd37e13c777";
 
             when(userService.updateUserProfile(eq(userId), any(UserProfileDto.class)))
-                    .thenThrow(new UserAlreadyDeletedExeption("User account is deleted for id: " + userId));
+                    .thenThrow(new UserAlreadyDeletedException("User account is deleted for id: " + userId));
 
             mockMvc.perform(patch("/user/{userId}", userId)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -282,7 +282,7 @@ class UserControllerTest {
         void deleteUser_userDeleted() throws Exception {
             String userId = "5b48b1e7-7e33-4a32-b3c8-7fd37e13caaa";
 
-            doThrow(new UserAlreadyDeletedExeption("User account is deleted for id: " + userId))
+            doThrow(new UserAlreadyDeletedException("User account is deleted for id: " + userId))
                     .when(userService).deleteUserProfile(eq(userId));
 
             mockMvc.perform(delete("/user/{userId}", userId))

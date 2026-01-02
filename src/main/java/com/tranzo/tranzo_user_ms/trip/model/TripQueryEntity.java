@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.model;
 
+import com.tranzo.tranzo_user_ms.trip.enums.TripQueryVisibility;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -24,10 +25,15 @@ public class TripQueryEntity {
     @Id
     @EqualsAndHashCode.Include
     @Column(name = "query_id", nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID queryId;
 
     @Column(name = "trip_id", nullable = false)
     private UUID tripId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trip_id", nullable = false)
+    private TripEntity trip;
 
     @Column(name = "asked_by", nullable = false)
     private UUID askedBy;

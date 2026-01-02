@@ -17,6 +17,10 @@ import java.util.UUID;
                 @Index(name = "idx_trip_invite_trip", columnList = "trip_id"),
                 @Index(name = "idx_trip_invite_status", columnList = "status"),
                 @Index(name = "idx_trip_invite_token", columnList = "token_hash")
+        },
+        uniqueConstraints = {@UniqueConstraint(name = "UniqueTripIdAndInvitedUserId", columnNames = {"trip_id", "invited_user_id"}),
+                             @UniqueConstraint(name = "UniqueTripIdAndInvitedEmail", columnNames = {"trip_id", "invited_email"}),
+                             @UniqueConstraint(name = "UniqueTripIdAndInvitedPhone", columnNames = {"trip_id", "invited_phone"})
         }
 )
 @Getter
@@ -29,10 +33,15 @@ public class TripInviteEntity {
     @Id
     @EqualsAndHashCode.Include
     @Column(name = "invite_id", nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID inviteId;
 
     @Column(name = "trip_id", nullable = false)
     private UUID tripId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trip_id", nullable = false)
+    private TripEntity trip;
 
     @Column(name = "invited_by", nullable = false)
     private UUID invitedBy;

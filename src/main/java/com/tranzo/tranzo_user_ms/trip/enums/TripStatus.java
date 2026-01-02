@@ -5,5 +5,21 @@ public enum TripStatus {
     PUBLISHED,
     ONGOING,
     COMPLETED,
-    CANCELLED
+    CANCELLED;
+
+    public boolean canManuallyTransitionTo(TripStatus next) {
+        return switch (this) {
+            case DRAFT -> next == PUBLISHED || next == CANCELLED;
+            case PUBLISHED -> next == CANCELLED;
+            default -> false;
+        };
+    }
+
+    public boolean canAutomaticallyTransitionTo(TripStatus next) {
+        return switch (this) {
+            case PUBLISHED -> next == ONGOING;
+            case ONGOING -> next == COMPLETED;
+            default -> false;
+        };
+    }
 }

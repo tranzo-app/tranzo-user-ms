@@ -20,15 +20,13 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class TripItenaryEntity {
+public class TripItineraryEntity {
 
     @Id
     @EqualsAndHashCode.Include
     @Column(name = "itinerary_id", nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID itineraryId;
-
-    @Column(name = "trip_id", nullable = false,  updatable = false)
-    private UUID tripId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id", nullable = false)

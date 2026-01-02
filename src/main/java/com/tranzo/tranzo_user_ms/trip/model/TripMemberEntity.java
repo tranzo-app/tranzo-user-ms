@@ -2,6 +2,7 @@ package com.tranzo.tranzo_user_ms.trip.model;
 
 import com.tranzo.tranzo_user_ms.trip.enums.TripMemberRole;
 import com.tranzo.tranzo_user_ms.trip.enums.TripMemberStatus;
+import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -29,13 +30,16 @@ public class TripMemberEntity {
     @Id
     @EqualsAndHashCode.Include
     @Column(name = "membership_id", nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID membershipId;
 
-    @Column(name = "trip_id", nullable = false)
-    private UUID tripId;
-
+    // Logical foreign key
     @Column(name = "user_id", nullable = false)
     private UUID userId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "trip_id", nullable = false)
+    private TripEntity trip;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)

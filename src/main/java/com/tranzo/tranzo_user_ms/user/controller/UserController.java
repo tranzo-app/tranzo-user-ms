@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -28,6 +29,12 @@ public class UserController {
         String userId = SecurityUtils.getCurrentUserUuid();
         UserProfileDto userProfileDto = userService.getUserProfile(userId);
         return ResponseEntity.ok(ResponseDto.success(200,"User profile fetched successfully", userProfileDto));
+    }
+
+    public ResponseEntity<ResponseDto<Void>> findUser(@PathVariable UUID userUuid)
+    {
+        userService.findUserByUserId(userUuid);
+        return ResponseEntity.ok(ResponseDto.success(200,"User fetched successfully", null));
     }
 
     @PostMapping("/user/create")
