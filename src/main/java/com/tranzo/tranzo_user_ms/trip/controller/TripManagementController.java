@@ -1,6 +1,7 @@
 package com.tranzo.tranzo_user_ms.trip.controller;
 
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
+import com.tranzo.tranzo_user_ms.trip.dto.CreateQnaRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripDto;
 import com.tranzo.tranzo_user_ms.trip.service.TripManagementService;
 import com.tranzo.tranzo_user_ms.trip.validation.groups.DraftChecks;
@@ -44,5 +45,12 @@ public class TripManagementController {
         String userId = SecurityUtils.getCurrentUserUuid();
         tripManagementService.cancelTrip(tripId, userId);
         return ResponseEntity.ok(ResponseDto.success("Trip successfully cancelled", null));
+    }
+
+    @PostMapping("/{tripId}/qna")
+    public ResponseEntity<ResponseDto<Void>> addTripQnA(@RequestBody CreateQnaRequestDto createQnaRequestDto, @PathVariable String tripId) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        tripManagementService.addTripQnA(userID, createQnaRequestDto, tripId);
+        return ResponseEntity.ok(ResponseDto.success("Trip QnA added successfully", null));
     }
 }

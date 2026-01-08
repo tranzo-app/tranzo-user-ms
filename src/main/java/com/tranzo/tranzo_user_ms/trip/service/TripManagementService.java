@@ -10,10 +10,7 @@ import com.tranzo.tranzo_user_ms.trip.enums.TripMemberStatus;
 import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus;
 import com.tranzo.tranzo_user_ms.trip.model.*;
-import com.tranzo.tranzo_user_ms.trip.repository.TagRepository;
-import com.tranzo.tranzo_user_ms.trip.repository.TripItineraryRepository;
-import com.tranzo.tranzo_user_ms.trip.repository.TripMemberRepository;
-import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
+import com.tranzo.tranzo_user_ms.trip.repository.*;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +27,7 @@ public class TripManagementService {
     TagRepository tagRepository;
     TripItineraryRepository tripItineraryRepository;
     TripMemberRepository tripMemberRepository;
+    TripQueryRepository tripQueryRepository;
     UserUtil userUtil;
 
     @Transactional
@@ -353,5 +351,31 @@ public class TripManagementService {
             return tripItineraryDto;
         })
         .collect(Collectors.toSet());
+    }
+
+    // what to do for trip qna visibilty
+
+
+    public void addTripQnA(UUID userID, CreateQnaRequestDto createQnaRequestDto, UUID tripId){
+            TripEntity trip = tripRepository.findById(tripId)
+                    .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+
+            userUtil.validateUserIsHost(tripId, userId);
+
+            if(trip.getTripStatus().equals(TripStatus.PUBLISHED)){
+                TripQueryEntity tripQueryEntity = TripQueryEntity.builder()
+                        .tripId(trip.getTripId())
+                        .question(createQnaRequestDto.getQuestion())
+                        .answer(null)
+                        .askedByUserId(userID)
+                        .trip(trip)
+                        .build();
+
+                tripQueryRepository.save(tripQueryEntity);
+            }
+            else {
+                throw new ConflictException("QnA can be added only to published trips");
+            }
+
     }
 }
