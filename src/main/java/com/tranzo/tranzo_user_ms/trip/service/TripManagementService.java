@@ -386,4 +386,74 @@ public class TripManagementService {
         })
         .collect(Collectors.toSet());
     }
+
+
+
+    public void addTripQnA(UUID userID, CreateQnaRequestDto createQnaRequestDto, UUID tripId){
+            TripEntity trip = tripRepository.findById(tripId)
+                    .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+
+            userUtil.validateUserIsHost(tripId, userId);
+
+            if(trip.getTripStatus().equals(TripStatus.PUBLISHED)){
+                TripQueryEntity tripQueryEntity = TripQueryEntity.builder()
+                        .tripId(trip.getTripId())
+                        .question(createQnaRequestDto.getQuestion())
+                        .answer(null)
+                        .askedByUserId(userID)
+                        .trip(trip)
+                        .build();
+
+                tripQueryRepository.save(tripQueryEntity);
+            }
+            else {
+                throw new ConflictException("QnA can be added only to published trips");
+            }
+    }
+
+    public void answerTripQnA(UUID userID, UUID tripId, UUID qnaId){
+            TripEntity trip = tripRepository.findById(tripId)
+                    .orElseThrow(()-> new EntityNotFoundException("Trip not found"));
+
+            if(trip.getTripStatus() == TripStatus.CANCELLED || trip.getTripStatus() == TripStatus.COMPLETED){
+                throw new ConflictException("QnA cannot be answered for cancelled or Completed trips");
+            }
+
+            // are we allowing only host to answer QnA?
+
+            TripQueryEntity tripQuery = tripQueryRepository.findByQueryIdAndTripId(qnaId,tripId)
+                    .orElseThrow(()-> new EntityNotFoundException("QnA not found for the given trip"));
+
+            if(tripQuery.getAnswer() != null){
+                throw new ConflictException("QnA has already been answered");
+            }
+            tripQuery.setAnswer("This is a sample answer");
+            tripQuery.setAnsweredAt(LocalDateTime.now());
+
+    }
+
+    // what about question answer visibility
+    public List<TripQnaResponseDto> getTripQna(UUID tripId){
+        TripEntity trip = tripRepository.findById(tripId)
+                .orElseThrow(()-> new EntityNotFoundException("Trip not found"));
+
+        List<TripQueryEntity> tripQueries = tripQueryRepository.findByTripIdOrderByCreatedAtDesc(tripId);
+
+        return tripQueries.stream()
+                .map(this::mapToTripQueryResponseDto)
+                .toList();
+    }
+
+    private TripQnaResponseDto mapToTripQueryResponseDto(TripQueryEntity tripQueryEntity){
+        return TripQnaResponseDto.builder()
+                .qnaId(tripQueryEntity.getQueryId())
+                .tripId(tripQueryEntity.getTripId())
+                .authorUserId(tripQueryEntity.getAskedBy())
+                .question(tripQueryEntity.getQuestion())
+                .answer(tripQueryEntity.getAnswer())
+                .answeredAt(tripQueryEntity.getAnsweredAt())
+                .createdAt(tripQueryEntity.getCreatedAt())
+                .build();
+    }
+
 }
