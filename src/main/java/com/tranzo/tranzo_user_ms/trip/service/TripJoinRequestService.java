@@ -4,10 +4,7 @@ import com.tranzo.tranzo_user_ms.commons.exception.BadRequestException;
 import com.tranzo.tranzo_user_ms.commons.exception.ConflictException;
 import com.tranzo.tranzo_user_ms.commons.exception.EntityNotFoundException;
 import com.tranzo.tranzo_user_ms.commons.exception.ForbiddenException;
-<<<<<<< HEAD
-=======
 import com.tranzo.tranzo_user_ms.trip.dto.RemoveParticipantRequestDto;
->>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestResponseDto;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
@@ -106,13 +103,9 @@ public class TripJoinRequestService {
             member.setRole(TripMemberRole.MEMBER);
             member.setStatus(TripMemberStatus.ACTIVE);
             tripMemberRepository.save(member);
-<<<<<<< HEAD
-            trip.setCurrentParticipants(trip.getCurrentParticipants() + 1);
-=======
             int updatedCount = trip.getCurrentParticipants() + 1;
             trip.setCurrentParticipants(updatedCount);
             trip.setIsFull(updatedCount >= trip.getMaxParticipants());
->>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
             tripRepository.save(trip);
         }
 
@@ -164,13 +157,9 @@ public class TripJoinRequestService {
         tripMember.setStatus(TripMemberStatus.ACTIVE);
         tripMemberRepository.save(tripMember);
 
-<<<<<<< HEAD
-        trip.setCurrentParticipants(trip.getCurrentParticipants() + 1);
-=======
         int updatedCount = trip.getCurrentParticipants() + 1;
         trip.setCurrentParticipants(updatedCount);
         trip.setIsFull(updatedCount >= trip.getMaxParticipants());
->>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
 
         return TripJoinRequestResponseDto.builder()
                 .joinRequestId(joinRequest.getRequestId())
@@ -212,10 +201,7 @@ public class TripJoinRequestService {
                 .build();
     }
 
-<<<<<<< HEAD
-=======
     // Will we get status as an array in query parameter?
->>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
     public List<TripJoinRequestResponseDto> getJoinRequestsForTrip(UUID tripId, UUID userId, JoinRequestStatus status)
     {
         TripEntity trip = tripRepository.findById(tripId)
@@ -242,8 +228,6 @@ public class TripJoinRequestService {
         }).toList();
         return joinRequestResponseDtoList;
     }
-<<<<<<< HEAD
-=======
 
     // We will show only pending requests for a user
     @Transactional
@@ -301,5 +285,4 @@ public class TripJoinRequestService {
         trip.setCurrentParticipants(updatedCount);
         trip.setIsFull(updatedCount >= trip.getMaxParticipants());
     }
->>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
 }

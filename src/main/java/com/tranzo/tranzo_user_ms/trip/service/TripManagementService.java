@@ -7,13 +7,7 @@ import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
 import com.tranzo.tranzo_user_ms.trip.model.*;
 import com.tranzo.tranzo_user_ms.trip.repository.*;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
-<<<<<<< HEAD
-import jakarta.validation.Valid;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
-import jakarta.validation.Valid;
-=======
-import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
->>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,11 +26,8 @@ public class TripManagementService {
     TagRepository tagRepository;
     TripItineraryRepository tripItineraryRepository;
     TripMemberRepository tripMemberRepository;
-<<<<<<< HEAD
     TripQueryRepository tripQueryRepository;
     TripReportRepository tripReportRepository;
-=======
->>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
     TripPublishEligibilityValidator tripPublishEligibilityValidator;
     UserUtil userUtil;
 
@@ -410,7 +401,6 @@ public class TripManagementService {
 
             if(trip.getTripStatus().equals(TripStatus.PUBLISHED)){
                 TripQueryEntity tripQueryEntity = TripQueryEntity.builder()
-                        .tripId(trip.getTripId())
                         .question(createQnaRequestDto.getQuestion())
                         .answer(null)
                         .askedBy(userID)
@@ -463,7 +453,7 @@ public class TripManagementService {
     private TripQnaResponseDto mapToTripQueryResponseDto(TripQueryEntity tripQueryEntity){
         return TripQnaResponseDto.builder()
                 .qnaId(tripQueryEntity.getQueryId())
-                .tripId(tripQueryEntity.getTripId())
+                .tripId(tripQueryEntity.getTrip().getTripId())
                 .authorUserId(tripQueryEntity.getAskedBy())
                 .question(tripQueryEntity.getQuestion())
                 .answer(tripQueryEntity.getAnswer())
@@ -491,7 +481,6 @@ public class TripManagementService {
 
             TripReportEntity tripReportEntity = TripReportEntity.builder()
                     .trip(trip)
-                    .tripId(trip.getTripId())
                     .reportedBy(reportingUserId)
                     .reportReason(reportTripRequestDto.getReportReason())
                     .build();

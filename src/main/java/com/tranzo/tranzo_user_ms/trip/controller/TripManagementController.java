@@ -1,15 +1,12 @@
 package com.tranzo.tranzo_user_ms.trip.controller;
 
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
-<<<<<<< HEAD
 import com.tranzo.tranzo_user_ms.trip.dto.*;
 import com.tranzo.tranzo_user_ms.trip.dto.AnswerQnaRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.CreateQnaRequestDto;
-=======
 import com.tranzo.tranzo_user_ms.trip.dto.TripDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripResponseDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripViewDto;
->>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
 import com.tranzo.tranzo_user_ms.trip.service.TripManagementService;
 import com.tranzo.tranzo_user_ms.trip.validation.groups.DraftChecks;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
@@ -57,7 +54,6 @@ public class TripManagementController {
         return ResponseEntity.ok(ResponseDto.success("Trip successfully cancelled", null));
     }
 
-<<<<<<< HEAD
     @PostMapping("/{tripId}/qna")
     public ResponseEntity<ResponseDto<Void>> addTripQnA(@RequestBody CreateQnaRequestDto createQnaRequestDto, @PathVariable UUID tripId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
@@ -65,8 +61,6 @@ public class TripManagementController {
         return ResponseEntity.ok(ResponseDto.success("Trip QnA added successfully", null));
     }
 
-=======
->>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
     @PostMapping("/{tripId}/publish")
     public ResponseEntity<ResponseDto<TripResponseDto>> publishDraftTrip(@PathVariable UUID tripId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
@@ -81,7 +75,6 @@ public class TripManagementController {
         TripResponseDto tripResponse = tripManagementService.updateTrip(tripDto, tripId, userId);
         return ResponseEntity.ok(ResponseDto.success("Published trip has been updated successfully", tripResponse));
     }
-<<<<<<< HEAD
 
 
     @PostMapping("/{tripId}/qna/{qnaId}/answer")
@@ -115,6 +108,4 @@ public class TripManagementController {
         tripManagementService.promoteToCoHost(userId, tripId, participantUserId);
         return ResponseEntity.ok(ResponseDto.success("Participant has been promoted to co-host successfully", null));
     }
-=======
->>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
 }
