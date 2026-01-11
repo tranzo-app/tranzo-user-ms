@@ -90,7 +90,7 @@ public class TripManagementController {
             @PathVariable UUID tripId
     ) {
         List<TripQnaResponseDto> response =
-                tripManagementService.getTripQna(tripId, answerQnaRequestDto);
+                tripManagementService.getTripQna(tripId);
 
         return ResponseEntity.ok(
                 ResponseDto.success("Trip QnA fetched successfully", response)
