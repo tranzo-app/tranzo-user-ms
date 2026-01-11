@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.service;
 
+import com.fasterxml.jackson.databind.ser.impl.UnknownSerializer;
 import com.tranzo.tranzo_user_ms.commons.exception.ConflictException;
 import com.tranzo.tranzo_user_ms.commons.exception.EntityNotFoundException;
 import com.tranzo.tranzo_user_ms.commons.exception.InvalidUserIdException;
@@ -24,26 +25,20 @@ public class TripWishlistService {
     TripWishlistRepository tripWishlistRepository;
 
     @Transactional
-    public TripWishlistResponseDto addTripToWishlist(TripWishlistRequestDto tripWishlistRequestDto, String userId)
+    public TripWishlistResponseDto addTripToWishlist(TripWishlistRequestDto tripWishlistRequestDto, UUID userId)
     {
         UUID tripId = tripWishlistRequestDto.getTripId();
-        UUID userUuid ;
-        try{
-            userUuid = UUID.fromString(userId);
-        }catch(IllegalArgumentException e){
-            throw new InvalidUserIdException("Invalid user id: " + userId);
-        }
         TripEntity trip = tripRepository.findByTripIdAndTripStatus(tripId, TripStatus.PUBLISHED)
                 .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
         // Call Rest endpoint here to check if the user exists
 
-        boolean isWishlistExists = tripWishlistRepository.existsByUserIdAndTrip_TripId(userUuid, tripId);
+        boolean isWishlistExists = tripWishlistRepository.existsByUserIdAndTrip_TripId(userId, tripId);
         if (isWishlistExists)
         {
             throw new ConflictException("Trip is already wishlisted by the user");
         }
         TripWishlistEntity wishlist = new TripWishlistEntity();
-        wishlist.setUserId(userUuid);
+        wishlist.setUserId(userId);
         wishlist.setTrip(trip);
         TripWishlistEntity savedWishlist = tripWishlistRepository.save(wishlist);
 
@@ -57,27 +52,15 @@ public class TripWishlistService {
     }
 
     @Transactional
-    public void removeTripFromWishlist(UUID tripId, String userId) {
-        UUID userUuid ;
-        try{
-            userUuid = UUID.fromString(userId);
-        }catch(IllegalArgumentException e){
-            throw new InvalidUserIdException("Invalid user id: " + userId);
-        }
-        TripWishlistEntity wishlist = tripWishlistRepository.findByTrip_TripIdAndUserId(tripId, userUuid)
+    public void removeTripFromWishlist(UUID tripId, UUID userId) {
+        TripWishlistEntity wishlist = tripWishlistRepository.findByTrip_TripIdAndUserId(tripId, userId)
                 .orElseThrow(() -> new EntityNotFoundException("Trip is not in user's wishlist"));
         tripWishlistRepository.delete(wishlist);
     }
 
     @Transactional(readOnly = true)
-    public List<TripWishlistResponseDto> fetchWishlist(String userId) {
-        UUID userUuid ;
-        try{
-            userUuid = UUID.fromString(userId);
-        }catch(IllegalArgumentException e){
-            throw new InvalidUserIdException("Invalid user id: " + userId);
-        }
-        List<TripWishlistEntity> tripWishlistEntityList = tripWishlistRepository.findByUserIdOrderByCreatedAtDesc(userUuid);
+    public List<TripWishlistResponseDto> fetchWishlist(UUID userId) {
+        List<TripWishlistEntity> tripWishlistEntityList = tripWishlistRepository.findByUserIdOrderByCreatedAtDesc(userId);
         return tripWishlistEntityList.stream().map((wishlist) -> {
             TripWishlistResponseDto wishlistDto = TripWishlistResponseDto.builder()
                     .tripId(wishlist.getTrip().getTripId())

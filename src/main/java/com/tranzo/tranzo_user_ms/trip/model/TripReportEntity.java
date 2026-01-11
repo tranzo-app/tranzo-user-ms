@@ -32,9 +32,6 @@ public class TripReportEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID reportId;
 
-    @Column(name = "trip_id", nullable = false)
-    private UUID tripId;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id", nullable = false)
     private TripEntity trip;

@@ -24,11 +24,11 @@ import java.util.Set;
 public class TripDto {
     @NotBlank(groups = PublishChecks.class,
             message = "Trip title is required for publishing")
-    private String tripDescription;
+    private String tripTitle;
 
     @NotBlank(groups = PublishChecks.class,
             message = "Trip description is required for publishing")
-    private String tripTitle;
+    private String tripDescription;
 
     @NotBlank(groups = PublishChecks.class,
             message = "Trip destination is required for publishing")

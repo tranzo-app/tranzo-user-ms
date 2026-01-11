@@ -1,7 +1,7 @@
 package com.tranzo.tranzo_user_ms.commons.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tranzo.tranzo_user_ms.user.dto.ResponseDto;
+import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
