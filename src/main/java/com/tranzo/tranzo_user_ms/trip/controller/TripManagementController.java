@@ -12,6 +12,9 @@ import com.tranzo.tranzo_user_ms.trip.validation.groups.DraftChecks;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import jakarta.security.auth.message.AuthException;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -22,7 +25,9 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/trips")
+@Slf4j
 public class TripManagementController {
+    @Autowired
     TripManagementService tripManagementService;
 
     @PostMapping("/")
@@ -43,6 +48,8 @@ public class TripManagementController {
     @GetMapping("/{tripId}")
     public ResponseEntity<ResponseDto<TripViewDto>> fetchTripDetails(@PathVariable UUID tripId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
+        log.info("Trip id : {} ", tripId);
+        log.info("User id : {} ", userId);
         TripViewDto tripDto = tripManagementService.fetchTrip(tripId, userId);
         return ResponseEntity.ok(ResponseDto.success("Trip details have been fetched successfully", tripDto));
     }

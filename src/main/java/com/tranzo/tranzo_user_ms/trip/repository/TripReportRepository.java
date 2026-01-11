@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 public interface TripReportRepository extends JpaRepository<TripReportEntity, UUID> {
-    boolean existsByReportedByAndTripId(UUID reportedBy, UUID tripId);
+    boolean existsByReportedByAndTrip_TripId(UUID reportedBy, UUID tripId);
 }

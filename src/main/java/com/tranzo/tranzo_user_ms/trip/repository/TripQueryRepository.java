@@ -8,6 +8,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface TripQueryRepository extends JpaRepository<TripQueryEntity, UUID> {
-    List<TripQueryEntity> findByTripIdOrderByCreatedAtDesc(UUID tripId);
-    Optional<TripQueryEntity> findByQueryIdAndTripId(UUID queryId, UUID tripId);
+    List<TripQueryEntity> findByTrip_TripIdOrderByCreatedAtDesc(UUID tripId);
+    Optional<TripQueryEntity> findByQueryIdAndTrip_TripId(UUID queryId, UUID tripId);
 }

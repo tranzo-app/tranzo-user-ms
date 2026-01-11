@@ -22,14 +22,15 @@ import static com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode.*;
 @Service
 @RequiredArgsConstructor
 public class TripManagementService {
-    TripRepository tripRepository;
-    TagRepository tagRepository;
-    TripItineraryRepository tripItineraryRepository;
-    TripMemberRepository tripMemberRepository;
-    TripQueryRepository tripQueryRepository;
-    TripReportRepository tripReportRepository;
-    TripPublishEligibilityValidator tripPublishEligibilityValidator;
-    UserUtil userUtil;
+    private final TripRepository tripRepository;
+    private final TagRepository tagRepository;
+    private final TripItineraryRepository tripItineraryRepository;
+    private final TripMemberRepository tripMemberRepository;
+    private final TripQueryRepository tripQueryRepository;
+    private final TripReportRepository tripReportRepository;
+    private final TripPublishEligibilityValidator tripPublishEligibilityValidator;
+    private final UserUtil userUtil;
+
 
     @Transactional
     public TripResponseDto createDraftTrip(TripDto tripDto, UUID userId)
@@ -426,7 +427,7 @@ public class TripManagementService {
 
             userUtil.validateUserIsHost(tripId, userID);
 
-            TripQueryEntity tripQuery = tripQueryRepository.findByQueryIdAndTripId(qnaId,tripId)
+            TripQueryEntity tripQuery = tripQueryRepository.findByQueryIdAndTrip_TripId(qnaId,tripId)
                     .orElseThrow(()-> new EntityNotFoundException("QnA not found for the given trip"));
 
             // are we keeping edit answer as seperate api ? if not then we have to remove this validation
@@ -443,7 +444,7 @@ public class TripManagementService {
         TripEntity trip = tripRepository.findById(tripId)
                 .orElseThrow(()-> new EntityNotFoundException("Trip not found"));
 
-        List<TripQueryEntity> tripQueries = tripQueryRepository.findByTripIdOrderByCreatedAtDesc(tripId);
+        List<TripQueryEntity> tripQueries = tripQueryRepository.findByTrip_TripIdOrderByCreatedAtDesc(tripId);
 
         return tripQueries.stream()
                 .map(this::mapToTripQueryResponseDto)
@@ -471,7 +472,7 @@ public class TripManagementService {
                 throw new ForbiddenException("User is not allowed to report this private trip");
              }
 
-             if(tripReportRepository.existsByReportedByAndTripId(reportingUserId,tripId)) {
+             if(tripReportRepository.existsByReportedByAndTrip_TripId(reportingUserId,tripId)) {
                 throw new ConflictException("User has already reported this trip");
              }
 

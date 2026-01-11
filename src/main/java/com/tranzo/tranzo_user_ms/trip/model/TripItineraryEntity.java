@@ -44,15 +44,15 @@ public class TripItineraryEntity {
     private String description;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "activities", columnDefinition = "jsonb")
+    @Column(name = "activities")
     private Map<String, Object> activities;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "meals", columnDefinition = "jsonb")
+    @Column(name = "meals")
     private Map<String, Object> meals;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "stay", columnDefinition = "jsonb")
+    @Column(name = "stay")
     private Map<String, Object> stay;
 
     @CreationTimestamp

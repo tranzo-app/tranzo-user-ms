@@ -29,14 +29,14 @@ public class TripMetaDataEntity {
     private TripEntity trip;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "trip_summary", columnDefinition = "jsonb")
+    @Column(name = "trip_summary")
     private Map<String, Object> tripSummary;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "whats_included", columnDefinition = "jsonb")
+    @Column(name = "whats_included")
     private Map<String, Object> whatsIncluded;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "whats_excluded", columnDefinition = "jsonb")
+    @Column(name = "whats_excluded")
     private Map<String, Object> whatsExcluded;
 }
