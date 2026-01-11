@@ -1,6 +1,7 @@
 package com.tranzo.tranzo_user_ms.trip.controller;
 
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
+import com.tranzo.tranzo_user_ms.trip.dto.AnswerQnaRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.CreateQnaRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripQnaResponseDto;
@@ -8,6 +9,7 @@ import com.tranzo.tranzo_user_ms.trip.service.TripManagementService;
 import com.tranzo.tranzo_user_ms.trip.validation.groups.DraftChecks;
 import com.tranzo.tranzo_user_ms.user.dto.ResponseDto;
 import jakarta.security.auth.message.AuthException;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -57,9 +59,9 @@ public class TripManagementController {
     }
 
     @PostMapping("/{tripId}/qna/{qnaId}/answer")
-    public ResponseEntity<ResponseDto<Void>> answerTripQnA(@PathVariable UUID tripId, @PathVariable UUID qnaId) throws AuthException {
+    public ResponseEntity<ResponseDto<Void>> answerTripQnA(@PathVariable UUID tripId, @PathVariable UUID qnaId, @Valid AnswerQnaRequestDto answerQnaRequestDto) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        tripManagementService.answerTripQnA(userID, tripId, qnaId);
+        tripManagementService.answerTripQnA(userID, tripId, qnaId, answerQnaRequestDto);
         return ResponseEntity.ok(ResponseDto.success("Trip QnA answered successfully", null));
     }
 
@@ -68,11 +70,13 @@ public class TripManagementController {
             @PathVariable UUID tripId
     ) {
         List<TripQnaResponseDto> response =
-                tripManagementService.getTripQna(tripId);
+                tripManagementService.getTripQna(tripId, answerQnaRequestDto);
 
         return ResponseEntity.ok(
                 ResponseDto.success("Trip QnA fetched successfully", response)
         );
     }
+
+
 
 }

@@ -12,6 +12,7 @@ import com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus;
 import com.tranzo.tranzo_user_ms.trip.model.*;
 import com.tranzo.tranzo_user_ms.trip.repository.*;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
+import jakarta.validation.Valid;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -355,19 +356,22 @@ public class TripManagementService {
     }
 
 
-
     public void addTripQnA(UUID userID, CreateQnaRequestDto createQnaRequestDto, UUID tripId){
             TripEntity trip = tripRepository.findById(tripId)
                     .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
 
             userUtil.validateUserIsHost(tripId, userId);
 
+            if(createQnaRequestDto.getQuestion() == null || createQnaRequestDto.getQuestion().trim().isEmpty()){
+                throw new BadRequestException("Question cannot be empty");
+            }
+
             if(trip.getTripStatus().equals(TripStatus.PUBLISHED)){
                 TripQueryEntity tripQueryEntity = TripQueryEntity.builder()
                         .tripId(trip.getTripId())
                         .question(createQnaRequestDto.getQuestion())
                         .answer(null)
-                        .askedByUserId(userID)
+                        .askedBy(userID)
                         .trip(trip)
                         .build();
 
@@ -378,28 +382,31 @@ public class TripManagementService {
             }
     }
 
-    public void answerTripQnA(UUID userID, UUID tripId, UUID qnaId){
+    public void answerTripQnA(UUID userID, UUID tripId, UUID qnaId,AnswerQnaRequestDto answerQnaRequestDto){
             TripEntity trip = tripRepository.findById(tripId)
                     .orElseThrow(()-> new EntityNotFoundException("Trip not found"));
 
-            if(trip.getTripStatus() == TripStatus.CANCELLED || trip.getTripStatus() == TripStatus.COMPLETED){
+            // giving flexibilty  to answer open question in ongoing and completed state
+
+            if(trip.getTripStatus() == TripStatus.CANCELLED){
                 throw new ConflictException("QnA cannot be answered for cancelled or Completed trips");
             }
 
-            // are we allowing only host to answer QnA?
+            userUtil.validateUserIsHost(tripId, userId);
 
             TripQueryEntity tripQuery = tripQueryRepository.findByQueryIdAndTripId(qnaId,tripId)
                     .orElseThrow(()-> new EntityNotFoundException("QnA not found for the given trip"));
 
+            // are we keeping edit answer as seperate api ? if not then we have to remove this validation
             if(tripQuery.getAnswer() != null){
                 throw new ConflictException("QnA has already been answered");
             }
-            tripQuery.setAnswer("This is a sample answer");
+            tripQuery.setAnswer(answerQnaRequestDto.getAnswer());
             tripQuery.setAnsweredAt(LocalDateTime.now());
 
     }
 
-    // what about question answer visibility
+    // what about question answer visibility : joined as well as not joined users
     public List<TripQnaResponseDto> getTripQna(UUID tripId){
         TripEntity trip = tripRepository.findById(tripId)
                 .orElseThrow(()-> new EntityNotFoundException("Trip not found"));

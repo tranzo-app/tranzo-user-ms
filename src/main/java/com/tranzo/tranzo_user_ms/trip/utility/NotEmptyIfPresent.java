@@ -1,6 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.utility;
 
-import com.tranzo.tranzo_user_ms.trip.NotEmptyIfPresentValidator;
+import com.tranzo.tranzo_user_ms.trip.utility.NotEmptyIfPresentValidator;
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 

@@ -25,6 +25,6 @@ public class TagEntity {
     @Column(name = "tag_name", nullable = false, unique = true)
     private String tagName;
 
-    @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
+    @ManyToMany(mappedBy = "tripTags", fetch = FetchType.LAZY)
     private Set<TripEntity> trips = new HashSet<>();
 }

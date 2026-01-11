@@ -36,7 +36,7 @@ public class TripInviteEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID inviteId;
 
-    @Column(name = "trip_id", nullable = false)
+    @Column(name = "trip_id", nullable = false, updatable = false, insertable = false)
     private UUID tripId;
 
     @ManyToOne(fetch = FetchType.LAZY)
