@@ -36,29 +36,16 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
     }
 
-    public UserProfileDto getUserProfile(String userId) {
-        UUID userUuid ;
-        try{
-            userUuid = UUID.fromString(userId);
-        }catch(IllegalArgumentException e){
-            throw new InvalidUserIdException("Invalid user id: " + userId);
-        }
-
+    public UserProfileDto getUserProfile(UUID userId) {
         UserProfileEntity profileEntity = userProfileRepository
-                .findAllUserProfileDetailByUserId(userUuid)
+                .findAllUserProfileDetailByUserId(userId)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
         return mapToUserProfileDto(profileEntity);
     }
 
     @Transactional
-    public void createUserProfile(UserProfileDto userProfileDto, String userId) {
-        UUID userUuid;
-        try{
-            userUuid = UUID.fromString(userId);
-        }catch(IllegalArgumentException e){
-            throw new InvalidUserIdException("Invalid user id: " + userId);
-        }
-        UsersEntity user = userRepository.findById(userUuid)
+    public void createUserProfile(UserProfileDto userProfileDto, UUID userId) {
+        UsersEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         // Prevent duplicate profile creation
         if (user.getUserProfileEntity() != null) {
@@ -139,21 +126,13 @@ public class UserService {
     }
 
     @Transactional
-    public UserProfileDto updateUserProfile(String userId, UserProfileDto modifiedUserProfileDto) {
-
-        UUID userUUID ;
-        try{
-            userUUID = UUID.fromString(userId);
-        }catch(IllegalArgumentException e){
-            throw new InvalidUserIdException("Invalid user id: " + userId);
-        }
-
+    public UserProfileDto updateUserProfile(UUID userId, UserProfileDto modifiedUserProfileDto) {
         if(isEmptyUpdateRequest(modifiedUserProfileDto)){
             throw new InvalidPatchRequestException("No fields provided for update");
         }
 
         UserProfileEntity profileEntity = userProfileRepository
-                .findAllUserProfileDetailByUserId(userUUID)
+                .findAllUserProfileDetailByUserId(userId)
                 .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
 
         UsersEntity user = profileEntity.getUser();
@@ -205,20 +184,13 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteUserProfile(String userId) {
-        UUID userUUID ;
-        try{
-            userUUID = UUID.fromString(userId);
-        }catch(IllegalArgumentException e){
-            throw new InvalidUserIdException("Invalid user id: " + userId);
-        }
-
+    public void deleteUserProfile(UUID userId) {
        /* UsersEntity user = userRepository
                 .findUserByUserUuid(userUUID)
                 .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
 */
         UserProfileEntity profileEntity = userProfileRepository
-                .findAllUserProfileDetailByUserId(userUUID)
+                .findAllUserProfileDetailByUserId(userId)
                 .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
 
         UsersEntity user = profileEntity.getUser();
@@ -250,15 +222,9 @@ public class UserService {
     }
 
     @Transactional
-    public UserProfileDto updateProfilePicture(String userId, UrlDto profilePictureUrl) {
-        UUID userUuid ;
-        try{
-            userUuid = UUID.fromString(userId);
-        }catch(IllegalArgumentException e){
-            throw new InvalidUserIdException("Invalid user id: " + userId);
-        }
+    public UserProfileDto updateProfilePicture(UUID userId, UrlDto profilePictureUrl) {
         UserProfileEntity profileEntity = userProfileRepository
-                .findAllUserProfileDetailByUserId(userUuid)
+                .findAllUserProfileDetailByUserId(userId)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
 
         userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
@@ -270,15 +236,9 @@ public class UserService {
     }
 
     @Transactional
-    public UserProfileDto deleteProfilePicture(String userId){
-        UUID userUuid ;
-        try{
-            userUuid = UUID.fromString(userId);
-        }catch(IllegalArgumentException e){
-            throw new InvalidUserIdException("Invalid user id: " + userId);
-        }
+    public UserProfileDto deleteProfilePicture(UUID userId){
         UserProfileEntity profileEntity = userProfileRepository
-                .findAllUserProfileDetailByUserId(userUuid)
+                .findAllUserProfileDetailByUserId(userId)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
 
         userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
@@ -289,20 +249,13 @@ public class UserService {
     }
 
     @Transactional
-    public UserProfileDto upsertSocialHandles(String userId, List<SocialHandleDto> socialHandles) {
-        UUID userUuid;
-        try {
-            userUuid = UUID.fromString(userId);
-        } catch (IllegalArgumentException ex) {
-            throw new InvalidUserIdException("Invalid user id: " + userId);
-        }
-
+    public UserProfileDto upsertSocialHandles(UUID userId, List<SocialHandleDto> socialHandles) {
         if (socialHandles == null || socialHandles.isEmpty()) {
             throw new InvalidPatchRequestException("At least one social handle must be provided");
         }
 
         UserProfileEntity profileEntity = userProfileRepository
-                .findAllUserProfileDetailByUserId(userUuid)
+                .findAllUserProfileDetailByUserId(userId)
                 .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
 
         UsersEntity user = profileEntity.getUser();
@@ -358,20 +311,18 @@ public class UserService {
         return mapToUserProfileDto(profileEntity);
     }
 
-    public void reportUser(String reportedUserId, String reporterUserId, UserReportRequestDto userReportRequestDto) {
+    public void reportUser(String reportedUserId, UUID reporterUserId, UserReportRequestDto userReportRequestDto) {
             UUID reportedUuid;
-            UUID reporterUuid;
             try {
                 reportedUuid = UUID.fromString(reportedUserId);
-                reporterUuid = UUID.fromString(reporterUserId);
             } catch (IllegalArgumentException ex) {
                 throw new InvalidUserIdException("Invalid user id(s): " + reportedUserId + ", " + reporterUserId);
             }
-            if(reportedUuid.equals(reporterUuid)){
+            if(reportedUuid.equals(reporterUserId)){
                 throw new InvalidReportRequestException("User cannot report themselves: " + reportedUserId);
             }
 
-            if(userReportRepository.existsByReportedUserIdAndReportingUserId(reportedUuid,reporterUuid)){
+            if(userReportRepository.existsByReportedUserIdAndReportingUserId(reportedUuid,reporterUserId)){
                 throw new DuplicateReportException("User has already reported this user: " + reportedUserId);
             }
 
@@ -381,7 +332,7 @@ public class UserService {
 
             UserReportEntity userReport = UserReportEntity.builder()
                     .reportedUserId(reportedUuid)
-                    .reportingUserId(reporterUuid)
+                    .reportingUserId(reportedUuid)
                     .message(userReportRequestDto.getReportReasonMessage())
                     .build();
 

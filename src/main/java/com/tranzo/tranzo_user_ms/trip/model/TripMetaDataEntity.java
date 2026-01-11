@@ -21,7 +21,7 @@ public class TripMetaDataEntity {
     @EqualsAndHashCode.Include
     @Column(name = "trip_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID tripId;
+    private UUID tripMetaDataId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId

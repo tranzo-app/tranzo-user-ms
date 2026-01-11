@@ -18,7 +18,7 @@ public class TripPolicyEntity {
     @EqualsAndHashCode.Include
     @Column(name = "trip_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID tripId;
+    private UUID tripPolicyId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId

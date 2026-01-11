@@ -12,4 +12,8 @@ public interface TripMemberRepository extends JpaRepository<TripMemberEntity, UU
     Optional<TripMemberEntity> findByTrip_TripIdAndUserIdAndRole(UUID tripId, UUID userUuid, TripMemberRole role);
 
     Optional<TripMemberEntity> findByTrip_TripIdAndUserIdAndStatus(UUID tripId, UUID userUuid, TripMemberStatus status);
+
+    boolean existsByTrip_TripIdAndUserIdAndRoleAndStatus(UUID tripId, UUID userId, TripMemberRole role, TripMemberStatus status);
+
+    boolean existsByTrip_TripIdAndUserIdAndStatus(UUID tripId, UUID userId, TripMemberStatus status);
 }

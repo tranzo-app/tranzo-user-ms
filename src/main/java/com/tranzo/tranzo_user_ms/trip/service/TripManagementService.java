@@ -1,17 +1,13 @@
 package com.tranzo.tranzo_user_ms.trip.service;
 
-import com.tranzo.tranzo_user_ms.commons.exception.BadRequestException;
-import com.tranzo.tranzo_user_ms.commons.exception.ConflictException;
-import com.tranzo.tranzo_user_ms.commons.exception.EntityNotFoundException;
-import com.tranzo.tranzo_user_ms.commons.exception.ForbiddenException;
+import com.tranzo.tranzo_user_ms.commons.exception.*;
 import com.tranzo.tranzo_user_ms.trip.dto.*;
-import com.tranzo.tranzo_user_ms.trip.enums.TripMemberRole;
-import com.tranzo.tranzo_user_ms.trip.enums.TripMemberStatus;
-import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
-import com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus;
+import com.tranzo.tranzo_user_ms.trip.enums.*;
+import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
 import com.tranzo.tranzo_user_ms.trip.model.*;
 import com.tranzo.tranzo_user_ms.trip.repository.*;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
+import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
 import jakarta.validation.Valid;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +18,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode.*;
+
 @Service
 @RequiredArgsConstructor
 public class TripManagementService {
@@ -29,11 +27,10 @@ public class TripManagementService {
     TagRepository tagRepository;
     TripItineraryRepository tripItineraryRepository;
     TripMemberRepository tripMemberRepository;
-    TripQueryRepository tripQueryRepository;
     UserUtil userUtil;
 
     @Transactional
-    public UUID createDraftTrip(TripDto tripDto, String userId)
+    public TripResponseDto createDraftTrip(TripDto tripDto, UUID userId)
     {
         // First check if the user exists and is active.
 
@@ -44,7 +41,7 @@ public class TripManagementService {
         if (tripDto.getTripStartDate() != null &&
                 tripDto.getTripEndDate() != null && tripDto.getTripStartDate().isAfter(tripDto.getTripEndDate()))
         {
-            throw new BadRequestException("Trip start date cannot be after end date");
+            throw new TripPublishException(INVALID_DATE_RANGE);
         }
         tripEntity.setTripStartDate(tripDto.getTripStartDate());
         tripEntity.setTripEndDate(tripDto.getTripEndDate());
@@ -53,7 +50,6 @@ public class TripManagementService {
         tripEntity.setJoinPolicy(tripDto.getJoinPolicy());
         tripEntity.setVisibilityStatus(tripDto.getVisibilityStatus());
         tripEntity.setTripStatus(TripStatus.DRAFT);
-        tripEntity.setCurrentParticipants(1);
         tripEntity.setIsFull(false);
 
         // Trip Policy
@@ -104,19 +100,22 @@ public class TripManagementService {
         TripMemberEntity host = new TripMemberEntity();
         host.setRole(TripMemberRole.HOST);
         host.setStatus(TripMemberStatus.ACTIVE);
-        host.setUserId(UUID.fromString(userId));
+        host.setUserId(userId);
         host.setTrip(tripEntity);
         tripEntity.getTripMembers().add(host);
 
         TripEntity newTrip = tripRepository.save(tripEntity);
-        return newTrip.getTripId();
+        return TripResponseDto.builder()
+                .tripId(newTrip.getTripId())
+                .tripStatus(newTrip.getTripStatus())
+                .build();
     }
 
     @Transactional
-    public UUID updateDraftTrip(TripDto tripDto, UUID tripId, String userId)
+    public TripResponseDto updateDraftTrip(TripDto tripDto, UUID tripId, UUID userId)
     {
         TripEntity trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
         if (trip.getTripStatus() != TripStatus.DRAFT)
         {
             throw new ConflictException("Only trips with DRAFT status can be updated");
@@ -128,30 +127,32 @@ public class TripManagementService {
         updateDraftTripTags(trip, tripDto);
         updateDraftTripItinerary(trip, tripDto);
         TripEntity updateTrip = tripRepository.save(trip);
-        return updateTrip.getTripId();
+        return TripResponseDto.builder()
+                .tripId(updateTrip.getTripId())
+                .tripStatus(updateTrip.getTripStatus())
+                .build();
     }
 
-    public TripDto fetchTrip(UUID tripId, String userId)
+    public TripViewDto fetchTrip(UUID tripId, UUID userId)
     {
         TripEntity trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new EntityNotFoundException("Trip details not found for the given trip id"));
+                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
         if (trip.getTripStatus() == TripStatus.CANCELLED) {
             throw new ForbiddenException("Cancelled trip is not accessible");
         }
-        UUID userUuid = UUID.fromString(userId);
         if (trip.getVisibilityStatus() == VisibilityStatus.PRIVATE)
         {
-            tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userUuid, TripMemberStatus.ACTIVE)
+            tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE)
                     .orElseThrow(() -> new ForbiddenException("User is not allowed to view this private trip"));
         }
         return mapTripEntityToDto(trip);
     }
 
     @Transactional
-    public void cancelTrip(UUID tripId, String userId)
+    public void cancelTrip(UUID tripId, UUID userId)
     {
         TripEntity trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
         if (!trip.getTripStatus().canManuallyTransitionTo(TripStatus.CANCELLED))
         {
             throw new ConflictException("Only trips in a valid status can be cancelled");
@@ -161,6 +162,31 @@ public class TripManagementService {
 
         // Do we need cancellation timestamp and reason?
         tripRepository.save(trip);
+    }
+
+    @Transactional
+    public TripResponseDto publishTrip(UUID tripId, UUID userId)
+    {
+        TripEntity trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+        userUtil.validateUserIsHost(tripId, userId);
+        tripPublishEligibilityValidator.validate(trip);
+        trip.setTripStatus(TripStatus.PUBLISHED);
+        TripEntity updateTrip = tripRepository.save(trip);
+        return TripResponseDto.builder()
+                .tripId(updateTrip.getTripId())
+                .tripStatus(updateTrip.getTripStatus())
+                .build();
+    }
+
+    @Transactional
+    public TripResponseDto updateTrip(TripDto tripDto, UUID tripId, UUID userId)
+    {
+        TripEntity trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+        userUtil.validateUserIsHost(tripId, userId);
+        // TODO
+        return TripResponseDto.builder().build();
     }
 
     @Transactional
@@ -207,7 +233,7 @@ public class TripManagementService {
         if (tripDto.getTripStartDate() != null &&
                 tripDto.getTripEndDate() != null && tripDto.getTripStartDate().isAfter(tripDto.getTripEndDate()))
         {
-            throw new BadRequestException("Trip start date cannot be after end date");
+            throw new TripPublishException(INVALID_DATE_RANGE);
         }
         trip.setTripStartDate(tripDto.getTripStartDate());
         trip.setTripEndDate(tripDto.getTripEndDate());
@@ -290,9 +316,10 @@ public class TripManagementService {
         trip.getTripItineraries().addAll(updatedTripItineraries);
     }
 
-    private TripDto mapTripEntityToDto(TripEntity trip)
+    private TripViewDto mapTripEntityToDto(TripEntity trip)
     {
-        return TripDto.builder()
+        return TripViewDto.builder()
+                .tripId(trip.getTripId())
                 .tripDescription(trip.getTripDescription())
                 .tripTitle(trip.getTripTitle())
                 .tripDestination(trip.getTripDestination())
@@ -311,39 +338,43 @@ public class TripManagementService {
                 .build();
     }
 
-    private TripPolicyDto mapTripPolicyToDto(TripPolicyEntity tripPolicy)
+    private TripPolicyViewDto mapTripPolicyToDto(TripPolicyEntity tripPolicy)
     {
-        return TripPolicyDto.builder()
+        return TripPolicyViewDto.builder()
+                .policyId(tripPolicy.getTripPolicyId())
                 .refundPolicy(tripPolicy.getRefundPolicy())
                 .cancellationPolicy(tripPolicy.getCancellationPolicy())
                 .build();
     }
 
-    private TripMetaDataDto mapTripMetaDataToDto(TripMetaDataEntity tripMetaData)
+    private TripMetaDataViewDto mapTripMetaDataToDto(TripMetaDataEntity tripMetaData)
     {
-        return TripMetaDataDto.builder()
+        return TripMetaDataViewDto.builder()
+                .metadataId(tripMetaData.getTripMetaDataId())
                 .tripSummary(tripMetaData.getTripSummary())
                 .whatsIncluded(tripMetaData.getWhatsIncluded())
                 .whatsExcluded(tripMetaData.getWhatsExcluded())
                 .build();
     }
 
-    private Set<TripTagDto> mapTripTagsToDto(Set<TagEntity> tripTags)
+    private Set<TripTagViewDto> mapTripTagsToDto(Set<TagEntity> tripTags)
     {
         return tripTags.stream().map((tag) -> {
-            TripTagDto tagDto = new TripTagDto();
+            TripTagViewDto tagDto = new TripTagViewDto();
+            tagDto.setTagId(tag.getTagId());
             tagDto.setTagName(tag.getTagName());
             return tagDto;
         })
         .collect(Collectors.toSet());
     }
 
-    private Set<TripItineraryDto> mapTripItinerariesToDto(Set<TripItineraryEntity> tripItineraries)
+    private Set<TripItineraryViewDto> mapTripItinerariesToDto(Set<TripItineraryEntity> tripItineraries)
     {
         return tripItineraries.stream()
                 .sorted(Comparator.comparingInt(TripItineraryEntity::getDayNumber))
                 .map((tripItinerary) -> {
-            TripItineraryDto tripItineraryDto = new TripItineraryDto();
+            TripItineraryViewDto tripItineraryDto = new TripItineraryViewDto();
+            tripItineraryDto.setItineraryId(tripItinerary.getItineraryId());
             tripItineraryDto.setDayNumber(tripItinerary.getDayNumber());
             tripItineraryDto.setDescription(tripItinerary.getDescription());
             tripItineraryDto.setTitle(tripItinerary.getTitle());

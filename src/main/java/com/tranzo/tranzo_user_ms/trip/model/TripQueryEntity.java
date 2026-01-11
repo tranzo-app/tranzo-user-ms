@@ -29,9 +29,6 @@ public class TripQueryEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID queryId;
 
-    @Column(name = "trip_id", nullable = false)
-    private UUID tripId;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id", nullable = false, insertable = false, updatable = false)
     private TripEntity trip;

@@ -5,6 +5,7 @@ import com.tranzo.tranzo_user_ms.trip.enums.JoinRequestStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -12,9 +13,7 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "trip_join_requests",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"trip_id", "user_id"})
-        },
+        // Removed unique constraint because if a request gets REJECTED/CANCELLED user won't be able to create new request
         indexes = {
                 @Index(name = "idx_join_requests_trip_status", columnList = "trip_id, status")
         }
@@ -56,4 +55,8 @@ public class TripJoinRequestEntity {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

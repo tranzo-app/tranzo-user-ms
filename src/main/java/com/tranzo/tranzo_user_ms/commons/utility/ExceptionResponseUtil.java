@@ -1,6 +1,6 @@
 package com.tranzo.tranzo_user_ms.commons.utility;
 
-import com.tranzo.tranzo_user_ms.user.dto.ResponseDto;
+import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import org.springframework.http.ResponseEntity;
 
 public class ExceptionResponseUtil {
