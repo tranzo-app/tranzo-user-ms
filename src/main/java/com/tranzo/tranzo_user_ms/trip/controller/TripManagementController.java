@@ -93,10 +93,16 @@ public class TripManagementController {
         );
     }
 
-    @PostMapping("/trips/{tripId}/{reportingUserId}/reports")
+    @PostMapping("/{tripId}/{reportingUserId}/reports")
     public ResponseEntity<ResponseDto<Void>> reportTrip(@PathVariable UUID tripId, @RequestBody @Valid ReportTripRequestDto reportTripRequestDto) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         tripManagementService.reportTrip(userId, tripId,  reportTripRequestDto);
         return ResponseEntity.ok(ResponseDto.success("Trip has been reported successfully", null));
+    }
+    @PostMapping("/{tripId}/participants/{participantUserId}/promote-cohost")
+    public ResponseEntity<ResponseDto<Void>> promoteToCoHost(@PathVariable UUID tripId, @PathVariable UUID participantUserId) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        tripManagementService.promoteToCoHost(userId, tripId, participantUserId);
+        return ResponseEntity.ok(ResponseDto.success("Participant has been promoted to co-host successfully", null));
     }
 }

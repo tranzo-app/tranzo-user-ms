@@ -492,4 +492,27 @@ public class TripManagementService {
             tripReportRepository.save(tripReportEntity);
     }
 
+    public void promoteToCoHost(UUID userId, UUID tripId, UUID participantUserId) {
+        TripEntity trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+
+        userUtil.validateUserIsHost(tripId, userId);
+
+        TripMemberEntity participant = tripMemberRepository
+                .findByTrip_TripIdAndUserIdAndStatus(tripId, participantUserId, TripMemberStatus.ACTIVE)
+                .orElseThrow(() -> new EntityNotFoundException("Participant not found or not active in the trip"));
+
+        if (participant.getRole() == TripMemberRole.CO_HOST) {
+            throw new ConflictException("Participant is already a CO-HOST");
+        }
+
+        if (participant.getRole() != TripMemberRole.MEMBER) {
+            throw new ConflictException("Only participants with MEMBER role can be promoted to CO-HOST");
+        }
+
+        participant.setRole(TripMemberRole.CO_HOST);
+        tripMemberRepository.save(participant);
+
+    }
+
 }
