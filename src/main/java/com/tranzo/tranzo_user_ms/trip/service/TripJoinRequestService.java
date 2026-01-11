@@ -4,6 +4,10 @@ import com.tranzo.tranzo_user_ms.commons.exception.BadRequestException;
 import com.tranzo.tranzo_user_ms.commons.exception.ConflictException;
 import com.tranzo.tranzo_user_ms.commons.exception.EntityNotFoundException;
 import com.tranzo.tranzo_user_ms.commons.exception.ForbiddenException;
+<<<<<<< HEAD
+=======
+import com.tranzo.tranzo_user_ms.trip.dto.RemoveParticipantRequestDto;
+>>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestResponseDto;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
@@ -102,7 +106,13 @@ public class TripJoinRequestService {
             member.setRole(TripMemberRole.MEMBER);
             member.setStatus(TripMemberStatus.ACTIVE);
             tripMemberRepository.save(member);
+<<<<<<< HEAD
             trip.setCurrentParticipants(trip.getCurrentParticipants() + 1);
+=======
+            int updatedCount = trip.getCurrentParticipants() + 1;
+            trip.setCurrentParticipants(updatedCount);
+            trip.setIsFull(updatedCount >= trip.getMaxParticipants());
+>>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
             tripRepository.save(trip);
         }
 
@@ -154,7 +164,13 @@ public class TripJoinRequestService {
         tripMember.setStatus(TripMemberStatus.ACTIVE);
         tripMemberRepository.save(tripMember);
 
+<<<<<<< HEAD
         trip.setCurrentParticipants(trip.getCurrentParticipants() + 1);
+=======
+        int updatedCount = trip.getCurrentParticipants() + 1;
+        trip.setCurrentParticipants(updatedCount);
+        trip.setIsFull(updatedCount >= trip.getMaxParticipants());
+>>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
 
         return TripJoinRequestResponseDto.builder()
                 .joinRequestId(joinRequest.getRequestId())
@@ -196,6 +212,10 @@ public class TripJoinRequestService {
                 .build();
     }
 
+<<<<<<< HEAD
+=======
+    // Will we get status as an array in query parameter?
+>>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
     public List<TripJoinRequestResponseDto> getJoinRequestsForTrip(UUID tripId, UUID userId, JoinRequestStatus status)
     {
         TripEntity trip = tripRepository.findById(tripId)
@@ -222,4 +242,64 @@ public class TripJoinRequestService {
         }).toList();
         return joinRequestResponseDtoList;
     }
+<<<<<<< HEAD
+=======
+
+    // We will show only pending requests for a user
+    @Transactional
+    public void cancelJoinRequestsForTrip(UUID joinRequestId, UUID userId)
+    {
+        TripJoinRequestEntity joinRequest = tripJoinRequestRepository.findById(joinRequestId)
+                .orElseThrow(() -> new EntityNotFoundException("Join request not found"));
+        if (joinRequest.getStatus() != JoinRequestStatus.PENDING)
+        {
+            throw new ConflictException("Join request is not pending");
+        }
+        if (!joinRequest.getUserId().equals(userId))
+        {
+            throw new ForbiddenException("User can't cancel the join request of another user");
+        }
+        joinRequest.setStatus(JoinRequestStatus.CANCELLED);
+    }
+
+    @Transactional
+    public void removeOrLeaveTrip(UUID tripId, UUID removalParticipantUserId, UUID userId, RemoveParticipantRequestDto removeParticipantRequestDto)
+    {
+        TripEntity trip = tripRepository.findByIdForUpdate(tripId)
+                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+        if (trip.getTripStatus() != TripStatus.PUBLISHED)
+        {
+            throw new TripPublishException(TRIP_NOT_PUBLISHED);
+        }
+        TripMemberEntity tripMember = tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, removalParticipantUserId, TripMemberStatus.ACTIVE)
+                .orElseThrow(() -> new EntityNotFoundException("User is not member of the trip"));
+        boolean isTripHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(tripId, userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+        if (isTripHost)
+        {
+            if (userId.equals(removalParticipantUserId))
+            {
+                throw new ConflictException("Host can't leave his own trip");
+            }
+            tripMember.setStatus(TripMemberStatus.REMOVED);
+            tripMember.setExitedBy(userId);
+        }
+        else
+        {
+            if (userId.equals(removalParticipantUserId))
+            {
+                tripMember.setStatus(TripMemberStatus.LEFT);
+                tripMember.setExitedBy(removalParticipantUserId);
+            }
+            else
+            {
+                throw new ForbiddenException("User can't remove another user from the trip until the user is a host");
+            }
+        }
+        tripMember.setExitedAt(LocalDateTime.now());
+        tripMember.setRemovalReason(removeParticipantRequestDto.getRemovalReason());
+        int updatedCount = Math.max(0, trip.getCurrentParticipants() - 1);
+        trip.setCurrentParticipants(updatedCount);
+        trip.setIsFull(updatedCount >= trip.getMaxParticipants());
+    }
+>>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
 }

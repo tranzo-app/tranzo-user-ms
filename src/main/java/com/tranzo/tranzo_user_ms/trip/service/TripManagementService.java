@@ -7,9 +7,13 @@ import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
 import com.tranzo.tranzo_user_ms.trip.model.*;
 import com.tranzo.tranzo_user_ms.trip.repository.*;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
+<<<<<<< HEAD
 import jakarta.validation.Valid;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
 import jakarta.validation.Valid;
+=======
+import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
+>>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,8 +32,11 @@ public class TripManagementService {
     TagRepository tagRepository;
     TripItineraryRepository tripItineraryRepository;
     TripMemberRepository tripMemberRepository;
+<<<<<<< HEAD
     TripQueryRepository tripQueryRepository;
     TripReportRepository tripReportRepository;
+=======
+>>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
     TripPublishEligibilityValidator tripPublishEligibilityValidator;
     UserUtil userUtil;
 
