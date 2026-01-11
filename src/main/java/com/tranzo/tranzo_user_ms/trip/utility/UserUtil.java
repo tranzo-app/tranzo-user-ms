@@ -1,7 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.utility;
 
 import com.tranzo.tranzo_user_ms.commons.exception.ForbiddenException;
-import com.tranzo.tranzo_user_ms.commons.exception.InvalidUserIdException;
 import com.tranzo.tranzo_user_ms.trip.enums.TripMemberRole;
 import com.tranzo.tranzo_user_ms.trip.repository.TripMemberRepository;
 import lombok.RequiredArgsConstructor;
