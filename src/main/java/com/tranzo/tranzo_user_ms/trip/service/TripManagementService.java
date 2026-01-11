@@ -28,6 +28,7 @@ public class TripManagementService {
     TagRepository tagRepository;
     TripItineraryRepository tripItineraryRepository;
     TripMemberRepository tripMemberRepository;
+    TripQueryRepository tripQueryRepository;
     TripPublishEligibilityValidator tripPublishEligibilityValidator;
     UserUtil userUtil;
 
@@ -425,7 +426,7 @@ public class TripManagementService {
                 throw new ConflictException("QnA cannot be answered for cancelled or Completed trips");
             }
 
-            userUtil.validateUserIsHost(tripId, userId);
+            userUtil.validateUserIsHost(tripId, userID);
 
             TripQueryEntity tripQuery = tripQueryRepository.findByQueryIdAndTripId(qnaId,tripId)
                     .orElseThrow(()-> new EntityNotFoundException("QnA not found for the given trip"));
