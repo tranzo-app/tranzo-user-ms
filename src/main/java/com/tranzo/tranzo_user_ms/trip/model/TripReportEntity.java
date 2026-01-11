@@ -43,9 +43,6 @@ public class TripReportEntity {
     @Column(name = "reported_by", nullable = false)
     private UUID reportedBy;
 
-    @Column(name = "reported_user_id", nullable = false)
-    private UUID reportedUserId;
-
     @Column(name = "reason", nullable = false)
     private String reportReason;
 

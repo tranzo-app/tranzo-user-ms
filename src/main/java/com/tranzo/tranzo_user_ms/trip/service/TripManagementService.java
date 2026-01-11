@@ -474,9 +474,9 @@ public class TripManagementService {
                 throw new ForbiddenException("User is not allowed to report this private trip");
              }
 
-             if(tripReportRepository.existsByUserIdAndTripId(reportingUserId,tripId)) {
+             if(tripReportRepository.existsByReportedByAndTripId(reportingUserId,tripId)) {
                 throw new ConflictException("User has already reported this trip");
-              }
+             }
 
              if(reportTripRequestDto.getReportReason()==null || reportTripRequestDto.getReportReason().trim().isEmpty()){
                 throw new BadRequestException("Report reason cannot be empty");
