@@ -497,6 +497,10 @@ public class TripManagementService {
                 .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
 
         userUtil.validateUserIsHost(tripId, userId);
+        // Do I need to make seprate exception for this one
+        if(userId == participantUserId){
+            throw new BadRequestException("Host can make itself as cohost");
+        }
 
         TripMemberEntity participant = tripMemberRepository
                 .findByTrip_TripIdAndUserIdAndStatus(tripId, participantUserId, TripMemberStatus.ACTIVE)
