@@ -1,14 +1,9 @@
 package com.tranzo.tranzo_user_ms.trip.controller;
 
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
+import com.tranzo.tranzo_user_ms.trip.dto.*;
 import com.tranzo.tranzo_user_ms.trip.dto.AnswerQnaRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.CreateQnaRequestDto;
-import com.tranzo.tranzo_user_ms.trip.dto.AnswerQnaRequestDto;
-import com.tranzo.tranzo_user_ms.trip.dto.CreateQnaRequestDto;
-import com.tranzo.tranzo_user_ms.trip.dto.TripDto;
-import com.tranzo.tranzo_user_ms.trip.dto.TripResponseDto;
-import com.tranzo.tranzo_user_ms.trip.dto.TripViewDto;
-import com.tranzo.tranzo_user_ms.trip.dto.TripQnaResponseDto;
 import com.tranzo.tranzo_user_ms.trip.service.TripManagementService;
 import com.tranzo.tranzo_user_ms.trip.validation.groups.DraftChecks;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
@@ -98,4 +93,10 @@ public class TripManagementController {
         );
     }
 
+    @PostMapping("/trips/{tripId}/{reportingUserId}/reports")
+    public ResponseEntity<ResponseDto<Void>> reportTrip(@PathVariable UUID tripId, @RequestBody @Valid ReportTripRequestDto reportTripRequestDto) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        tripManagementService.reportTrip(userId, tripId,  reportTripRequestDto);
+        return ResponseEntity.ok(ResponseDto.success("Trip has been reported successfully", null));
+    }
 }

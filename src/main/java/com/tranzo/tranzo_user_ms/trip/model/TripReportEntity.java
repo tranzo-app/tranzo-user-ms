@@ -24,6 +24,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Builder
 public class TripReportEntity {
 
     @Id
@@ -42,8 +43,11 @@ public class TripReportEntity {
     @Column(name = "reported_by", nullable = false)
     private UUID reportedBy;
 
+    @Column(name = "reported_user_id", nullable = false)
+    private UUID reportedUserId;
+
     @Column(name = "reason", nullable = false)
-    private String reason;
+    private String reportReason;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)

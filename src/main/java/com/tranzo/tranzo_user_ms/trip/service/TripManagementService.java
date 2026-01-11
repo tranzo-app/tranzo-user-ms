@@ -29,6 +29,7 @@ public class TripManagementService {
     TripItineraryRepository tripItineraryRepository;
     TripMemberRepository tripMemberRepository;
     TripQueryRepository tripQueryRepository;
+    TripReportRepository tripReportRepository;
     TripPublishEligibilityValidator tripPublishEligibilityValidator;
     UserUtil userUtil;
 
@@ -462,6 +463,33 @@ public class TripManagementService {
                 .answeredAt(tripQueryEntity.getAnsweredAt())
                 .createdAt(tripQueryEntity.getCreatedAt())
                 .build();
+    }
+
+    public void reportTrip(UUID reportingUserId,UUID tripId, ReportTripRequestDto reportTripRequestDto) {
+             TripEntity trip = tripRepository.findById(tripId)
+                    .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+
+             if(trip.getVisibilityStatus()== VisibilityStatus.PRIVATE &&
+                !tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(tripId,reportingUserId,TripMemberStatus.ACTIVE)){
+                throw new ForbiddenException("User is not allowed to report this private trip");
+             }
+
+             if(tripReportRepository.existsByUserIdAndTripId(reportingUserId,tripId)) {
+                throw new ConflictException("User has already reported this trip");
+              }
+
+             if(reportTripRequestDto.getReportReason()==null || reportTripRequestDto.getReportReason().trim().isEmpty()){
+                throw new BadRequestException("Report reason cannot be empty");
+             }
+
+            TripReportEntity tripReportEntity = TripReportEntity.builder()
+                    .trip(trip)
+                    .tripId(trip.getTripId())
+                    .reportedBy(reportingUserId)
+                    .reportReason(reportTripRequestDto.getReportReason())
+                    .build();
+            tripReportEntity.setStatus(TripReportStatus.OPEN);
+            tripReportRepository.save(tripReportEntity);
     }
 
 }
