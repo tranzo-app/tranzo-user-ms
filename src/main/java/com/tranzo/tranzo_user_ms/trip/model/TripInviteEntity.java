@@ -36,12 +36,9 @@ public class TripInviteEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID inviteId;
 
-<<<<<<< HEAD
     @Column(name = "trip_id", nullable = false, updatable = false, insertable = false)
     private UUID tripId;
 
-=======
->>>>>>> c7a5e61799d77c0f6ab9fba4db1e45fa877221ea
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id", nullable = false)
     private TripEntity trip;
