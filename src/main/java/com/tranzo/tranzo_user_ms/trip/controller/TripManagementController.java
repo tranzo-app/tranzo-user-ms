@@ -57,9 +57,9 @@ public class TripManagementController {
     }
 
     @PostMapping("/{tripId}/qna")
-    public ResponseEntity<ResponseDto<Void>> addTripQnA(@RequestBody CreateQnaRequestDto createQnaRequestDto, @PathVariable String tripId) throws AuthException {
+    public ResponseEntity<ResponseDto<Void>> addTripQnA(@RequestBody CreateQnaRequestDto createQnaRequestDto, @PathVariable UUID tripId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        tripManagementService.addTripQnA(userID, createQnaRequestDto, tripId);
+        tripManagementService.addTripQnA(userId, createQnaRequestDto, tripId);
         return ResponseEntity.ok(ResponseDto.success("Trip QnA added successfully", null));
     }
 
@@ -78,24 +78,11 @@ public class TripManagementController {
         return ResponseEntity.ok(ResponseDto.success("Published trip has been updated successfully", tripResponse));
     }
 
-    @PostMapping("/{tripId}/qna/{qnaId}/answer")
-    public ResponseEntity<ResponseDto<Void>> answerTripQnA(@PathVariable UUID tripId, @PathVariable UUID qnaId, @Valid AnswerQnaRequestDto answerQnaRequestDto) throws AuthException {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        tripManagementService.answerTripQnA(userID, tripId, qnaId, answerQnaRequestDto);
-        return ResponseEntity.ok(ResponseDto.success("Trip QnA answered successfully", null));
-    }
-
-    @PostMapping("/{tripId}/qna")
-    public ResponseEntity<ResponseDto<Void>> addTripQnA(@RequestBody CreateQnaRequestDto createQnaRequestDto, @PathVariable String tripId) throws AuthException {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        tripManagementService.addTripQnA(userID, createQnaRequestDto, tripId);
-        return ResponseEntity.ok(ResponseDto.success("Trip QnA added successfully", null));
-    }
 
     @PostMapping("/{tripId}/qna/{qnaId}/answer")
     public ResponseEntity<ResponseDto<Void>> answerTripQnA(@PathVariable UUID tripId, @PathVariable UUID qnaId, @Valid AnswerQnaRequestDto answerQnaRequestDto) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        tripManagementService.answerTripQnA(userID, tripId, qnaId, answerQnaRequestDto);
+        tripManagementService.answerTripQnA(userId, tripId, qnaId, answerQnaRequestDto);
         return ResponseEntity.ok(ResponseDto.success("Trip QnA answered successfully", null));
     }
 
@@ -104,15 +91,11 @@ public class TripManagementController {
             @PathVariable UUID tripId
     ) {
         List<TripQnaResponseDto> response =
-                tripManagementService.getTripQna(tripId, answerQnaRequestDto);
+                tripManagementService.getTripQna(tripId);
 
         return ResponseEntity.ok(
                 ResponseDto.success("Trip QnA fetched successfully", response)
         );
     }
-
-
-
-
 
 }

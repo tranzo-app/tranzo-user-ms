@@ -393,7 +393,7 @@ public class TripManagementService {
             TripEntity trip = tripRepository.findById(tripId)
                     .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
 
-            userUtil.validateUserIsHost(tripId, userId);
+            userUtil.validateUserIsHost(tripId, userID);
 
             if(createQnaRequestDto.getQuestion() == null || createQnaRequestDto.getQuestion().trim().isEmpty()){
                 throw new BadRequestException("Question cannot be empty");
