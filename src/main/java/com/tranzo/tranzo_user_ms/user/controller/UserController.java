@@ -28,6 +28,7 @@ public class UserController {
     @GetMapping("/user")
     public ResponseEntity<ResponseDto<UserProfileDto>> getUser() throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
+        log.info("Fetching user profile for userId: {}", userId);
         UserProfileDto userProfileDto = userService.getUserProfile(userId);
         return ResponseEntity.ok(ResponseDto.success(200,"User profile fetched successfully", userProfileDto));
     }

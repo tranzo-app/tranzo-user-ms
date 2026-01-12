@@ -14,7 +14,6 @@ import jakarta.security.auth.message.AuthException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -85,7 +84,7 @@ public class TripManagementController {
 
 
     @PostMapping("/{tripId}/qna/{qnaId}/answer")
-    public ResponseEntity<ResponseDto<Void>> answerTripQnA(@PathVariable UUID tripId, @PathVariable UUID qnaId, @Valid AnswerQnaRequestDto answerQnaRequestDto) throws AuthException {
+    public ResponseEntity<ResponseDto<Void>> answerTripQnA(@PathVariable UUID tripId, @PathVariable UUID qnaId, @RequestBody AnswerQnaRequestDto answerQnaRequestDto) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         tripManagementService.answerTripQnA(userId, tripId, qnaId, answerQnaRequestDto);
         return ResponseEntity.ok(ResponseDto.success("Trip QnA answered successfully", null));
@@ -103,7 +102,7 @@ public class TripManagementController {
         );
     }
 
-    @PostMapping("/{tripId}/{reportingUserId}/reports")
+    @PostMapping("/{tripId}/reports")
     public ResponseEntity<ResponseDto<Void>> reportTrip(@PathVariable UUID tripId, @RequestBody @Valid ReportTripRequestDto reportTripRequestDto) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         tripManagementService.reportTrip(userId, tripId,  reportTripRequestDto);
@@ -112,6 +111,7 @@ public class TripManagementController {
     @PostMapping("/{tripId}/participants/{participantUserId}/promote-cohost")
     public ResponseEntity<ResponseDto<Void>> promoteToCoHost(@PathVariable UUID tripId, @PathVariable UUID participantUserId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
+        log.info("Promote to co-host called for tripId: {} by userId: {} for participantUserId: {}", tripId, userId, participantUserId);
         tripManagementService.promoteToCoHost(userId, tripId, participantUserId);
         return ResponseEntity.ok(ResponseDto.success("Participant has been promoted to co-host successfully", null));
     }

@@ -12,7 +12,7 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 public class UserUtil {
-    TripMemberRepository tripMemberRepository;
+    private final TripMemberRepository tripMemberRepository;
 
     public void validateUserIsHost(UUID tripId, UUID userId)
     {

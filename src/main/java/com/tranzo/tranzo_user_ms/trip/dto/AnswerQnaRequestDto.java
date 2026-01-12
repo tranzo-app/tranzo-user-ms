@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class AnswerQnaRequestDto {
 
-    @NotBlank(message = "Question cannot be blank")
+    @NotBlank(message = "Answer cannot be blank")
     private String answer;
 
 
