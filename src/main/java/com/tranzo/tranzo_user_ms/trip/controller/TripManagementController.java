@@ -26,9 +26,9 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/trips")
 @Slf4j
+@RequiredArgsConstructor
 public class TripManagementController {
-    @Autowired
-    TripManagementService tripManagementService;
+    private final TripManagementService tripManagementService;
 
     @PostMapping("/")
     public ResponseEntity<ResponseDto<TripResponseDto>> createDraftTrip(@Validated(DraftChecks.class) @RequestBody TripDto tripDto) throws AuthException {
