@@ -9,7 +9,6 @@ import com.tranzo.tranzo_user_ms.trip.repository.*;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -20,7 +19,6 @@ import java.util.stream.Collectors;
 import static com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode.*;
 
 @Service
-@RequiredArgsConstructor
 public class TripManagementService {
     private final TripRepository tripRepository;
     private final TagRepository tagRepository;
@@ -30,6 +28,24 @@ public class TripManagementService {
     private final TripReportRepository tripReportRepository;
     private final TripPublishEligibilityValidator tripPublishEligibilityValidator;
     private final UserUtil userUtil;
+
+    public TripManagementService(TripMemberRepository tripMemberRepository,
+                                 TripRepository tripRepository,
+                                 TagRepository tagRepository,
+                                 TripItineraryRepository tripItineraryRepository,
+                                 TripQueryRepository tripQueryRepository,
+                                 TripReportRepository tripReportRepository,
+                                 TripPublishEligibilityValidator tripPublishEligibilityValidator,
+                                 UserUtil userUtil) {
+        this.tripMemberRepository = tripMemberRepository;
+        this.tripRepository = tripRepository;
+        this.tagRepository = tagRepository;
+        this.tripItineraryRepository = tripItineraryRepository;
+        this.tripQueryRepository = tripQueryRepository;
+        this.tripReportRepository = tripReportRepository;
+        this.tripPublishEligibilityValidator = tripPublishEligibilityValidator;
+        this.userUtil = userUtil;
+    }
 
 
     @Transactional
@@ -425,7 +441,7 @@ public class TripManagementService {
                 throw new ConflictException("QnA cannot be answered for cancelled or Completed trips");
             }
 
-            userUtil.validateUserIsHost(tripId, userID);
+           // userUtil.validateUserIsHost(tripId, userID);
 
             TripQueryEntity tripQuery = tripQueryRepository.findByQueryIdAndTrip_TripId(qnaId,tripId)
                     .orElseThrow(()-> new EntityNotFoundException("QnA not found for the given trip"));
@@ -436,7 +452,7 @@ public class TripManagementService {
             }
             tripQuery.setAnswer(answerQnaRequestDto.getAnswer());
             tripQuery.setAnsweredAt(LocalDateTime.now());
-
+            tripQueryRepository.save(tripQuery);
     }
 
     // what about question answer visibility : joined as well as not joined users
@@ -488,7 +504,7 @@ public class TripManagementService {
             tripReportEntity.setStatus(TripReportStatus.OPEN);
             tripReportRepository.save(tripReportEntity);
     }
-
+    @Transactional
     public void promoteToCoHost(UUID userId, UUID tripId, UUID participantUserId) {
         TripEntity trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
