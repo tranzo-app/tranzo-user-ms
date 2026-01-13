@@ -61,14 +61,6 @@ public class TripPublishEligibilityValidator {
             throw new TripPublishException(JOIN_POLICY_MISSING);
         }
 
-        if (trip.getVisibilityStatus() == null) {
-            throw new TripPublishException(VISIBILITY_STATUS_MISSING);
-        }
-
-        if (trip.getTripPolicyEntity() == null) {
-            throw new TripPublishException(TRIP_POLICY_MISSING);
-        }
-
         if (trip.getTripItineraries() == null || trip.getTripItineraries().isEmpty()) {
             throw new TripPublishException(ITINERARY_MISSING);
         }

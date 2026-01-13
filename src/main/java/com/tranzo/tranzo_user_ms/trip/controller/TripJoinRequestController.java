@@ -9,6 +9,7 @@ import com.tranzo.tranzo_user_ms.trip.enums.JoinRequestStatus;
 import com.tranzo.tranzo_user_ms.trip.service.TripJoinRequestService;
 import jakarta.security.auth.message.AuthException;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,8 +18,9 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequiredArgsConstructor
 public class TripJoinRequestController {
-    TripJoinRequestService tripJoinRequestService;
+    private final TripJoinRequestService tripJoinRequestService;
 
     @PostMapping("/trips/{tripId}/join-requests")
     public ResponseEntity<ResponseDto<TripJoinRequestResponseDto>> createJoinRequest(@Valid @RequestBody TripJoinRequestDto tripJoinRequestDto, @PathVariable UUID tripId) throws AuthException {

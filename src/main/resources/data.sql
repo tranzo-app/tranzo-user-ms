@@ -106,58 +106,58 @@ INSERT INTO core_trip_details (
     created_at
 ) VALUES
 
--- Published public trip (normal flow)
+-- PUBLIC + OPEN
 (
-    '11111111-2111-4111-8111-111111111111',
-    'Manali Trek',
-    'Snow trek',
-    'goa',
-    '2025-12-01',
-    '2025-12-05',
+    'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+    'Manali Backpacking',
+    'Himalayan backpacking trip',
+    'Manali',
+    '2026-03-01',
+    '2026-03-06',
     'PUBLISHED',
     'PUBLIC',
     'OPEN',
-    9999,
+    15000,
     10,
+    2,
+    false,
+    CURRENT_TIMESTAMP
+),
+
+-- PUBLIC + APPROVAL_REQUIRED
+(
+    'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
+    'Spiti Valley Ride',
+    'Bike expedition to Spiti',
+    'Spiti',
+    '2026-04-10',
+    '2026-04-18',
+    'PUBLISHED',
+    'PUBLIC',
+    'APPROVAL_REQUIRED',
+    25000,
+    8,
     1,
     false,
-    '2025-11-01T10:00:00'
+    CURRENT_TIMESTAMP
 ),
 
--- Completed trip (QnA blocked)
+-- PRIVATE + APPROVAL_REQUIRED
 (
-    '11111111-3111-4111-8111-111111111111',
-    'Oty Trip',
-    'beach trek',
-    'chennai',
-    '2025-12-01',
-    '2025-12-05',
-    'COMPLETED',
-    'PUBLIC',
-    'OPEN',
-    10000,
-    4,
-    4,
-    true,
-    '2025-11-01T10:00:00'
-),
-
--- Private trip (approval required)
-(
-    '11111111-4111-4111-8111-111111111111',
-    'Oty Trip',
-    'beach trek',
-    'chennai',
-    '2025-12-01',
-    '2025-12-05',
+    'cccccccc-3333-4333-8333-cccccccccccc',
+    'Friends Only Goa Trip',
+    'Private beach trip',
+    'Goa',
+    '2026-02-05',
+    '2026-02-10',
     'PUBLISHED',
     'PRIVATE',
     'APPROVAL_REQUIRED',
-    10000,
-    4,
-    4,
-    true,
-    '2025-11-01T10:00:00'
+    12000,
+    6,
+    1,
+    false,
+    CURRENT_TIMESTAMP
 );
 
 ----------------------------------------------------------------
@@ -188,35 +188,37 @@ INSERT INTO trip_members (
     status,
     joined_at
 ) VALUES
-
--- Host
 (
-    '11111111-2111-4111-8112-111111111111',
-    '11111111-2111-4111-8111-111111111111',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001',
+    'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
     '11111111-1111-4111-8111-111111111111',
     'HOST',
     'ACTIVE',
-    '2026-01-01T10:00:00'
+    CURRENT_TIMESTAMP
 ),
-
-
 (
-    '11111111-2111-4111-8113-111111111111',
-    '11111111-2111-4111-8111-111111111111',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0002',
+    'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
     '22222222-2222-4222-8222-222222222222',
     'MEMBER',
     'ACTIVE',
-    '2026-01-02T10:00:00'
+    CURRENT_TIMESTAMP
 ),
-
--- Member
 (
-    '11111111-2111-4111-8114-111111111111',
-    '11111111-2111-4111-8111-111111111111',
-    '44444444-4444-4444-8444-444444444444',
-    'MEMBER',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0001',
+    'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
+    '11111111-1111-4111-8111-111111111111',
+    'HOST',
     'ACTIVE',
-    '2026-01-03T10:00:00'
+    CURRENT_TIMESTAMP
+),
+(
+    'cccccccc-cccc-4ccc-8ccc-cccccccc0001',
+    'cccccccc-3333-4333-8333-cccccccccccc',
+    '11111111-1111-4111-8111-111111111111',
+    'HOST',
+    'ACTIVE',
+    CURRENT_TIMESTAMP
 );
 
 ----------------------------------------------------------------
@@ -233,10 +235,10 @@ INSERT INTO trip_queries (
     created_at
 ) VALUES
 
--- Unanswered question
+-- Unanswered question (asked by non-member user)
 (
-    '33333333-7333-3333-3333-333333333331',
-    '11111111-2111-4111-8111-111111111111',
+    '33333333-7333-4333-8333-333333333331',
+    'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
     '55555555-5555-4555-8555-555555555555',
     'Is food included?',
     NULL,
@@ -245,11 +247,11 @@ INSERT INTO trip_queries (
     '2026-01-05T10:00:00'
 ),
 
--- Answered question
+-- Answered question (asked by member)
 (
-    '33333333-8333-3333-3333-333333333332',
-    '11111111-2111-4111-8111-111111111111',
-    '33333333-3333-3333-3333-333333333333',
+    '33333333-8333-4333-8333-333333333332',
+    'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+    '22222222-2222-4222-8222-222222222222',
     'What accommodation is provided?',
     'Hotels and homestays',
     '2026-01-06T12:00:00',
@@ -272,34 +274,34 @@ INSERT INTO trip_invites (
     invited_by
 ) VALUES
 
--- Direct in-app invite
+-- Direct in-app invite (private trip)
 (
-    '11111111-1111-1111-9111-111111111112',
-    '11111111-2111-4111-8111-111111111111',
+    '11111111-1111-4111-9111-111111111112',
+    'cccccccc-3333-4333-8333-cccccccccccc',
     '88888888-8888-4888-8888-888888888888',
     'IN_APPLICATION',
     'DIRECT',
     'PENDING',
     '2026-01-10T10:00:00',
     '2026-01-15T10:00:00',
-    '11111111-1111-1111-1111-111111111111'
+    '11111111-1111-4111-8111-111111111111'
 ),
 
--- Broadcast link invite
+-- Accepted invite
 (
-    '22222222-2222-2222-9222-222222222223',
-    '11111111-2111-4111-8111-111111111111',
+    '22222222-2222-4222-9222-222222222223',
+    'cccccccc-3333-4333-8333-cccccccccccc',
     '99999999-9999-4999-8999-999999999999',
     'IN_APPLICATION',
     'DIRECT',
     'ACCEPTED',
     '2026-01-08T10:00:00',
     '2026-01-08T10:00:00',
-    '11111111-1111-1111-1111-111111111111'
+    '11111111-1111-4111-8111-111111111111'
 );
 
 ----------------------------------------------------------------
--- TRIP JOIN REQUESTS
+-- TRIP JOIN REQUESTS (CORRECT UUIDs)
 ----------------------------------------------------------------
 INSERT INTO trip_join_requests (
     request_id,
@@ -310,24 +312,24 @@ INSERT INTO trip_join_requests (
     created_at
 ) VALUES
 
--- Pending join request
+-- Pending join request for PUBLIC + APPROVAL_REQUIRED trip
 (
-    '22111111-1111-1111-1111-111111111111',
-    '11111111-2111-4111-8111-111111111111',
+    'dddddddd-1111-4111-8111-dddddddddddd',
+    'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
+    '33333333-3333-4333-8333-333333333333',
+    'DIRECT',
+    'PENDING',
+    CURRENT_TIMESTAMP
+),
+
+-- Pending join request for PRIVATE trip
+(
+    'eeeeeeee-2222-4222-8222-eeeeeeeeeeee',
+    'cccccccc-3333-4333-8333-cccccccccccc',
     '44444444-4444-4444-8444-444444444444',
     'DIRECT',
     'PENDING',
-    '2026-01-11T10:00:00'
-),
-
--- Auto-approved join
-(
-    '33222222-2222-2222-2222-222222222222',
-    '11111111-2111-4111-8111-111111111111',
-    '66666666-6666-4666-8666-666666666666',
-    'DIRECT',
-    'AUTO_APPROVED',
-    '2026-01-03T10:00:00'
+    CURRENT_TIMESTAMP
 );
 
 ----------------------------------------------------------------
@@ -341,12 +343,11 @@ INSERT INTO trip_reports (
     status,
     created_at
 ) VALUES
-
-    (
-        '91111111-1111-1111-1111-111111111111',
-        '11111111-2111-4111-8111-111111111111',
-        '33333333-3333-3333-3333-333333333333',
-        'Spam content',
-        'OPEN',
-        '2026-01-07T10:00:00'
-    );
+(
+    '91111111-1111-4111-9111-111111111111',
+    'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+    '33333333-3333-4333-8333-333333333333',
+    'Spam content',
+    'OPEN',
+    '2026-01-07T10:00:00'
+);
