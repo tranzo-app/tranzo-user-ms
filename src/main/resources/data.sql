@@ -215,7 +215,7 @@ INSERT INTO trip_members (
 (
     'cccccccc-cccc-4ccc-8ccc-cccccccc0001',
     'cccccccc-3333-4333-8333-cccccccccccc',
-    '11111111-1111-4111-8111-111111111111',
+    '88888888-8888-4888-8888-888888888888',
     'HOST',
     'ACTIVE',
     CURRENT_TIMESTAMP
