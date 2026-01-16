@@ -11,7 +11,7 @@ import jakarta.security.auth.message.AuthException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -66,6 +66,7 @@ public class SessionService {
             HttpServletResponse response
     ) throws AuthException {
         String refreshToken = extractRefreshToken(request);
+        jwtService.validateRefreshToken(refreshToken);
         UUID userUuid = jwtService.extractUserUuid(refreshToken);
         RefreshTokenEntity storedToken =
                 refreshTokenRepository
@@ -74,7 +75,6 @@ public class SessionService {
         if (!hash(refreshToken).equals(storedToken.getTokenHash())) {
             throw new AuthException("Invalid refresh token");
         }
-        jwtService.validateRefreshToken(refreshToken);
         UsersEntity user = storedToken.getUser();
         String newRefreshToken = jwtService.generateRefreshToken(user);
         storedToken.setTokenHash(hash(newRefreshToken));

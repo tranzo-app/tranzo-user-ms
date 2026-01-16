@@ -1,4 +1,4 @@
-package com.tranzo.tranzo_user_ms.user.dto;
+package com.tranzo.tranzo_user_ms.commons.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -60,4 +60,14 @@ public class ResponseDto<T> {
                 .data(null)
                 .build();
     }
+
+    public static <T> ResponseDto<T> failure(int statusCode, String message, T data) {
+        return ResponseDto.<T>builder()
+                .statusCode(statusCode)
+                .status("FAILURE")
+                .statusMessage(message)
+                .data(data)
+                .build();
+    }
+
 }

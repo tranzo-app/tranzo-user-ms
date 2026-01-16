@@ -72,3 +72,282 @@ VALUES
 ('88888888-8888-4888-8888-888888888888', '88888888-8888-4888-8888-888888888888', 'WORK_EMAIL', 'DOC008', 'url8', 'APPROVED', 'Verified', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('99999999-9999-4999-8999-999999999999', '99999999-9999-4999-8999-999999999999', 'AADHAAR', 'DOC009', 'url9', 'PENDING', NULL, NULL, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'PAN', 'DOC010', 'url10', 'REJECTED', 'Mismatch', NULL, 'verifier2', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+
+
+
+----------------------------------------------------------------
+-- USERS (Assumed to exist from User Service)
+----------------------------------------------------------------
+-- HOST        -> 11111111-1111-4111-8111-111111111111
+-- MEMBER      -> 22222222-2222-4222-8222-222222222222
+-- MEMBER      -> 33333333-3333-4333-8333-333333333333
+-- RANDOM_USER -> 44444444-4444-4444-8444-444444444444
+----------------------------------------------------------------
+
+
+----------------------------------------------------------------
+-- TRIPS
+----------------------------------------------------------------
+INSERT INTO core_trip_details (
+    trip_id,
+    trip_title,
+    trip_description,
+    trip_destination,
+    trip_start_date,
+    trip_end_date,
+    trip_status,
+    visibility_status,
+    join_policy,
+    estimated_budget,
+    max_participants,
+    current_participants,
+    is_full,
+    created_at
+) VALUES
+
+-- PUBLIC + OPEN
+(
+    'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+    'Manali Backpacking',
+    'Himalayan backpacking trip',
+    'Manali',
+    '2026-03-01',
+    '2026-03-06',
+    'PUBLISHED',
+    'PUBLIC',
+    'OPEN',
+    15000,
+    10,
+    2,
+    false,
+    CURRENT_TIMESTAMP
+),
+
+-- PUBLIC + APPROVAL_REQUIRED
+(
+    'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
+    'Spiti Valley Ride',
+    'Bike expedition to Spiti',
+    'Spiti',
+    '2026-04-10',
+    '2026-04-18',
+    'PUBLISHED',
+    'PUBLIC',
+    'APPROVAL_REQUIRED',
+    25000,
+    8,
+    1,
+    false,
+    CURRENT_TIMESTAMP
+),
+
+-- PRIVATE + APPROVAL_REQUIRED
+(
+    'cccccccc-3333-4333-8333-cccccccccccc',
+    'Friends Only Goa Trip',
+    'Private beach trip',
+    'Goa',
+    '2026-02-05',
+    '2026-02-10',
+    'PUBLISHED',
+    'PRIVATE',
+    'APPROVAL_REQUIRED',
+    12000,
+    6,
+    1,
+    false,
+    CURRENT_TIMESTAMP
+);
+
+----------------------------------------------------------------
+-- TRIP METADATA
+----------------------------------------------------------------
+
+--INSERT INTO trip_meta_data (trip_metadata_id,
+--    trip_id,
+--    trip_summary,
+--    whats_included,
+--    whats_excluded
+--) VALUES (
+--    '11111111-2111-4111-8111-111111113451',
+--    '11111111-2111-4111-8111-111111111111',
+--    null,
+--    null,
+--    null
+--);
+
+----------------------------------------------------------------
+-- TRIP MEMBERS
+----------------------------------------------------------------
+INSERT INTO trip_members (
+    membership_id,
+    trip_id,
+    user_id,
+    role,
+    status,
+    joined_at
+) VALUES
+(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0001',
+    'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+    '11111111-1111-4111-8111-111111111111',
+    'HOST',
+    'ACTIVE',
+    CURRENT_TIMESTAMP
+),
+(
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaa0002',
+    'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+    '22222222-2222-4222-8222-222222222222',
+    'MEMBER',
+    'ACTIVE',
+    CURRENT_TIMESTAMP
+),
+(
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbb0001',
+    'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
+    '11111111-1111-4111-8111-111111111111',
+    'HOST',
+    'ACTIVE',
+    CURRENT_TIMESTAMP
+),
+(
+    'cccccccc-cccc-4ccc-8ccc-cccccccc0001',
+    'cccccccc-3333-4333-8333-cccccccccccc',
+    '88888888-8888-4888-8888-888888888888',
+    'HOST',
+    'ACTIVE',
+    CURRENT_TIMESTAMP
+);
+
+----------------------------------------------------------------
+-- TRIP QnA (Answered + Unanswered)
+----------------------------------------------------------------
+INSERT INTO trip_queries (
+    query_id,
+    trip_id,
+    asked_by,
+    question,
+    answer,
+    answered_at,
+    visibility,
+    created_at
+) VALUES
+
+-- Unanswered question (asked by non-member user)
+(
+    '33333333-7333-4333-8333-333333333331',
+    'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+    '55555555-5555-4555-8555-555555555555',
+    'Is food included?',
+    NULL,
+    NULL,
+    'HOST_AND_CO_HOSTS',
+    '2026-01-05T10:00:00'
+),
+
+-- Answered question (asked by member)
+(
+    '33333333-8333-4333-8333-333333333332',
+    'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+    '22222222-2222-4222-8222-222222222222',
+    'What accommodation is provided?',
+    'Hotels and homestays',
+    '2026-01-06T12:00:00',
+    'HOST_AND_CO_HOSTS',
+    '2026-01-04T09:00:00'
+);
+
+----------------------------------------------------------------
+-- TRIP INVITES
+----------------------------------------------------------------
+INSERT INTO trip_invites (
+    invite_id,
+    trip_id,
+    invited_user_id,
+    invite_type,
+    invite_source,
+    status,
+    created_at,
+    expires_at,
+    invited_by
+) VALUES
+
+-- Direct in-app invite (private trip)
+(
+    '11111111-1111-4111-9111-111111111112',
+    'cccccccc-3333-4333-8333-cccccccccccc',
+    '88888888-8888-4888-8888-888888888888',
+    'IN_APPLICATION',
+    'DIRECT',
+    'PENDING',
+    '2026-01-10T10:00:00',
+    '2026-01-15T10:00:00',
+    '11111111-1111-4111-8111-111111111111'
+),
+
+-- Accepted invite
+(
+    '22222222-2222-4222-9222-222222222223',
+    'cccccccc-3333-4333-8333-cccccccccccc',
+    '99999999-9999-4999-8999-999999999999',
+    'IN_APPLICATION',
+    'DIRECT',
+    'ACCEPTED',
+    '2026-01-08T10:00:00',
+    '2026-01-08T10:00:00',
+    '11111111-1111-4111-8111-111111111111'
+);
+
+----------------------------------------------------------------
+-- TRIP JOIN REQUESTS (CORRECT UUIDs)
+----------------------------------------------------------------
+INSERT INTO trip_join_requests (
+    request_id,
+    trip_id,
+    user_id,
+    source,
+    status,
+    created_at
+) VALUES
+
+-- Pending join request for PUBLIC + APPROVAL_REQUIRED trip
+(
+    'dddddddd-1111-4111-8111-dddddddddddd',
+    'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
+    '33333333-3333-4333-8333-333333333333',
+    'DIRECT',
+    'PENDING',
+    CURRENT_TIMESTAMP
+),
+
+-- Pending join request for PRIVATE trip
+(
+    'eeeeeeee-2222-4222-8222-eeeeeeeeeeee',
+    'cccccccc-3333-4333-8333-cccccccccccc',
+    '44444444-4444-4444-8444-444444444444',
+    'DIRECT',
+    'PENDING',
+    CURRENT_TIMESTAMP
+);
+
+----------------------------------------------------------------
+-- TRIP REPORTS
+----------------------------------------------------------------
+INSERT INTO trip_reports (
+    report_id,
+    trip_id,
+    reported_by,
+    reason,
+    status,
+    created_at
+) VALUES
+(
+    '91111111-1111-4111-9111-111111111111',
+    'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+    '33333333-3333-4333-8333-333333333333',
+    'Spam content',
+    'OPEN',
+    '2026-01-07T10:00:00'
+);
