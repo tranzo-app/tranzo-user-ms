@@ -3,6 +3,8 @@ package com.tranzo.tranzo_user_ms.trip.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -20,15 +22,13 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class TripItenaryEntity {
+public class TripItineraryEntity {
 
     @Id
     @EqualsAndHashCode.Include
     @Column(name = "itinerary_id", nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID itineraryId;
-
-    @Column(name = "trip_id", nullable = false,  updatable = false)
-    private UUID tripId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id", nullable = false)
@@ -43,13 +43,16 @@ public class TripItenaryEntity {
     @Column(name = "description")
     private String description;
 
-    @Column(name = "activities", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "activities")
     private Map<String, Object> activities;
 
-    @Column(name = "meals", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "meals")
     private Map<String, Object> meals;
 
-    @Column(name = "stay", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "stay")
     private Map<String, Object> stay;
 
     @CreationTimestamp

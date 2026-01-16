@@ -33,7 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UUID userUuid = jwtService.extractUserUuid(token);
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            String.valueOf(userUuid),
+                            userUuid,
                             null,
                             Collections.emptyList() // roles optional here
                     );

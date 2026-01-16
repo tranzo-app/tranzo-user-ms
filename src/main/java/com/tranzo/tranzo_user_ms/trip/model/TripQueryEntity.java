@@ -18,6 +18,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
+@Builder
 @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class TripQueryEntity {
@@ -25,13 +26,11 @@ public class TripQueryEntity {
     @Id
     @EqualsAndHashCode.Include
     @Column(name = "query_id", nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID queryId;
 
-    @Column(name = "trip_id", nullable = false)
-    private UUID tripId;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "trip_id", nullable = false)
+    @JoinColumn(name = "trip_id", nullable = false, insertable = false, updatable = false)
     private TripEntity trip;
 
     @Column(name = "asked_by", nullable = false)

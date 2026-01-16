@@ -30,24 +30,16 @@ public class TripMemberEntity {
     @Id
     @EqualsAndHashCode.Include
     @Column(name = "membership_id", nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID membershipId;
 
-    @Column(name = "trip_id", nullable = false)
-    private UUID tripId;
-
-    // TODO
+    // Logical foreign key
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id", nullable = false)
     private TripEntity trip;
-
-
-    // TODO : Check how to do from other module
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private UsersEntity user;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)

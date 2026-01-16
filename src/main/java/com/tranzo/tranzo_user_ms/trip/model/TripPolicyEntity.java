@@ -1,8 +1,7 @@
 package com.tranzo.tranzo_user_ms.trip.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.UUID;
 
@@ -10,11 +9,16 @@ import java.util.UUID;
 @Table(name = "trip_policies")
 @Getter
 @Setter
-public class TripPolicy {
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+public class TripPolicyEntity {
 
     @Id
+    @EqualsAndHashCode.Include
     @Column(name = "trip_id", nullable = false)
-    private UUID tripId;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID tripPolicyId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId

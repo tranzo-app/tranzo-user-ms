@@ -24,15 +24,14 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Builder
 public class TripReportEntity {
 
     @Id
     @EqualsAndHashCode.Include
     @Column(name = "report_id", nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID reportId;
-
-    @Column(name = "trip_id", nullable = false)
-    private UUID tripId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id", nullable = false)
@@ -42,7 +41,7 @@ public class TripReportEntity {
     private UUID reportedBy;
 
     @Column(name = "reason", nullable = false)
-    private String reason;
+    private String reportReason;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)

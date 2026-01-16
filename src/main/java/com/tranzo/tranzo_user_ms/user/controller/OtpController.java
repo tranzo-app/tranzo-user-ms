@@ -1,7 +1,7 @@
 package com.tranzo.tranzo_user_ms.user.controller;
 
 import com.tranzo.tranzo_user_ms.user.dto.RequestOtpDto;
-import com.tranzo.tranzo_user_ms.user.dto.ResponseDto;
+import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.user.dto.VerifyOtpDto;
 import com.tranzo.tranzo_user_ms.user.dto.VerifyOtpResponseDto;
 import com.tranzo.tranzo_user_ms.user.service.OtpService;

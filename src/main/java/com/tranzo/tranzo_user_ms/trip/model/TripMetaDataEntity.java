@@ -2,6 +2,8 @@ package com.tranzo.tranzo_user_ms.trip.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.Map;
 import java.util.UUID;
@@ -18,19 +20,23 @@ public class TripMetaDataEntity {
     @Id
     @EqualsAndHashCode.Include
     @Column(name = "trip_id", nullable = false)
-    private UUID tripId;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID tripMetaDataId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
     @JoinColumn(name = "trip_id")
     private TripEntity trip;
 
-    @Column(name = "trip_summary", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "trip_summary")
     private Map<String, Object> tripSummary;
 
-    @Column(name = "whats_included", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "whats_included")
     private Map<String, Object> whatsIncluded;
 
-    @Column(name = "whats_excluded", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "whats_excluded")
     private Map<String, Object> whatsExcluded;
 }
