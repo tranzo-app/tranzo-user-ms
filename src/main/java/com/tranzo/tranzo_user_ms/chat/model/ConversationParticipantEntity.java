@@ -52,6 +52,9 @@ public class ConversationParticipantEntity {
     @Column(name = "left_at")
     private LocalDateTime leftAt;
 
+    @Column(name = "last_read_at")
+    private LocalDateTime lastReadAt;
+
     private ConversationParticipantEntity(
             ConversationEntity conversation,
             UUID userId,
@@ -82,6 +85,10 @@ public class ConversationParticipantEntity {
 
     public void rejoin() {
         this.leftAt = null;
+    }
+
+    public void markAsRead() {
+        this.lastReadAt = LocalDateTime.now();
     }
 
     /**

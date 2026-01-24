@@ -41,12 +41,6 @@ public class ConversationBlockEntity {
     @Column(name = "blocked_by", nullable = false, updatable = false)
     private UUID blockedBy;
 
-    /**
-     * User who is blocked
-     */
-    @Column(name = "blocked_user", nullable = false, updatable = false)
-    private UUID blockedUser;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -58,18 +52,13 @@ public class ConversationBlockEntity {
         this.id = UUID.randomUUID();
         this.conversation = conversation;
         this.blockedBy = blockedBy;
-        this.blockedUser = blockedUser;
         this.createdAt = LocalDateTime.now();
     }
 
     public static ConversationBlockEntity create(
             ConversationEntity conversation,
-            UUID blockedBy,
-            UUID blockedUser
+            UUID blockedBy
     ) {
-        if (blockedBy.equals(blockedUser)) {
-            throw new IllegalArgumentException("User cannot block himself");
-        }
-        return new ConversationBlockEntity(conversation, blockedBy, blockedUser);
+        return new ConversationBlockEntity(conversation, blockedBy);
     }
 }
