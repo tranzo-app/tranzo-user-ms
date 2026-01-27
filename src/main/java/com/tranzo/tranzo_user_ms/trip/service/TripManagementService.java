@@ -461,9 +461,14 @@ public class TripManagementService {
     }
 
     // what about question answer visibility : joined as well as not joined users
-    public List<TripQnaResponseDto> getTripQna(UUID tripId){
+    public List<TripQnaResponseDto> getTripQna(UUID tripId,UUID userId){
         TripEntity trip = tripRepository.findById(tripId)
                 .orElseThrow(()-> new EntityNotFoundException("Trip not found"));
+
+        if(trip.getVisibilityStatus()== VisibilityStatus.PRIVATE &&
+                !tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(tripId,userId,TripMemberStatus.ACTIVE)){
+            throw new ForbiddenException("User is not allowed to fetch QnA of this trip");
+        }
 
         List<TripQueryEntity> tripQueries = tripQueryRepository.findByTrip_TripIdOrderByCreatedAtDesc(tripId);
 
@@ -516,7 +521,7 @@ public class TripManagementService {
 
         userUtil.validateUserIsHost(tripId, userId);
         // Do I need to make seprate exception for this one
-        if(userId == participantUserId){
+        if(userId.equals(participantUserId)){
             throw new BadRequestException("Host can make itself as cohost");
         }
 

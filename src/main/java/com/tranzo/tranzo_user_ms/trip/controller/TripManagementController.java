@@ -93,9 +93,10 @@ public class TripManagementController {
     @GetMapping("/{tripId}/qna")
     public ResponseEntity<ResponseDto<List<TripQnaResponseDto>>> getTripQnA(
             @PathVariable UUID tripId
-    ) {
+    ) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
         List<TripQnaResponseDto> response =
-                tripManagementService.getTripQna(tripId);
+                tripManagementService.getTripQna(tripId,userId);
 
         return ResponseEntity.ok(
                 ResponseDto.success("Trip QnA fetched successfully", response)
