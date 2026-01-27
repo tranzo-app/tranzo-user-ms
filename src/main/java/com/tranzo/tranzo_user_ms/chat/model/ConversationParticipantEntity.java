@@ -91,11 +91,7 @@ public class ConversationParticipantEntity {
         this.lastReadAt = LocalDateTime.now();
     }
 
-    /**
-     * VERY IMPORTANT:
-     * Defines uniqueness for Set
-     * Business key = (conversation_id, user_id)
-     */
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

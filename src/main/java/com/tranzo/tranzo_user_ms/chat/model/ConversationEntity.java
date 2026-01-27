@@ -67,6 +67,7 @@ public class ConversationEntity {
     public void addParticipant(UUID userId, ConversationRole role) {
         ConversationParticipantEntity participant =
                 ConversationParticipantEntity.create(this, userId, role);
+        participant.setLastReadAt(null);
         participants.add(participant); // Set prevents duplicates
     }
 }

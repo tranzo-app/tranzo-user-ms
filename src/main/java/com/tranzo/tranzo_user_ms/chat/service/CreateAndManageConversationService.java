@@ -1,24 +1,13 @@
 package com.tranzo.tranzo_user_ms.chat.service;
 
-import com.tranzo.tranzo_user_ms.chat.dto.CreateConversationRequestDto;
-import com.tranzo.tranzo_user_ms.chat.dto.CreateConversationResponseDto;
-import com.tranzo.tranzo_user_ms.chat.dto.SendMessageRequestDto;
-import com.tranzo.tranzo_user_ms.chat.dto.SendMessageResponseDto;
+import com.tranzo.tranzo_user_ms.chat.dto.*;
 import com.tranzo.tranzo_user_ms.chat.enums.ConversationRole;
 import com.tranzo.tranzo_user_ms.chat.enums.ConversationType;
 import com.tranzo.tranzo_user_ms.chat.exception.ConversationNotFoundException;
-import com.tranzo.tranzo_user_ms.chat.model.ConversationBlockEntity;
-import com.tranzo.tranzo_user_ms.chat.model.ConversationEntity;
-import com.tranzo.tranzo_user_ms.chat.model.ConversationParticipantEntity;
-import com.tranzo.tranzo_user_ms.chat.model.MessageEntity;
-import com.tranzo.tranzo_user_ms.chat.repository.ConversationBlockRepository;
-import com.tranzo.tranzo_user_ms.chat.repository.ConversationParticipantRepository;
-import com.tranzo.tranzo_user_ms.chat.repository.ConversationRepository;
-import com.tranzo.tranzo_user_ms.chat.repository.MessageRepository;
+import com.tranzo.tranzo_user_ms.chat.model.*;
+import com.tranzo.tranzo_user_ms.chat.repository.*;
 import com.tranzo.tranzo_user_ms.commons.exception.ForbiddenException;
-import com.tranzo.tranzo_user_ms.chat.exception.BaseException;
 import lombok.AllArgsConstructor;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +23,7 @@ public class CreateAndManageConversationService {
     private final ConversationParticipantRepository conversationParticipantRepository;
     private final ConversationBlockRepository conversationBlockRepository;
     private final MessageRepository messageRepository;
-    private final ConversationBlockRepository blockRepository;
+    private final ConversationMuteRepository muteRepository;
 
     public CreateConversationResponseDto createOneToOneConversation(UUID userId, CreateConversationRequestDto request) {
         UUID otherUserId = request.getOtherUserId();
@@ -58,34 +47,19 @@ public class CreateAndManageConversationService {
         newConversation.addParticipant(userId, ConversationRole.MEMBER);
         newConversation.addParticipant(otherUserId, ConversationRole.MEMBER);
 
-        MessageEntity systemMessage =
-                MessageEntity.systemMessage(
+        MessageEntity systemMessage = MessageEntity.systemMessage(
                         newConversation,
                         "You are now connected"
                 );
 
         conversationRepository.save(newConversation);
+        messageRepository.save(systemMessage);
         return CreateConversationResponseDto.builder()
                 .conversationId(newConversation.getConversationId())
                 .createdAt(newConversation.getCreatedAt())
                 .existing(false)
                 .build();
     }
-
-    public void markConversationAsRead(UUID conversationId, UUID userId) {
-         conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
-
-        ConversationParticipantEntity ConversationParticipant =  conversationParticipantRepository.findByConversation_ConversationIdAndUserId(conversationId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("User is not a participant of the conversation"));
-
-        ConversationParticipant.markAsRead();
-    }
-
-//    @Transactional(readOnly = true)
-//    public List<ChatListItemDto> getMyChatList(UUID currentUserId) {
-//        return conversationRepository.findChatListByUserId(currentUserId);
-//    }
 
     public SendMessageResponseDto sendMessage(UUID conversationId, UUID senderId, SendMessageRequestDto request) {
         String content =  request.getContent();
@@ -95,13 +69,13 @@ public class CreateAndManageConversationService {
         conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, senderId)
                 .orElseThrow(() -> new ConversationNotFoundException("USER_NOT_PARTICIPANT"));
 
-       if(conversation.getType().equals(ConversationType.ONE_ON_ONE))
-       {
-           boolean isBlocked = conversationBlockRepository.existsByConversation_ConversationIdAndUserId(conversationId, senderId);
-           if(isBlocked) {
-               throw new ForbiddenException("USER_BLOCKED");
-           }
-       }
+        if(conversation.getType().equals(ConversationType.ONE_ON_ONE))
+        {
+            boolean isBlocked = conversationBlockRepository.existsByConversation_ConversationIdAndBlockedBy(conversationId, senderId);
+            if(isBlocked) {
+                throw new ForbiddenException("USER_BLOCKED");
+            }
+        }
 
         MessageEntity message = messageRepository.save(
                 MessageEntity.userMessage(
@@ -110,14 +84,26 @@ public class CreateAndManageConversationService {
                         content
                 )
         );
-        return new SendMessageResponseDto(
+        SendMessageResponseDto response = new SendMessageResponseDto(
                 message.getMessageId(),
                 conversationId,
                 senderId,
-                message.getContent(),
+                content,
                 message.getCreatedAt()
         );
+        return response;
     }
+
+    public void markConversationAsRead(UUID conversationId, UUID userId) {
+        conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+
+        ConversationParticipantEntity conversationParticipant = conversationParticipantRepository.findByConversation_ConversationIdAndUserId(conversationId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("User is not a participant of the conversation"));
+
+        conversationParticipant.markAsRead();
+    }
+
 
     public void blockConversation(UUID conversationId, UUID blockinguserid) {
 
@@ -132,17 +118,17 @@ public class CreateAndManageConversationService {
         conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, blockinguserid)
                 .orElseThrow(() -> new ConversationNotFoundException("USER_NOT_PARTICIPANT"));
 
-        if (blockRepository.existsByConversation_ConversationIdAndUserId(
+        if (conversationBlockRepository.existsByConversation_ConversationIdAndBlockedBy(
                 conversationId, blockinguserid)) {
             return;
         }
 
-        blockRepository.save(
+        conversationBlockRepository.save(
                 ConversationBlockEntity.create(conversation, blockinguserid)
         );
     }
 
-    public void unblockConversation(UUID conversationId, UUID userId) {
+    /*public void unblockConversation(UUID conversationId, UUID userId) {
 
         ConversationEntity conversation =
                 conversationRepository.findById(conversationId)
@@ -154,14 +140,52 @@ public class CreateAndManageConversationService {
 
         conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)
                 .orElseThrow(() -> new ConversationNotFoundException("User is not a participant of the conversation"));
-        blockRepository
-                .findByConversation_ConversationIdAndUserId(
+        ConversationBlockRepository
+                .findByConversation_ConversationIdAndBlockedBy(
                         conversationId, userId
                 )
                 .ifPresent(blockRepository::delete);
     }
+*/
 
-    public void muteConversation(){
 
+    public void muteConversation(UUID conversationId, UUID userId) {
+
+        ConversationEntity conversation = conversationRepository.findById(conversationId)
+                        .orElseThrow(() ->
+                                new ConversationNotFoundException("CONVERSATION_NOT_FOUND")
+                        );
+
+        conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)
+                .orElseThrow(() ->
+                        new ForbiddenException("USER_NOT_PARTICIPANT")
+                );
+
+        if (muteRepository.existsByConversation_ConversationIdAndUserId(conversationId, userId)) {
+            return;
+        }
+        muteRepository.save(ConversationMuteEntity.create(conversation, userId));
+    }
+
+    public void unmuteConversation(UUID conversationId, UUID userId) {
+
+        ConversationEntity conversation = conversationRepository.findById(conversationId)
+                        .orElseThrow(() ->
+                                new ConversationNotFoundException("CONVERSATION_NOT_FOUND")
+                        );
+
+        conversationParticipantRepository
+                .findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(
+                        conversationId, userId
+                )
+                .orElseThrow(() ->
+                        new ForbiddenException("USER_NOT_PARTICIPANT")
+                );
+
+        muteRepository
+                .findByConversation_ConversationIdAndUserId(
+                        conversationId, userId
+                )
+                .ifPresent(muteRepository::delete);
     }
 }

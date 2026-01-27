@@ -20,7 +20,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class ConversationService {
 
     private static final int DEFAULT_LIMIT = 30;
@@ -31,14 +31,15 @@ public class ConversationService {
     private final MessageRepository messageRepository;
 
     public List<ChatListItemDto> getMyConversations(UUID currentUserId) {
-        return conversationRepository.findChatListForUser(currentUserId);
+        List<ChatListItemDto> conversations = conversationRepository.findChatListForUser(currentUserId);
+        return conversations;
     }
 
     public List<MessageResponseDto> fetchMessages( UUID conversationId, UUID currentUserId, LocalDateTime before, Integer limit){
         conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
-        conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, currentUserId)
+        var participant = conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, currentUserId)
                 .orElseThrow(() -> new ConversationNotFoundException("User is not a participant of the conversation"));
 
         int pageSize = DEFAULT_LIMIT;
@@ -57,6 +58,9 @@ public class ConversationService {
                         before,
                         pageable
                 );
+
+        participant.markAsRead();
+        conversationParticipantRepository.save(participant);
 
         return messages.stream()
                 .map(message ->

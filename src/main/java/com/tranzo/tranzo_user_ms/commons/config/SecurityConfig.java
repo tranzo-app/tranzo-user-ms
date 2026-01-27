@@ -21,7 +21,6 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
@@ -35,7 +34,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/auth/otp/**",
                                 "/auth/session/**",
-                                "/h2-console/**"
+                                "/h2-console/**",
+                                "/ws-chat/**"
                         ).permitAll()
                         .requestMatchers("/user/register").authenticated()
                         .anyRequest().authenticated()

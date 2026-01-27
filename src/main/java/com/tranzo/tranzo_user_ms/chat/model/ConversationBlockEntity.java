@@ -14,7 +14,7 @@ import java.util.UUID;
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_block_unique",
-                        columnNames = {"conversation_id", "blocked_by", "blocked_user"}
+                        columnNames = {"conversation_id", "blocked_by"}
                 )
         }
 )
@@ -35,9 +35,6 @@ public class ConversationBlockEntity {
     )
     private ConversationEntity conversation;
 
-    /**
-     * User who initiated the block
-     */
     @Column(name = "blocked_by", nullable = false, updatable = false)
     private UUID blockedBy;
 
@@ -46,8 +43,7 @@ public class ConversationBlockEntity {
 
     private ConversationBlockEntity(
             ConversationEntity conversation,
-            UUID blockedBy,
-            UUID blockedUser
+            UUID blockedBy
     ) {
         this.id = UUID.randomUUID();
         this.conversation = conversation;
