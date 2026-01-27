@@ -46,6 +46,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String extractAccessToken(HttpServletRequest request) {
+        // Try to extract from Authorization header first (Bearer token)
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+
+        // Try to extract from query parameter (for WebSocket connections)
+        String tokenParam = request.getParameter("token");
+        if (tokenParam != null && !tokenParam.isEmpty()) {
+            return tokenParam;
+        }
+
+        // Fall back to cookie extraction
         if (request.getCookies() == null) return null;
         for (Cookie cookie : request.getCookies()) {
             if ("ACCESS_TOKEN".equals(cookie.getName())) {
