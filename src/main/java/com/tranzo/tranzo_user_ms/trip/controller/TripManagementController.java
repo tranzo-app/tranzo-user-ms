@@ -60,13 +60,6 @@ public class TripManagementController {
         return ResponseEntity.ok(ResponseDto.success("Trip successfully cancelled", null));
     }
 
-    @PostMapping("/{tripId}/qna")
-    public ResponseEntity<ResponseDto<Void>> addTripQnA(@RequestBody CreateQnaRequestDto createQnaRequestDto, @PathVariable UUID tripId) throws AuthException {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        tripManagementService.addTripQnA(userId, createQnaRequestDto, tripId);
-        return ResponseEntity.ok(ResponseDto.success("Trip QnA added successfully", null));
-    }
-
     @PostMapping("/{tripId}/publish")
     public ResponseEntity<ResponseDto<TripResponseDto>> publishDraftTrip(@PathVariable UUID tripId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
@@ -80,6 +73,13 @@ public class TripManagementController {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         TripResponseDto tripResponse = tripManagementService.updateTrip(tripDto, tripId, userId);
         return ResponseEntity.ok(ResponseDto.success("Published trip has been updated successfully", tripResponse));
+    }
+
+    @PostMapping("/{tripId}/qna")
+    public ResponseEntity<ResponseDto<Void>> addTripQnA(@RequestBody CreateQnaRequestDto createQnaRequestDto, @PathVariable UUID tripId) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        tripManagementService.addTripQnA(userId, createQnaRequestDto, tripId);
+        return ResponseEntity.ok(ResponseDto.success("Trip QnA added successfully", null));
     }
 
 

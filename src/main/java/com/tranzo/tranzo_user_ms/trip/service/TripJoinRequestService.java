@@ -16,6 +16,7 @@ import com.tranzo.tranzo_user_ms.trip.repository.TripJoinRequestRepository;
 import com.tranzo.tranzo_user_ms.trip.repository.TripMemberRepository;
 import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,12 +29,13 @@ import java.util.UUID;
 import static com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode.TRIP_NOT_FOUND;
 import static com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode.TRIP_NOT_PUBLISHED;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TripJoinRequestService {
-    TripRepository tripRepository;
-    TripMemberRepository tripMemberRepository;
-    TripJoinRequestRepository tripJoinRequestRepository;
+    private final TripRepository tripRepository;
+    private final TripMemberRepository tripMemberRepository;
+    private final TripJoinRequestRepository tripJoinRequestRepository;
 
     @Transactional
     public TripJoinRequestResponseDto createJoinRequest(TripJoinRequestDto tripJoinRequestDto, UUID tripId, UUID userId)
@@ -172,6 +174,7 @@ public class TripJoinRequestService {
                 .build();
     }
 
+    @Transactional
     public TripJoinRequestResponseDto rejectJoinRequest(UUID joinRequestId, UUID userId)
     {
         TripJoinRequestEntity joinRequest = tripJoinRequestRepository.findById(joinRequestId)
@@ -183,6 +186,7 @@ public class TripJoinRequestService {
         TripEntity trip = tripRepository.findById(joinRequest.getTrip().getTripId())
                 .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
         boolean isHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+        log.info("Host user id : {}", userId);
         if (!isHost)
         {
             throw new ForbiddenException("Only host can reject join requests");
