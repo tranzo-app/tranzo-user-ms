@@ -10,6 +10,7 @@ import java.util.UUID;
 
 @Repository
 public interface ConversationBlockRepository extends JpaRepository<ConversationBlockEntity, UUID> {
+    boolean existsByConversation_ConversationId(UUID conversationId);
     boolean existsByConversation_ConversationIdAndBlockedBy(UUID conversationId, UUID blockedBy);
     Optional<ConversationBlockEntity> findByConversation_ConversationIdAndBlockedBy(UUID conversationId, UUID blockedBy);
 }
