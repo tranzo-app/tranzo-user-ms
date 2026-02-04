@@ -91,22 +91,4 @@ public class ConversationParticipantEntity {
         this.lastReadAt = LocalDateTime.now();
     }
 
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ConversationParticipantEntity)) return false;
-        ConversationParticipantEntity that = (ConversationParticipantEntity) o;
-
-        return Objects.equals(
-                conversation.getConversationId(),
-                that.conversation.getConversationId()
-        ) && Objects.equals(userId, that.userId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(conversation.getConversationId(), userId);
-    }
-
 }

@@ -9,9 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 @Table(name = "conversation")
@@ -33,6 +31,9 @@ public class ConversationEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "name")
+    private String name; // only used if type = GROUP
+
     /**
      * IMPORTANT:
      * - Using Set to prevent duplicate participants
@@ -44,6 +45,11 @@ public class ConversationEntity {
             orphanRemoval = true
     )
     private Set<ConversationParticipantEntity> participants = new HashSet<>();
+
+    @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL)
+    @OrderBy("createdAt ASC")
+    private List<MessageEntity> messages = new ArrayList<>();
+
 
     protected ConversationEntity(
             UUID conversationId,

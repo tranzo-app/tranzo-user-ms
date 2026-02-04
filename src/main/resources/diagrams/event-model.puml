@@ -1,0 +1,101 @@
+@startuml
+title Travel Platform - Chat & Notification Event Flow
+
+actor User
+actor Host
+actor TripMember
+actor "Interested User" as InterestedUser
+
+participant "User Service" as UserSvc
+participant "Trip Service" as TripSvc
+participant "Chat Service" as ChatSvc
+participant "Notification Service" as NotifSvc
+participant Scheduler
+
+== TRAVEL PAL FLOW ==
+
+User -> UserSvc : Send TravelPal Request
+UserSvc --> NotifSvc : TravelPalRequestSentEvent
+NotifSvc --> User : 🔔 Push (1:1)
+
+UserSvc --> ChatSvc : TravelPalRequestAcceptedEvent
+ChatSvc -> ChatSvc : Create 1:1 Conversation (System)
+UserSvc --> NotifSvc : TravelPalAcceptedEvent
+NotifSvc --> User : 🔔 Push (1:1)
+
+== TRIP CREATION ==
+
+Host -> TripSvc : Create Trip
+TripSvc --> ChatSvc : TripCreatedEvent
+ChatSvc -> ChatSvc : Create Group Chat 💬
+
+TripSvc --> NotifSvc : TripCreatedEvent
+NotifSvc --> InterestedUser : 🔔 Push (Broadcast - Similar Trips)
+
+== JOIN TRIP FLOW ==
+
+User -> TripSvc : Request to Join Trip
+TripSvc --> NotifSvc : TripJoinRequestedEvent
+NotifSvc --> Host : 🔔 Push (1:1)
+
+Host -> TripSvc : Approves Join Request
+TripSvc --> ChatSvc : TripMemberJoinedEvent
+ChatSvc -> ChatSvc : "User joined the trip" 💬
+
+TripSvc --> NotifSvc : TripMemberJoinedEvent
+NotifSvc --> TripMember : 🔔 Push (Broadcast)
+
+User -> TripSvc : Leaves Trip
+TripSvc --> ChatSvc : TripMemberLeftEvent
+ChatSvc -> ChatSvc : "User left the trip" 💬
+
+TripSvc --> NotifSvc : TripMemberLeftEvent
+NotifSvc --> TripMember : 🔔 Push (Broadcast)
+
+== TRIP STATE CHANGES ==
+
+TripSvc --> NotifSvc : TripUpdatedEvent
+NotifSvc --> TripMember : 🔔 Push (Broadcast)
+
+TripSvc --> NotifSvc : TripMarkedFullEvent
+NotifSvc --> TripMember : 🔔 Push (Broadcast)
+
+TripSvc --> NotifSvc : TripCancelledEvent
+NotifSvc --> TripMember : 🔔 Push (Broadcast - High Priority)
+
+TripSvc --> ChatSvc : MemberPromotedToCohostEvent
+ChatSvc -> ChatSvc : System Message 💬
+
+== CHAT MESSAGES ==
+
+User -> ChatSvc : Send Message
+ChatSvc --> NotifSvc : MessageSentEvent
+NotifSvc --> TripMember : 🔔 Push (1:1 to others)
+
+== WISHLIST ALERTS ==
+
+TripSvc --> NotifSvc : TripSeatThresholdReachedEvent
+NotifSvc --> User : 🔔 Push (1:1 - Wishlisted Users)
+
+== TRIP Q&A ==
+
+User -> TripSvc : Ask Question
+TripSvc --> NotifSvc : TripQuestionAskedEvent
+NotifSvc --> TripMember : 🔔 Push (Broadcast)
+
+TripMember -> TripSvc : Answer Question
+TripSvc --> NotifSvc : TripQuestionAnsweredEvent
+NotifSvc --> User : 🔔 Push (1:1 to Question Owner)
+
+== REMINDERS & SYSTEM EVENTS ==
+
+Scheduler --> NotifSvc : UpcomingTripReminderEvent
+NotifSvc --> TripMember : 🔔 Push (Broadcast)
+
+Scheduler --> NotifSvc : DraftTripIncompleteReminder
+NotifSvc --> Host : 🔔 Push (1:1)
+
+Scheduler --> NotifSvc : TripCompletedEvent
+NotifSvc --> TripMember : 🔔 Push (Broadcast - Feedback Request)
+
+@enduml

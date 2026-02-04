@@ -1,16 +1,22 @@
 package com.tranzo.tranzo_user_ms.chat.model;
 
+import com.tranzo.tranzo_user_ms.chat.enums.MessageType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.awt.*;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
 @Entity
-@Table(name = "message")
+@Table(
+        name = "message",
+        indexes = @Index(name = "idx_msg_conversation_created", columnList = "conversation_id, created_at")
+)
+
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class MessageEntity {
@@ -39,6 +45,10 @@ public class MessageEntity {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+//    @Enumerated(EnumType.STRING)
+//    @Column(name = "type", nullable = false)
+//    private MessageType type; // TEXT, IMAGE, FILE, SYSTEM
 
     /**
      * Private constructor to enforce valid creation

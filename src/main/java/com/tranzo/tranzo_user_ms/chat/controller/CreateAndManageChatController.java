@@ -37,7 +37,7 @@ public class CreateAndManageChatController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.success("Message sent", sendMessageResponseDto));
     }
 
-    @PostMapping("create/one-to-one")
+    @PostMapping("/one-to-one")
     public ResponseEntity<ResponseDto<CreateConversationResponseDto>> createConversation(@Valid @RequestBody CreateConversationRequestDto request)throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Create conversation request by userId={} with otherUserId={}", userId, request.getOtherUserId());
@@ -69,7 +69,7 @@ public class CreateAndManageChatController {
     }
 
 
-    @PostMapping("/{conversationId}/read")
+    @PatchMapping("/{conversationId}/read")
     public ResponseEntity<ResponseDto<Void>> markConversationAsRead(@PathVariable UUID conversationId) throws AuthException{
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
         log.info("Mark conversation as read: conversationId={}, userId={}", conversationId, currentUserId);

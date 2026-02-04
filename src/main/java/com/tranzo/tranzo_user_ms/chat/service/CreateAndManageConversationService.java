@@ -8,15 +8,19 @@ import com.tranzo.tranzo_user_ms.chat.model.*;
 import com.tranzo.tranzo_user_ms.chat.repository.*;
 import com.tranzo.tranzo_user_ms.commons.exception.ForbiddenException;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @AllArgsConstructor
 @Transactional
+@Slf4j
 public class CreateAndManageConversationService {
 
     private final ConversationRepository conversationRepository;
@@ -24,6 +28,7 @@ public class CreateAndManageConversationService {
     private final ConversationBlockRepository conversationBlockRepository;
     private final MessageRepository messageRepository;
     private final ConversationMuteRepository muteRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public CreateConversationResponseDto createOneToOneConversation(UUID userId, CreateConversationRequestDto request) {
         UUID otherUserId = request.getOtherUserId();
@@ -71,6 +76,7 @@ public class CreateAndManageConversationService {
 
         if(conversation.getType().equals(ConversationType.ONE_ON_ONE))
         {
+            // TODO : Do we need to check if the conversation has been blocked by opposite user too? Should we maintain a flag to mark conversation as blocked if anyone from the conversation does it?
             boolean isBlocked = conversationBlockRepository.existsByConversation_ConversationIdAndBlockedBy(conversationId, senderId);
             if(isBlocked) {
                 throw new ForbiddenException("USER_BLOCKED");
@@ -91,6 +97,30 @@ public class CreateAndManageConversationService {
                 content,
                 message.getCreatedAt()
         );
+        if (conversation.getType() == ConversationType.GROUP_CHAT) {
+            messagingTemplate.convertAndSend(
+                    "/topic/conversations/" + conversationId,
+                    response
+            );
+
+        } else if (conversation.getType() == ConversationType.ONE_ON_ONE) {
+            // Send only to the receiver
+            List<ConversationParticipantEntity> participants =
+                    conversationParticipantRepository
+                            .findByConversation_ConversationIdAndLeftAtIsNull(conversationId);
+            UUID receiverId = participants.stream()
+                    .map(ConversationParticipantEntity::getUserId)
+                    .filter(id -> !id.equals(senderId))
+                    .findFirst()
+                    .orElseThrow();
+            log.info("Sending private message from {} to {}", senderId, receiverId);
+            messagingTemplate.convertAndSendToUser(
+                    receiverId.toString(),
+                    "/queue/messages",
+                    response
+            );
+
+        }
         return response;
     }
 

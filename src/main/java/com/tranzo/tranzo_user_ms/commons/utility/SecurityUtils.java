@@ -11,13 +11,18 @@ public final class SecurityUtils {
     private SecurityUtils() {}
 
     public static UUID getCurrentUserUuid() throws AuthException {
-        Authentication authentication =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null || !authentication.isAuthenticated()) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getPrincipal() == null) {
             throw new AuthException("Unauthenticated request");
         }
-        return (UUID) authentication.getPrincipal();
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UUID uuid) {
+            return uuid;
+        }
+        if (principal instanceof String str) {
+            return UUID.fromString(str);
+        }
+        throw new AuthException("Invalid authentication principal");
     }
 }
 
