@@ -156,9 +156,11 @@ public class CreateAndManageConversationService {
         conversationBlockRepository.save(
                 ConversationBlockEntity.create(conversation, blockinguserid)
         );
+
+        // Remove travelPAL after blocking user i.e trigger unmatching from user service
     }
 
-    /*public void unblockConversation(UUID conversationId, UUID userId) {
+    public void unblockConversation(UUID conversationId, UUID userId) {
 
         ConversationEntity conversation =
                 conversationRepository.findById(conversationId)
@@ -170,13 +172,14 @@ public class CreateAndManageConversationService {
 
         conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)
                 .orElseThrow(() -> new ConversationNotFoundException("User is not a participant of the conversation"));
-        ConversationBlockRepository
-                .findByConversation_ConversationIdAndBlockedBy(
-                        conversationId, userId
-                )
-                .ifPresent(blockRepository::delete);
+
+        ConversationBlockEntity blockEntity =
+                conversationBlockRepository.findByConversation_ConversationIdAndBlockedBy(
+                        conversationId, userId)
+                        .orElseThrow(() -> new ConversationNotFoundException("BLOCK_ENTRY_NOT_FOUND"));
+
+        conversationBlockRepository.delete(blockEntity);
     }
-*/
 
 
     public void muteConversation(UUID conversationId, UUID userId) {

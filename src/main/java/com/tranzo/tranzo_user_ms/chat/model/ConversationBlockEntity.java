@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.chat.model;
 
+import com.tranzo.tranzo_user_ms.chat.enums.BlockStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -26,7 +27,7 @@ public class ConversationBlockEntity {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "conversation_id",
             nullable = false,
@@ -40,6 +41,9 @@ public class ConversationBlockEntity {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    private BlockStatus status = BlockStatus.BLOCKED;
 
     private ConversationBlockEntity(
             ConversationEntity conversation,

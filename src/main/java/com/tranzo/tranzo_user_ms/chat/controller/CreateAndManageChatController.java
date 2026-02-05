@@ -122,10 +122,10 @@ public class CreateAndManageChatController {
 
 
 
-   /* @PostMapping("/{conversationId}/unblock")
+    @PostMapping("/{conversationId}/unblock")
     public ResponseEntity<ResponseDto<Void>> unblockConversation(
             @PathVariable UUID conversationId
-    ) throws AuthException{
+    ) throws AuthException {
 
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
 
@@ -137,7 +137,6 @@ public class CreateAndManageChatController {
         return ResponseEntity.ok(
                 ResponseDto.success("Conversation unblocked successfully", null)
         );
-    }*/
-
+    }
 
 }
