@@ -4,6 +4,8 @@ import com.tranzo.tranzo_user_ms.commons.exception.*;
 import com.tranzo.tranzo_user_ms.trip.dto.*;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
 import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
+import com.tranzo.tranzo_user_ms.trip.kafka.TripEventPublisher;
+import com.tranzo.tranzo_user_ms.trip.kafka.TripPublishedEventPayloadDto;
 import com.tranzo.tranzo_user_ms.trip.model.*;
 import com.tranzo.tranzo_user_ms.trip.repository.*;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
@@ -27,6 +29,7 @@ public class TripManagementService {
     private final TripQueryRepository tripQueryRepository;
     private final TripReportRepository tripReportRepository;
     private final TripPublishEligibilityValidator tripPublishEligibilityValidator;
+    private final TripEventPublisher tripEventPublisher;
     private final UserUtil userUtil;
 
     public TripManagementService(TripMemberRepository tripMemberRepository,
@@ -36,6 +39,7 @@ public class TripManagementService {
                                  TripQueryRepository tripQueryRepository,
                                  TripReportRepository tripReportRepository,
                                  TripPublishEligibilityValidator tripPublishEligibilityValidator,
+                                 TripEventPublisher tripEventPublisher,
                                  UserUtil userUtil) {
         this.tripMemberRepository = tripMemberRepository;
         this.tripRepository = tripRepository;
@@ -44,6 +48,7 @@ public class TripManagementService {
         this.tripQueryRepository = tripQueryRepository;
         this.tripReportRepository = tripReportRepository;
         this.tripPublishEligibilityValidator = tripPublishEligibilityValidator;
+        this.tripEventPublisher = tripEventPublisher;
         this.userUtil = userUtil;
     }
 
@@ -197,6 +202,14 @@ public class TripManagementService {
             trip.setVisibilityStatus(VisibilityStatus.PUBLIC);
         }
         TripEntity updateTrip = tripRepository.save(trip);
+        TripPublishedEventPayloadDto eventPayloadDto = TripPublishedEventPayloadDto.builder()
+                .eventType("TRIP_PUBLISHED")
+                .tripId(tripId)
+                .hostUserId(userId)
+                .build();
+
+        tripEventPublisher.publishTripPublished(eventPayloadDto);
+
         return TripResponseDto.builder()
                 .tripId(updateTrip.getTripId())
                 .tripStatus(updateTrip.getTripStatus())

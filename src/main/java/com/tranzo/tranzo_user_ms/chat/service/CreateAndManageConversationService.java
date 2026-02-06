@@ -66,6 +66,18 @@ public class CreateAndManageConversationService {
                 .build();
     }
 
+    public ConversationEntity createTripGroupChat(UUID hostUserId){
+        ConversationEntity newConversation = ConversationEntity.createGroup(hostUserId);
+        newConversation.addParticipant(hostUserId, ConversationRole.ADMIN_HOST);
+        MessageEntity systemMessage = MessageEntity.systemMessage(
+                newConversation,
+                "Trip Hosted Successfully"
+        );
+        ConversationEntity conversationEntity = conversationRepository.save(newConversation);
+        messageRepository.save(systemMessage);
+        return conversationEntity;
+    }
+
     public SendMessageResponseDto sendMessage(UUID conversationId, UUID senderId, SendMessageRequestDto request) {
         String content =  request.getContent();
         ConversationEntity conversation = conversationRepository.findById(conversationId)
