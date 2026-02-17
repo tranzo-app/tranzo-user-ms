@@ -9,6 +9,8 @@ import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestResponseDto;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
 import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
+import com.tranzo.tranzo_user_ms.trip.kafka.TripEventPublisher;
+import com.tranzo.tranzo_user_ms.trip.kafka.TripPublishedEventPayloadDto;
 import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
 import com.tranzo.tranzo_user_ms.trip.model.TripJoinRequestEntity;
 import com.tranzo.tranzo_user_ms.trip.model.TripMemberEntity;
@@ -36,6 +38,7 @@ public class TripJoinRequestService {
     private final TripRepository tripRepository;
     private final TripMemberRepository tripMemberRepository;
     private final TripJoinRequestRepository tripJoinRequestRepository;
+    private final TripEventPublisher tripEventPublisher;
 
     @Transactional
     public TripJoinRequestResponseDto createJoinRequest(TripJoinRequestDto tripJoinRequestDto, UUID tripId, UUID userId)
@@ -109,6 +112,14 @@ public class TripJoinRequestService {
             trip.setCurrentParticipants(updatedCount);
             trip.setIsFull(updatedCount >= trip.getMaxParticipants());
             tripRepository.save(trip);
+            //kafka event to add in trip group chat
+            TripPublishedEventPayloadDto eventPayloadDto = TripPublishedEventPayloadDto.builder()
+                    .eventType("PARTICIPANT_JOINED")
+                    .tripId(tripId)
+                    .userId(userId)
+                    .build();
+
+            tripEventPublisher.publishTripPublished(eventPayloadDto);
         }
 
         // Response

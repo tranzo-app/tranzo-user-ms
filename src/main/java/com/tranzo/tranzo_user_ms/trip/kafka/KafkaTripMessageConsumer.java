@@ -12,12 +12,12 @@ import org.springframework.transaction.annotation.Transactional;
 @AllArgsConstructor
 @Component
 @Slf4j
-public class KafkaMessageConsumer {
+public class KafkaTripMessageConsumer {
 
     private final TripRepository tripRepository;
     private final ObjectMapper objectMapper;
 
-    @KafkaListener(topics = "trip-group-chat-created", groupId = "GROUP_CHAT_CREATED",containerFactory = "tripEventListenerContainerFactory")
+    @KafkaListener(topics = "trip-group-chat-created", groupId = "GROUP_CHAT_CREATED",containerFactory = "eventListenerContainerFactory")
     @Transactional
     public  void consumerChatCreatedEvent(String eventMessage){
        try{

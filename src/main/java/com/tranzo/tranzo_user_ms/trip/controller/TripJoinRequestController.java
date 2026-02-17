@@ -63,4 +63,5 @@ public class TripJoinRequestController {
         tripJoinRequestService.removeOrLeaveTrip(tripId, participantUserId, userId, removeParticipantRequestDto);
         return ResponseEntity.ok(ResponseDto.success("Left from the trip successfully", null));
     }
+
 }

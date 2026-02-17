@@ -205,7 +205,7 @@ public class TripManagementService {
         TripPublishedEventPayloadDto eventPayloadDto = TripPublishedEventPayloadDto.builder()
                 .eventType("TRIP_PUBLISHED")
                 .tripId(tripId)
-                .hostUserId(userId)
+                .userId(userId)
                 .build();
 
         tripEventPublisher.publishTripPublished(eventPayloadDto);

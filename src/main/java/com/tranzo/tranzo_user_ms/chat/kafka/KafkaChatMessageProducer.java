@@ -13,11 +13,12 @@ import java.util.UUID;
 @AllArgsConstructor
 @Slf4j
 @Component
-public class KafkaMessageProducer {
+public class KafkaChatMessageProducer {
 
     private static final String TOPIC = "trip-group-chat-created";
     private final ObjectMapper objectMapper;
     private final KafkaTemplate<String,String> kafkaTemplate;
+
 
     public void publishGroupChatCreated(ConversationEntity conversationEntity, UUID tripId){
            UUID conversationId = conversationEntity.getConversationId();

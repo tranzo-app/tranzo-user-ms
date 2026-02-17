@@ -14,6 +14,6 @@ public class TripPublishedEventPayloadDto {
 
     private String eventType;
     private UUID tripId;
-    private UUID hostUserId;
+    private UUID userId;
 
 }
