@@ -116,4 +116,11 @@ public class TripManagementController {
         tripManagementService.promoteToCoHost(userId, tripId, participantUserId);
         return ResponseEntity.ok(ResponseDto.success("Participant has been promoted to co-host successfully", null));
     }
+
+    @PostMapping("/{tripId}/mark-full")
+    public ResponseEntity<ResponseDto<Void>> markTripFull(@PathVariable UUID tripId) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        tripManagementService.markTripFull(userId, tripId);
+        return ResponseEntity.ok(ResponseDto.success("Trip has been marked full successfully", null));
+    }
 }

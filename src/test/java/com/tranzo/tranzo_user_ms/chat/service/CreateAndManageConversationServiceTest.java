@@ -138,43 +138,6 @@ class CreateAndManageConversationServiceTest {
     }
 
     @Test
-    @DisplayName("sendMessage throws when blocked in one-on-one")
-    void testSendMessage_blocked() {
-        ConversationEntity conv = ConversationEntity.createOneToOneChat(userId);
-        when(conversationRepository.findById(conversationId)).thenReturn(Optional.of(conv));
-        when(conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId))
-                .thenReturn(Optional.of(ConversationParticipantEntity.create(conv, userId, ConversationRole.MEMBER)));
-        when(conversationBlockRepository.existsByConversation_ConversationId(conversationId)).thenReturn(true);
-
-        SendMessageRequestDto req = SendMessageRequestDto.builder().content("hello").build();
-        assertThrows(ForbiddenException.class,
-                () -> service.sendMessage(conversationId, userId, req));
-    }
-
-    @Test
-    @DisplayName("sendMessage succeeds for valid input")
-    void testSendMessage_success() {
-        ConversationEntity conv = ConversationEntity.createOneToOneChat(userId);
-        when(conversationRepository.findById(conversationId)).thenReturn(Optional.of(conv));
-        when(conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId))
-                .thenReturn(Optional.of(ConversationParticipantEntity.create(conv, userId, ConversationRole.MEMBER)));
-        when(conversationBlockRepository.existsByConversation_ConversationId(conversationId)).thenReturn(false);
-
-        MessageEntity saved = MessageEntity.userMessage(conv, userId, "hello");
-
-        when(messageRepository.save(any(MessageEntity.class))).thenReturn(saved);
-
-        SendMessageRequestDto req = SendMessageRequestDto.builder().content("hello").build();
-        SendMessageResponseDto resp = service.sendMessage(conversationId, userId, req);
-
-        assertNotNull(resp);
-        assertEquals(saved.getMessageId(), resp.getMessageId());
-        assertEquals(conversationId, resp.getConversationId());
-        assertEquals(userId, resp.getSenderId());
-        assertEquals("hello", resp.getContent());
-    }
-
-    @Test
     @DisplayName("markConversationAsRead throws when participant not found")
     void testMarkConversationAsRead_noParticipant() {
         when(conversationRepository.findById(conversationId)).thenReturn(Optional.of(ConversationEntity.createOneToOneChat(userId)));

@@ -78,6 +78,22 @@ public class CreateAndManageConversationService {
         return conversationEntity;
     }
 
+    /**
+     * Adds a user as participant to an existing conversation (e.g. when they join a trip).
+     * Idempotent: if already a participant, no-op.
+     */
+    public void addParticipantToConversation(UUID conversationId, UUID userId) {
+        ConversationEntity conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new ConversationNotFoundException("CONVERSATION_NOT_FOUND"));
+        boolean alreadyParticipant = conversationParticipantRepository
+                .findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)
+                .isPresent();
+        if (!alreadyParticipant) {
+            conversation.addParticipant(userId, ConversationRole.MEMBER);
+            conversationRepository.save(conversation);
+        }
+    }
+
     public SendMessageResponseDto sendMessage(UUID conversationId, UUID senderId, SendMessageRequestDto request) {
         String content =  request.getContent();
         ConversationEntity conversation = conversationRepository.findById(conversationId)

@@ -2,11 +2,6 @@ server:
   port: 8085
 
 spring:
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: my-group-id
-
   datasource:
     url: jdbc:h2:mem:tranzo_user_db;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
@@ -41,6 +36,12 @@ spring:
     access-token-expiry-minutes: 15
     refresh-token-expiry-days: 7
     issuer: tranzo-auth
+
+# Optional: cron for trip notification jobs (default: draft at 9am, upcoming at 8am daily)
+# trip:
+#   notification:
+#     draft-reminder-cron: "0 0 9 * * ?"
+#     upcoming-cron: "0 0 8 * * ?"
 
 logging:
   level:

@@ -1,4 +1,4 @@
-package com.tranzo.tranzo_user_ms.trip.kafka;
+package com.tranzo.tranzo_user_ms.trip.events;
 
 public interface TripEventPublisher {
     void publishTripPublished(TripPublishedEventPayloadDto payload);

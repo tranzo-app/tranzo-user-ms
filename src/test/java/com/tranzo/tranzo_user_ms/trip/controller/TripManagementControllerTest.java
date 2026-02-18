@@ -326,6 +326,22 @@ class TripManagementControllerTest {
         }
     }
 
+    @Test
+    @DisplayName("Should mark trip full successfully")
+    void testMarkTripFull_Success() throws Exception {
+        doNothing().when(tripManagementService).markTripFull(any(UUID.class), any(UUID.class));
+
+        try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
+            securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
+
+            ResponseEntity<ResponseDto<Void>> response =
+                tripManagementController.markTripFull(tripId);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            verify(tripManagementService, times(1)).markTripFull(eq(userId), eq(tripId));
+        }
+    }
+
     // ============== HELPER METHODS ==============
 
     private TripDto createSampleTripDto() {
