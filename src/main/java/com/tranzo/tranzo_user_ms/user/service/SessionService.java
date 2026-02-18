@@ -1,7 +1,5 @@
 package com.tranzo.tranzo_user_ms.user.service;
 
-import com.tranzo.tranzo_user_ms.commons.exception.UnauthorizedException;
-import com.tranzo.tranzo_user_ms.commons.exception.UserNotFoundException;
 import com.tranzo.tranzo_user_ms.commons.service.JwtService;
 import com.tranzo.tranzo_user_ms.user.dto.SessionRequestDto;
 import com.tranzo.tranzo_user_ms.user.dto.SessionResponseDto;
@@ -13,7 +11,7 @@ import jakarta.security.auth.message.AuthException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;

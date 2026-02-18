@@ -1,6 +1,6 @@
 package com.tranzo.tranzo_user_ms.user.controller;
 
-import com.tranzo.tranzo_user_ms.user.dto.ResponseDto;
+import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.user.dto.SessionRequestDto;
 import com.tranzo.tranzo_user_ms.user.dto.SessionResponseDto;
 import com.tranzo.tranzo_user_ms.user.service.SessionService;
