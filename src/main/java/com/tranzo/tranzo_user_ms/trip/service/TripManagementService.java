@@ -156,13 +156,14 @@ public class TripManagementService {
     {
         TripEntity trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
-        if (trip.getTripStatus() == TripStatus.CANCELLED) {
-            throw new ForbiddenException("Cancelled trip is not accessible");
+        boolean isTripHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(tripId, userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+        if (trip.getTripStatus() == TripStatus.CANCELLED && !isTripHost) {
+            throw new ForbiddenException("Cancelled trip is not accessible for anyone except the host of the trip");
         }
         if (trip.getVisibilityStatus() == VisibilityStatus.PRIVATE)
         {
             tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE)
-                    .orElseThrow(() -> new ForbiddenException("User is not allowed to view this private trip"));
+                    .orElseThrow(() -> new ForbiddenException("User is not allowed to view this private trip as the user is not the member of the trip"));
         }
         return mapTripEntityToDto(trip);
     }
@@ -191,6 +192,10 @@ public class TripManagementService {
         userUtil.validateUserIsHost(tripId, userId);
         tripPublishEligibilityValidator.validate(trip);
         trip.setTripStatus(TripStatus.PUBLISHED);
+        if (trip.getVisibilityStatus() == null)
+        {
+            trip.setVisibilityStatus(VisibilityStatus.PUBLIC);
+        }
         TripEntity updateTrip = tripRepository.save(trip);
         return TripResponseDto.builder()
                 .tripId(updateTrip.getTripId())
