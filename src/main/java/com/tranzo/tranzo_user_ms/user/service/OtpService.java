@@ -1,25 +1,22 @@
 package com.tranzo.tranzo_user_ms.user.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.tranzo.tranzo_user_ms.commons.service.JwtService;
-import com.tranzo.tranzo_user_ms.user.dto.RequestOtpDto;
-import com.tranzo.tranzo_user_ms.user.dto.VerifyOtpDto;
-import com.tranzo.tranzo_user_ms.user.dto.VerifyOtpResponseDto;
+import com.tranzo.tranzo_user_ms.user.dto.*;
 import com.tranzo.tranzo_user_ms.user.enums.AccountStatus;
 import com.tranzo.tranzo_user_ms.user.enums.UserRole;
 import com.tranzo.tranzo_user_ms.commons.exception.OtpException;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
+import com.tranzo.tranzo_user_ms.user.repository.RefreshTokenRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.user.utility.OtpUtility;
-import com.tranzo.tranzo_user_ms.user.utility.UserUtility;
-import jakarta.transaction.Transactional;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -28,57 +25,51 @@ import java.util.Optional;
 public class OtpService {
     private static final Duration OTP_TTL = Duration.ofMinutes(5);
     private final OtpUtility otpUtility;
-    private final StringRedisTemplate stringRedisTemplate;
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
-    private final UserUtility userUtility;
-
-    private Map<String, String> otpMap = new HashMap<>();
+    private final SessionService sessionService;
+    private final Cache<String, String> otpCache;
 
     public void sendOtp(RequestOtpDto requestOtpDto)
     {
         String identifier = otpUtility.resolveIdentifier(requestOtpDto);
         String otp = otpUtility.generateOtp();
 
-//        stringRedisTemplate.opsForValue()
-//                .set(
-//                        buildKey(identifier),
-//                        otp,
-//                        OTP_TTL
-//                );
-        otpMap.put(buildKey(identifier), otp);
+        otpCache.put(buildKey(identifier), otp);
 
         // TODO : Integrate SMS / Email Provider
         log.info("OTP for {} is {}", identifier, otp);
     }
 
-    public VerifyOtpResponseDto verifyOtp(VerifyOtpDto verifyOtpDto)
+    public VerifyOtpResponseDto verifyOtp(VerifyOtpDto verifyOtpDto, HttpServletResponse response)
     {
         String identifier = otpUtility.resolveIdentifier(verifyOtpDto);
         String key = buildKey(identifier);
-        String cachedOtp = otpMap.get(key);
-        log.info("Cached OTP for {} from map is {}", identifier, cachedOtp);
-        if (cachedOtp == null)
-        {
+        String cachedOtp = otpCache.getIfPresent(key);
+        if (cachedOtp == null) {
             throw new OtpException("OTP expired or not found");
         }
-        else if (!verifyOtpDto.getOtp().equals(cachedOtp))
+        log.info("Cached OTP for {} from map is {}", identifier, cachedOtp);
+        if (!verifyOtpDto.getOtp().equals(cachedOtp))
         {
             throw new OtpException("Invalid OTP");
         }
-        Optional<UsersEntity> user = userUtility.findUserByIdentifier(verifyOtpDto);
+        Optional<UsersEntity> user = findUserByIdentifier(verifyOtpDto);
         boolean userExists = user.isPresent();
         if (!userExists)
         {
             createNewUser(verifyOtpDto);
             String registrationToken = jwtService.generateRegistrationToken(identifier);
-            otpMap.remove(key);
+            otpCache.invalidate(buildKey(identifier));
             return VerifyOtpResponseDto.builder()
                     .userExists(userExists)
                     .registrationToken(registrationToken)
                     .build();
         }
-        otpMap.remove(key);
+        otpCache.invalidate(buildKey(identifier));
+        SessionRequestDto sessionRequestDto = SessionRequestDto.builder().mobileNumber(verifyOtpDto.getMobileNumber()).emailId(verifyOtpDto.getEmailId()).build();
+        com.tranzo.tranzo_user_ms.user.dto.SessionResponseDto sessionResponseDto = sessionService.createSession(sessionRequestDto, response);
         return VerifyOtpResponseDto.builder()
                 .userExists(userExists)
                 .build();
@@ -87,6 +78,13 @@ public class OtpService {
     private String buildKey(String identifier)
     {
         return "OTP:" + identifier;
+    }
+
+    private Optional<UsersEntity> findUserByIdentifier(VerifyOtpDto dto) {
+        if (dto.getEmailId() != null && !dto.getEmailId().isBlank()) {
+            return userRepository.findByEmail(dto.getEmailId().toLowerCase());
+        }
+        return userRepository.findByMobileNumber(dto.getMobileNumber());
     }
 
     @Transactional
