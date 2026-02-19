@@ -1,10 +1,12 @@
 package com.tranzo.tranzo_user_ms.trip.service;
 
 import com.tranzo.tranzo_user_ms.commons.exception.*;
+import com.tranzo.tranzo_user_ms.trip.dto.RemoveParticipantRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestResponseDto;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
 import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
+import com.tranzo.tranzo_user_ms.trip.events.TripEventPublisher;
 import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
 import com.tranzo.tranzo_user_ms.trip.model.TripJoinRequestEntity;
 import com.tranzo.tranzo_user_ms.trip.model.TripMemberEntity;
@@ -12,6 +14,7 @@ import com.tranzo.tranzo_user_ms.trip.repository.TripJoinRequestRepository;
 import com.tranzo.tranzo_user_ms.trip.repository.TripMemberRepository;
 import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,6 +45,12 @@ class TripJoinRequestServiceTest {
 
     @Mock
     private TripJoinRequestRepository tripJoinRequestRepository;
+
+    @Mock
+    private TripEventPublisher tripEventPublisher;
+
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     private TripJoinRequestService tripJoinRequestService;
@@ -218,6 +228,139 @@ class TripJoinRequestServiceTest {
         assertThrows(BadRequestException.class, () ->
             tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId)
         );
+    }
+
+    @Test
+    @DisplayName("Should publish JoinRequestCreatedEvent when PENDING join request created")
+    void testCreateJoinRequest_Pending_PublishesEvent() {
+        tripEntity.setJoinPolicy(JoinPolicy.APPROVAL_REQUIRED);
+        TripMemberEntity hostMember = new TripMemberEntity();
+        hostMember.setUserId(UUID.randomUUID());
+        hostMember.setRole(TripMemberRole.HOST);
+        hostMember.setStatus(TripMemberStatus.ACTIVE);
+
+        when(tripRepository.findByIdForUpdate(tripId)).thenReturn(Optional.of(tripEntity));
+        when(tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE))
+            .thenReturn(Optional.empty());
+        when(tripJoinRequestRepository.existsByTrip_TripIdAndUserIdAndStatusIn(eq(tripId), eq(userId), anySet()))
+            .thenReturn(false);
+        when(tripJoinRequestRepository.save(any(TripJoinRequestEntity.class))).thenReturn(joinRequestEntity);
+        when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
+            .thenReturn(Collections.singletonList(hostMember));
+
+        tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId);
+
+        verify(applicationEventPublisher).publishEvent(any(com.tranzo.tranzo_user_ms.commons.events.JoinRequestCreatedEvent.class));
+    }
+
+    @Test
+    @DisplayName("Should publish TripFullCapacityReachedEvent when auto-approve makes trip full")
+    void testCreateJoinRequest_AutoApprove_WhenFull_PublishesEvent() {
+        tripEntity.setJoinPolicy(JoinPolicy.OPEN);
+        tripEntity.setCurrentParticipants(9);
+        tripEntity.setMaxParticipants(10);
+        TripMemberEntity existingMember = new TripMemberEntity();
+        existingMember.setUserId(UUID.randomUUID());
+
+        when(tripRepository.findByIdForUpdate(tripId)).thenReturn(Optional.of(tripEntity));
+        when(tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE))
+            .thenReturn(Optional.empty());
+        when(tripJoinRequestRepository.existsByTrip_TripIdAndUserIdAndStatusIn(eq(tripId), eq(userId), anySet()))
+            .thenReturn(false);
+        when(tripJoinRequestRepository.save(any(TripJoinRequestEntity.class))).thenReturn(joinRequestEntity);
+        when(tripMemberRepository.save(any(TripMemberEntity.class))).thenReturn(new TripMemberEntity());
+        when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
+            .thenReturn(Collections.singletonList(existingMember));
+
+        tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId);
+
+        verify(applicationEventPublisher).publishEvent(any(com.tranzo.tranzo_user_ms.commons.events.TripFullCapacityReachedEvent.class));
+    }
+
+    @Test
+    @DisplayName("Should approve join request and publish JoinRequestApprovedEvent and MemberJoinedTripEvent")
+    void testApproveJoinRequest_PublishesEvents() {
+        UUID joinRequestId = UUID.randomUUID();
+        UUID requestorUserId = UUID.randomUUID();
+        TripJoinRequestEntity joinRequest = new TripJoinRequestEntity();
+        joinRequest.setRequestId(joinRequestId);
+        joinRequest.setUserId(requestorUserId);
+        joinRequest.setStatus(JoinRequestStatus.PENDING);
+        joinRequest.setTrip(tripEntity);
+        tripEntity.setTripId(tripId);
+        tripEntity.setCurrentParticipants(5);
+        tripEntity.setMaxParticipants(10);
+        TripMemberEntity hostMember = new TripMemberEntity();
+        hostMember.setUserId(userId);
+
+        when(tripJoinRequestRepository.findById(joinRequestId)).thenReturn(Optional.of(joinRequest));
+        when(tripRepository.findByIdForUpdate(tripId)).thenReturn(Optional.of(tripEntity));
+        when(tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(tripId, userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE))
+            .thenReturn(true);
+        when(tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(tripId, requestorUserId, TripMemberStatus.ACTIVE))
+            .thenReturn(false);
+        TripMemberEntity newMember = new TripMemberEntity();
+        newMember.setUserId(requestorUserId);
+        when(tripMemberRepository.save(any(TripMemberEntity.class))).thenReturn(newMember);
+        when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
+            .thenReturn(java.util.List.of(hostMember, newMember));
+
+        tripJoinRequestService.approveJoinRequest(joinRequestId, userId);
+
+        verify(applicationEventPublisher).publishEvent(any(com.tranzo.tranzo_user_ms.commons.events.JoinRequestApprovedEvent.class));
+        verify(applicationEventPublisher).publishEvent(any(com.tranzo.tranzo_user_ms.commons.events.MemberJoinedTripEvent.class));
+    }
+
+    @Test
+    @DisplayName("Should reject join request and publish JoinRequestRejectedEvent")
+    void testRejectJoinRequest_PublishesEvent() {
+        UUID joinRequestId = UUID.randomUUID();
+        UUID requestorUserId = UUID.randomUUID();
+        TripJoinRequestEntity joinRequest = new TripJoinRequestEntity();
+        joinRequest.setRequestId(joinRequestId);
+        joinRequest.setUserId(requestorUserId);
+        joinRequest.setStatus(JoinRequestStatus.PENDING);
+        joinRequest.setTrip(tripEntity);
+
+        when(tripJoinRequestRepository.findById(joinRequestId)).thenReturn(Optional.of(joinRequest));
+        when(tripRepository.findById(joinRequest.getTrip().getTripId())).thenReturn(Optional.of(tripEntity));
+        when(tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(tripId, userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE))
+            .thenReturn(true);
+        when(tripJoinRequestRepository.save(any(TripJoinRequestEntity.class))).thenReturn(joinRequest);
+
+        tripJoinRequestService.rejectJoinRequest(joinRequestId, userId);
+
+        verify(applicationEventPublisher).publishEvent(any(com.tranzo.tranzo_user_ms.commons.events.JoinRequestRejectedEvent.class));
+    }
+
+    @Test
+    @DisplayName("Should remove member and publish MemberLeftOrRemovedTripEvent")
+    void testRemoveOrLeaveTrip_PublishesEvent() {
+        UUID removalUserId = UUID.randomUUID();
+        TripEntity trip = createSampleTripEntity();
+        trip.setCurrentParticipants(2);
+        TripMemberEntity hostMember = new TripMemberEntity();
+        hostMember.setUserId(userId);
+        hostMember.setRole(TripMemberRole.HOST);
+        hostMember.setStatus(TripMemberStatus.ACTIVE);
+        TripMemberEntity toRemove = new TripMemberEntity();
+        toRemove.setUserId(removalUserId);
+        toRemove.setStatus(TripMemberStatus.ACTIVE);
+
+        when(tripRepository.findByIdForUpdate(tripId)).thenReturn(Optional.of(trip));
+        when(tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, removalUserId, TripMemberStatus.ACTIVE))
+            .thenReturn(Optional.of(toRemove));
+        when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
+            .thenReturn(java.util.List.of(hostMember, toRemove));
+        when(tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(tripId, userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE))
+            .thenReturn(true);
+        when(tripMemberRepository.save(any(TripMemberEntity.class))).thenReturn(toRemove);
+        when(tripRepository.save(any(TripEntity.class))).thenReturn(trip);
+
+        RemoveParticipantRequestDto dto = new RemoveParticipantRequestDto();
+        tripJoinRequestService.removeOrLeaveTrip(tripId, removalUserId, userId, dto);
+
+        verify(applicationEventPublisher).publishEvent(any(com.tranzo.tranzo_user_ms.commons.events.MemberLeftOrRemovedTripEvent.class));
     }
 
     // ============== HELPER METHODS ==============

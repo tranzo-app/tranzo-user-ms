@@ -86,6 +86,9 @@ public class TripEntity {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
 
+    @Column(name = "conversation_id")
+    private UUID conversationID;
+
     @OneToOne(
             mappedBy = "trip",
             cascade = CascadeType.ALL,

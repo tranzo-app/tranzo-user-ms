@@ -4,10 +4,14 @@ import com.tranzo.tranzo_user_ms.commons.exception.*;
 import com.tranzo.tranzo_user_ms.trip.dto.*;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
 import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
+import com.tranzo.tranzo_user_ms.trip.events.TripEventPublisher;
+import com.tranzo.tranzo_user_ms.trip.events.TripPublishedEventPayloadDto;
 import com.tranzo.tranzo_user_ms.trip.model.*;
 import com.tranzo.tranzo_user_ms.trip.repository.*;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
+import com.tranzo.tranzo_user_ms.commons.events.*;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -27,7 +31,9 @@ public class TripManagementService {
     private final TripQueryRepository tripQueryRepository;
     private final TripReportRepository tripReportRepository;
     private final TripPublishEligibilityValidator tripPublishEligibilityValidator;
+    private final TripEventPublisher tripEventPublisher;
     private final UserUtil userUtil;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public TripManagementService(TripMemberRepository tripMemberRepository,
                                  TripRepository tripRepository,
@@ -36,7 +42,9 @@ public class TripManagementService {
                                  TripQueryRepository tripQueryRepository,
                                  TripReportRepository tripReportRepository,
                                  TripPublishEligibilityValidator tripPublishEligibilityValidator,
-                                 UserUtil userUtil) {
+                                 TripEventPublisher tripEventPublisher,
+                                 UserUtil userUtil,
+                                 ApplicationEventPublisher applicationEventPublisher) {
         this.tripMemberRepository = tripMemberRepository;
         this.tripRepository = tripRepository;
         this.tagRepository = tagRepository;
@@ -44,7 +52,9 @@ public class TripManagementService {
         this.tripQueryRepository = tripQueryRepository;
         this.tripReportRepository = tripReportRepository;
         this.tripPublishEligibilityValidator = tripPublishEligibilityValidator;
+        this.tripEventPublisher = tripEventPublisher;
         this.userUtil = userUtil;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
 
@@ -179,9 +189,13 @@ public class TripManagementService {
         }
         userUtil.validateUserIsHost(tripId, userId);
         trip.setTripStatus(TripStatus.CANCELLED);
-
-        // Do we need cancellation timestamp and reason?
         tripRepository.save(trip);
+
+        List<UUID> memberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
+                .stream()
+                .map(TripMemberEntity::getUserId)
+                .toList();
+        applicationEventPublisher.publishEvent(new TripCancelledEvent(tripId, trip.getTripTitle(), memberUserIds));
     }
 
     @Transactional
@@ -197,6 +211,14 @@ public class TripManagementService {
             trip.setVisibilityStatus(VisibilityStatus.PUBLIC);
         }
         TripEntity updateTrip = tripRepository.save(trip);
+        TripPublishedEventPayloadDto eventPayloadDto = TripPublishedEventPayloadDto.builder()
+                .eventType("TRIP_PUBLISHED")
+                .tripId(tripId)
+                .userId(userId)
+                .build();
+
+        tripEventPublisher.publishTripPublished(eventPayloadDto);
+
         return TripResponseDto.builder()
                 .tripId(updateTrip.getTripId())
                 .tripStatus(updateTrip.getTripStatus())
@@ -208,9 +230,43 @@ public class TripManagementService {
     {
         TripEntity trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+        if (trip.getTripStatus() != TripStatus.PUBLISHED && trip.getTripStatus() != TripStatus.ONGOING) {
+            throw new ConflictException("Only published or ongoing trips can be updated");
+        }
         userUtil.validateUserIsHost(tripId, userId);
-        // TODO
-        return TripResponseDto.builder().build();
+        updatePublishedTripBasicInfo(trip, tripDto);
+        TripEntity updateTrip = tripRepository.save(trip);
+
+        List<UUID> memberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
+                .stream()
+                .map(TripMemberEntity::getUserId)
+                .toList();
+        if (!memberUserIds.isEmpty()) {
+            applicationEventPublisher.publishEvent(
+                    new TripDetailsChangedEvent(tripId, trip.getTripTitle(), memberUserIds));
+        }
+
+        return TripResponseDto.builder()
+                .tripId(updateTrip.getTripId())
+                .tripStatus(updateTrip.getTripStatus())
+                .build();
+    }
+
+    private void updatePublishedTripBasicInfo(TripEntity trip, TripDto tripDto) {
+        if (tripDto.getTripTitle() != null) trip.setTripTitle(tripDto.getTripTitle());
+        if (tripDto.getTripDescription() != null) trip.setTripDescription(tripDto.getTripDescription());
+        if (tripDto.getTripDestination() != null) trip.setTripDestination(tripDto.getTripDestination());
+        if (tripDto.getTripStartDate() != null) trip.setTripStartDate(tripDto.getTripStartDate());
+        if (tripDto.getTripEndDate() != null) {
+            if (tripDto.getTripStartDate() != null && tripDto.getTripStartDate().isAfter(tripDto.getTripEndDate())) {
+                throw new TripPublishException(INVALID_DATE_RANGE);
+            }
+            trip.setTripEndDate(tripDto.getTripEndDate());
+        }
+        if (tripDto.getEstimatedBudget() != null) trip.setEstimatedBudget(tripDto.getEstimatedBudget());
+        if (tripDto.getMaxParticipants() != null) trip.setMaxParticipants(tripDto.getMaxParticipants());
+        if (tripDto.getJoinPolicy() != null) trip.setJoinPolicy(tripDto.getJoinPolicy());
+        if (tripDto.getVisibilityStatus() != null) trip.setVisibilityStatus(tripDto.getVisibilityStatus());
     }
 
     @Transactional
@@ -235,6 +291,13 @@ public class TripManagementService {
         trips.forEach(trip -> {
             if (trip.getTripStatus().canAutomaticallyTransitionTo(TripStatus.COMPLETED)) {
                 trip.setTripStatus(TripStatus.COMPLETED);
+                List<UUID> memberUserIds = tripMemberRepository
+                        .findByTrip_TripIdAndStatus(trip.getTripId(), TripMemberStatus.ACTIVE)
+                        .stream()
+                        .map(TripMemberEntity::getUserId)
+                        .toList();
+                applicationEventPublisher.publishEvent(
+                        new TripCompletedEvent(trip.getTripId(), trip.getTripTitle(), memberUserIds));
             }
         });
     }
@@ -430,6 +493,15 @@ public class TripManagementService {
                         .build();
 
                 tripQueryRepository.save(tripQueryEntity);
+
+                List<UUID> memberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
+                        .stream()
+                        .map(TripMemberEntity::getUserId)
+                        .toList();
+                if (!memberUserIds.isEmpty()) {
+                    applicationEventPublisher.publishEvent(
+                            new TripQuestionAskedEvent(tripId, trip.getTripTitle(), userID, memberUserIds));
+                }
             }
             else {
                 throw new ConflictException("QnA can be added only to published trips");
@@ -458,6 +530,9 @@ public class TripManagementService {
             tripQuery.setAnswer(answerQnaRequestDto.getAnswer());
             tripQuery.setAnsweredAt(LocalDateTime.now());
             tripQueryRepository.save(tripQuery);
+
+            applicationEventPublisher.publishEvent(
+                    new TripQuestionAnsweredEvent(tripId, trip.getTripTitle(), tripQuery.getAskedBy()));
     }
 
     // what about question answer visibility : joined as well as not joined users
@@ -540,6 +615,42 @@ public class TripManagementService {
         participant.setRole(TripMemberRole.CO_HOST);
         tripMemberRepository.save(participant);
 
+        List<UUID> allMemberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
+                .stream()
+                .map(TripMemberEntity::getUserId)
+                .toList();
+        if (!allMemberUserIds.isEmpty()) {
+            applicationEventPublisher.publishEvent(
+                    new MemberPromotedToCoHostEvent(trip.getTripId(), trip.getTripTitle(), participantUserId, allMemberUserIds));
+        }
+    }
+
+    @Transactional
+    public void markTripFull(UUID userId, UUID tripId) {
+        TripEntity trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+        userUtil.validateUserIsHost(tripId, userId);
+        if (Boolean.TRUE.equals(trip.getIsFull())) {
+            throw new ConflictException("Trip is already marked full");
+        }
+        trip.setIsFull(true);
+        tripRepository.save(trip);
+
+        UUID hostUserId = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
+                .stream()
+                .filter(m -> m.getRole() == TripMemberRole.HOST)
+                .map(TripMemberEntity::getUserId)
+                .findFirst()
+                .orElse(null);
+        List<UUID> membersExcludingHost = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
+                .stream()
+                .map(TripMemberEntity::getUserId)
+                .filter(id -> !id.equals(hostUserId))
+                .toList();
+        if (!membersExcludingHost.isEmpty()) {
+            applicationEventPublisher.publishEvent(
+                    new TripMarkedFullByHostEvent(tripId, trip.getTripTitle(), membersExcludingHost));
+        }
     }
 
 }

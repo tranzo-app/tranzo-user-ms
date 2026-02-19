@@ -19,6 +19,11 @@ public interface TripRepository extends JpaRepository<TripEntity, UUID> {
     List<TripEntity> findByTripStatusAndTripEndDateBefore(
             TripStatus status, LocalDate date);
 
+    List<TripEntity> findByTripStatusInAndTripStartDateBetween(
+            List<TripStatus> statuses, LocalDate startInclusive, LocalDate endInclusive);
+
+    List<TripEntity> findByTripStatus(TripStatus status);
+
     Optional<TripEntity> findByTripIdAndTripStatus(
             UUID tripId, TripStatus status
     );

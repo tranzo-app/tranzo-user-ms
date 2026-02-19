@@ -4,11 +4,13 @@ import com.tranzo.tranzo_user_ms.commons.exception.*;
 import com.tranzo.tranzo_user_ms.trip.dto.*;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
 import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
+import com.tranzo.tranzo_user_ms.trip.events.TripEventPublisher;
 import com.tranzo.tranzo_user_ms.trip.model.*;
 import com.tranzo.tranzo_user_ms.trip.repository.*;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,12 +38,26 @@ class TripManagementServiceTest {
     @Mock
     private TripMemberRepository tripMemberRepository;
 
+    @Mock
+    private TripItineraryRepository tripItineraryRepository;
+
+    @Mock
+    private TripQueryRepository tripQueryRepository;
+
+    @Mock
+    private TripReportRepository tripReportRepository;
 
     @Mock
     private TripPublishEligibilityValidator tripPublishEligibilityValidator;
 
     @Mock
+    private TripEventPublisher tripEventPublisher;
+
+    @Mock
     private UserUtil userUtil;
+
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     private TripManagementService tripManagementService;
@@ -363,6 +379,8 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(publishedTrip));
         doNothing().when(userUtil).validateUserIsHost(tripId, userId);
         when(tripRepository.save(any(TripEntity.class))).thenReturn(publishedTrip);
+        when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
+            .thenReturn(Collections.emptyList());
 
         // When
         tripManagementService.cancelTrip(tripId, userId);
@@ -493,12 +511,299 @@ class TripManagementServiceTest {
         List<TripEntity> trips = Collections.singletonList(ongoingTrip);
         when(tripRepository.findByTripStatusAndTripEndDateBefore(TripStatus.ONGOING, LocalDate.now()))
             .thenReturn(trips);
+        when(tripMemberRepository.findByTrip_TripIdAndStatus(eq(ongoingTrip.getTripId()), eq(TripMemberStatus.ACTIVE)))
+            .thenReturn(Collections.emptyList());
 
         // When
         tripManagementService.autoMarkTripsAsCompleted();
 
         // Then
         assertEquals(TripStatus.COMPLETED, ongoingTrip.getTripStatus());
+    }
+
+    // ============== UPDATE TRIP (PUBLISHED) TESTS ==============
+
+    @Test
+    @DisplayName("Should update published trip successfully and publish TripDetailsChangedEvent")
+    void testUpdateTrip_Published_Success() {
+        TripEntity publishedTrip = createSampleTripEntity();
+        publishedTrip.setTripStatus(TripStatus.PUBLISHED);
+        TripMemberEntity member = new TripMemberEntity();
+        member.setUserId(userId);
+        List<TripMemberEntity> members = Collections.singletonList(member);
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(publishedTrip));
+        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
+        when(tripRepository.save(any(TripEntity.class))).thenReturn(publishedTrip);
+        when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)).thenReturn(members);
+
+        TripResponseDto response = tripManagementService.updateTrip(tripDto, tripId, userId);
+
+        assertNotNull(response);
+        verify(tripRepository).save(any(TripEntity.class));
+        verify(applicationEventPublisher).publishEvent(any(com.tranzo.tranzo_user_ms.commons.events.TripDetailsChangedEvent.class));
+    }
+
+    @Test
+    @DisplayName("Should throw when updateTrip for non-published trip")
+    void testUpdateTrip_NotPublished() {
+        TripEntity draftTrip = createSampleTripEntity();
+        draftTrip.setTripStatus(TripStatus.DRAFT);
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(draftTrip));
+
+        assertThrows(ConflictException.class, () ->
+            tripManagementService.updateTrip(tripDto, tripId, userId));
+    }
+
+    @Test
+    @DisplayName("Should throw when updateTrip trip not found")
+    void testUpdateTrip_TripNotFound() {
+        when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
+
+        assertThrows(TripPublishException.class, () ->
+            tripManagementService.updateTrip(tripDto, tripId, userId));
+    }
+
+    @Test
+    @DisplayName("Should throw when updateTrip with invalid date range")
+    void testUpdateTrip_InvalidDateRange() {
+        TripEntity publishedTrip = createSampleTripEntity();
+        publishedTrip.setTripStatus(TripStatus.PUBLISHED);
+        tripDto.setTripStartDate(LocalDate.of(2026, 6, 10));
+        tripDto.setTripEndDate(LocalDate.of(2026, 6, 1));
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(publishedTrip));
+        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
+
+        assertThrows(TripPublishException.class, () ->
+            tripManagementService.updateTrip(tripDto, tripId, userId));
+    }
+
+    // ============== PROMOTE TO CO-HOST TESTS ==============
+
+    @Test
+    @DisplayName("Should promote member to co-host and publish MemberPromotedToCoHostEvent")
+    void testPromoteToCoHost_Success() {
+        UUID participantUserId = UUID.randomUUID();
+        TripEntity trip = createSampleTripEntity();
+        trip.setTripStatus(TripStatus.PUBLISHED);
+        TripMemberEntity hostMember = new TripMemberEntity();
+        hostMember.setUserId(userId);
+        hostMember.setRole(TripMemberRole.HOST);
+        hostMember.setStatus(TripMemberStatus.ACTIVE);
+        TripMemberEntity member = new TripMemberEntity();
+        member.setUserId(participantUserId);
+        member.setRole(TripMemberRole.MEMBER);
+        member.setStatus(TripMemberStatus.ACTIVE);
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
+        when(tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, participantUserId, TripMemberStatus.ACTIVE))
+            .thenReturn(Optional.of(member));
+        when(tripMemberRepository.save(any(TripMemberEntity.class))).thenReturn(member);
+        when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
+            .thenReturn(Arrays.asList(hostMember, member));
+
+        tripManagementService.promoteToCoHost(userId, tripId, participantUserId);
+
+        assertEquals(TripMemberRole.CO_HOST, member.getRole());
+        verify(applicationEventPublisher).publishEvent(any(com.tranzo.tranzo_user_ms.commons.events.MemberPromotedToCoHostEvent.class));
+    }
+
+    @Test
+    @DisplayName("Should throw when host promotes self to co-host")
+    void testPromoteToCoHost_HostPromotesSelf() {
+        TripEntity trip = createSampleTripEntity();
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
+
+        assertThrows(BadRequestException.class, () ->
+            tripManagementService.promoteToCoHost(userId, tripId, userId));
+    }
+
+    @Test
+    @DisplayName("Should throw when participant already co-host")
+    void testPromoteToCoHost_AlreadyCoHost() {
+        UUID participantUserId = UUID.randomUUID();
+        TripMemberEntity member = new TripMemberEntity();
+        member.setUserId(participantUserId);
+        member.setRole(TripMemberRole.CO_HOST);
+        member.setStatus(TripMemberStatus.ACTIVE);
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(createSampleTripEntity()));
+        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
+        when(tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, participantUserId, TripMemberStatus.ACTIVE))
+            .thenReturn(Optional.of(member));
+
+        assertThrows(ConflictException.class, () ->
+            tripManagementService.promoteToCoHost(userId, tripId, participantUserId));
+    }
+
+    @Test
+    @DisplayName("Should throw when participant not found for promote")
+    void testPromoteToCoHost_ParticipantNotFound() {
+        UUID participantUserId = UUID.randomUUID();
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(createSampleTripEntity()));
+        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
+        when(tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, participantUserId, TripMemberStatus.ACTIVE))
+            .thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () ->
+            tripManagementService.promoteToCoHost(userId, tripId, participantUserId));
+    }
+
+    // ============== MARK TRIP FULL TESTS ==============
+
+    @Test
+    @DisplayName("Should mark trip full and publish TripMarkedFullByHostEvent")
+    void testMarkTripFull_Success() {
+        TripEntity trip = createSampleTripEntity();
+        trip.setIsFull(false);
+        TripMemberEntity host = new TripMemberEntity();
+        host.setUserId(userId);
+        host.setRole(TripMemberRole.HOST);
+        TripMemberEntity other = new TripMemberEntity();
+        other.setUserId(UUID.randomUUID());
+        other.setRole(TripMemberRole.MEMBER);
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
+        when(tripRepository.save(any(TripEntity.class))).thenReturn(trip);
+        when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
+            .thenReturn(Arrays.asList(host, other));
+
+        tripManagementService.markTripFull(userId, tripId);
+
+        assertTrue(trip.getIsFull());
+        verify(applicationEventPublisher).publishEvent(any(com.tranzo.tranzo_user_ms.commons.events.TripMarkedFullByHostEvent.class));
+    }
+
+    @Test
+    @DisplayName("Should throw when trip already marked full")
+    void testMarkTripFull_AlreadyFull() {
+        TripEntity trip = createSampleTripEntity();
+        trip.setIsFull(true);
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
+
+        assertThrows(ConflictException.class, () ->
+            tripManagementService.markTripFull(userId, tripId));
+    }
+
+    @Test
+    @DisplayName("Should throw when mark trip full and trip not found")
+    void testMarkTripFull_TripNotFound() {
+        when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () ->
+            tripManagementService.markTripFull(userId, tripId));
+    }
+
+    // ============== ADD TRIP QnA TESTS ==============
+
+    @Test
+    @DisplayName("Should add trip QnA and publish TripQuestionAskedEvent")
+    void testAddTripQnA_Success() {
+        TripEntity trip = createSampleTripEntity();
+        trip.setTripStatus(TripStatus.PUBLISHED);
+        CreateQnaRequestDto qnaDto = new CreateQnaRequestDto();
+        qnaDto.setQuestion("Where do we meet?");
+        TripMemberEntity member = new TripMemberEntity();
+        member.setUserId(userId);
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
+        when(tripQueryRepository.save(any(TripQueryEntity.class))).thenReturn(new TripQueryEntity());
+        when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
+            .thenReturn(Collections.singletonList(member));
+
+        tripManagementService.addTripQnA(userId, qnaDto, tripId);
+
+        verify(tripQueryRepository).save(any(TripQueryEntity.class));
+        verify(applicationEventPublisher).publishEvent(any(com.tranzo.tranzo_user_ms.commons.events.TripQuestionAskedEvent.class));
+    }
+
+    @Test
+    @DisplayName("Should throw when add QnA with empty question")
+    void testAddTripQnA_EmptyQuestion() {
+        TripEntity trip = createSampleTripEntity();
+        trip.setTripStatus(TripStatus.PUBLISHED);
+        CreateQnaRequestDto qnaDto = new CreateQnaRequestDto();
+        qnaDto.setQuestion("   ");
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
+
+        assertThrows(BadRequestException.class, () ->
+            tripManagementService.addTripQnA(userId, qnaDto, tripId));
+    }
+
+    @Test
+    @DisplayName("Should throw when add QnA for non-published trip")
+    void testAddTripQnA_NotPublished() {
+        TripEntity trip = createSampleTripEntity();
+        trip.setTripStatus(TripStatus.DRAFT);
+        CreateQnaRequestDto qnaDto = new CreateQnaRequestDto();
+        qnaDto.setQuestion("Where?");
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
+
+        assertThrows(ConflictException.class, () ->
+            tripManagementService.addTripQnA(userId, qnaDto, tripId));
+    }
+
+    // ============== ANSWER TRIP QnA TESTS ==============
+
+    @Test
+    @DisplayName("Should answer trip QnA and publish TripQuestionAnsweredEvent")
+    void testAnswerTripQnA_Success() {
+        UUID qnaId = UUID.randomUUID();
+        UUID askedByUserId = UUID.randomUUID();
+        TripEntity trip = createSampleTripEntity();
+        trip.setTripStatus(TripStatus.PUBLISHED);
+        TripQueryEntity tripQuery = TripQueryEntity.builder()
+            .queryId(qnaId)
+            .askedBy(askedByUserId)
+            .question("Where?")
+            .answer(null)
+            .trip(trip)
+            .visibility(TripQueryVisibility.HOST_AND_CO_HOSTS)
+            .build();
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        when(tripQueryRepository.findByQueryIdAndTrip_TripId(qnaId, tripId)).thenReturn(Optional.of(tripQuery));
+        when(tripQueryRepository.save(any(TripQueryEntity.class))).thenReturn(tripQuery);
+
+        AnswerQnaRequestDto answerDto = new AnswerQnaRequestDto();
+        answerDto.setAnswer("At the airport");
+        tripManagementService.answerTripQnA(userId, tripId, qnaId, answerDto);
+
+        verify(tripQueryRepository).save(any(TripQueryEntity.class));
+        verify(applicationEventPublisher).publishEvent(any(com.tranzo.tranzo_user_ms.commons.events.TripQuestionAnsweredEvent.class));
+    }
+
+    @Test
+    @DisplayName("Should throw when answer QnA already answered")
+    void testAnswerTripQnA_AlreadyAnswered() {
+        UUID qnaId = UUID.randomUUID();
+        TripEntity trip = createSampleTripEntity();
+        TripQueryEntity tripQuery = TripQueryEntity.builder()
+            .queryId(qnaId)
+            .askedBy(userId)
+            .question("Where?")
+            .answer("Already answered")
+            .trip(trip)
+            .visibility(TripQueryVisibility.HOST_AND_CO_HOSTS)
+            .build();
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        when(tripQueryRepository.findByQueryIdAndTrip_TripId(qnaId, tripId)).thenReturn(Optional.of(tripQuery));
+
+        AnswerQnaRequestDto answerDto = new AnswerQnaRequestDto();
+        answerDto.setAnswer("New answer");
+        assertThrows(ConflictException.class, () ->
+            tripManagementService.answerTripQnA(userId, tripId, qnaId, answerDto));
     }
 
     // ============== HELPER METHODS ==============
