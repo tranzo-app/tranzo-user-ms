@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.UUID;
 
 @Service
 public class JwtServiceImpl implements JwtService {
@@ -78,19 +79,29 @@ public class JwtServiceImpl implements JwtService {
                 .setIssuer(issuer)
                 .claim("type", "REGISTRATION")
                 .setIssuedAt(new Date())
-                .setExpiration(Date.from(
-                        Instant.now().plus(registrationExpiryMinutes, ChronoUnit.MINUTES)
-                ))
+                .setExpiration(new Date(System.currentTimeMillis() + 10 * 60 * 1000))
                 .signWith(getSigningKey())
                 .compact();
     }
 
-    public boolean validateToken(String token) {
+    @Override
+    public boolean validateAccessToken(String token) {
         try {
-            parseClaims(token);
-            return true;
+            Claims claims = parseClaims(token);
+            String tokenType = claims.get("type", String.class);
+            return "ACCESS".equals(tokenType);
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
         }
-        catch (JwtException | IllegalArgumentException e) {
+    }
+
+    @Override
+    public boolean validateRefreshToken(String token) {
+        try {
+            Claims claims = parseClaims(token);
+            String tokenType = claims.get("type", String.class);
+            return "REFRESH".equals(tokenType);
+        } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }
@@ -103,10 +114,9 @@ public class JwtServiceImpl implements JwtService {
         }
     }
 
-
     @Override
-    public String extractSubject(String token) {
-        return parseClaims(token).getSubject();
+    public UUID extractUserUuid(String token) {
+        return UUID.fromString(parseClaims(token).getSubject());
     }
 
     @Override
@@ -121,5 +131,10 @@ public class JwtServiceImpl implements JwtService {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    @Override
+    public String extractSubject(String token) {
+        return parseClaims(token).getSubject();
     }
 }

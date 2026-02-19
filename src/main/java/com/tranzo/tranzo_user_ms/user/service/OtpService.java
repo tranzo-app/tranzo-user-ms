@@ -7,7 +7,6 @@ import com.tranzo.tranzo_user_ms.user.enums.AccountStatus;
 import com.tranzo.tranzo_user_ms.user.enums.UserRole;
 import com.tranzo.tranzo_user_ms.commons.exception.OtpException;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
-import com.tranzo.tranzo_user_ms.user.repository.RefreshTokenRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.user.utility.OtpUtility;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,17 +15,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class OtpService {
-    private static final Duration OTP_TTL = Duration.ofMinutes(5);
     private final OtpUtility otpUtility;
     private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
     private final SessionService sessionService;
     private final Cache<String, String> otpCache;

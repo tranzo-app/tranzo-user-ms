@@ -7,10 +7,13 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 
 @Component
 @RequiredArgsConstructor
@@ -40,6 +43,13 @@ public class RegistrationTokenFilter extends OncePerRequestFilter {
             throw new UnauthorizedException("Invalid token type for registration");
         }
         String identifier = jwtService.extractSubject(token);
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        identifier,
+                        null,
+                        Collections.emptyList()
+                );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
         request.setAttribute("registrationIdentifier", identifier);
         filterChain.doFilter(request, response);
     }

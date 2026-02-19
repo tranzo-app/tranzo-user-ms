@@ -1,5 +1,7 @@
 package com.tranzo.tranzo_user_ms.user.service;
 
+import com.tranzo.tranzo_user_ms.commons.exception.UnauthorizedException;
+import com.tranzo.tranzo_user_ms.commons.exception.UserNotFoundException;
 import com.tranzo.tranzo_user_ms.commons.service.JwtService;
 import com.tranzo.tranzo_user_ms.user.dto.SessionRequestDto;
 import com.tranzo.tranzo_user_ms.user.dto.SessionResponseDto;

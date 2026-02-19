@@ -17,7 +17,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    private final AccessTokenFilter accessTokenFilter;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RegistrationTokenFilter registrationTokenFilter;
     private final JwtAuthEntryPoint jwtAuthEntryPoint;
 
@@ -48,7 +48,7 @@ public class SecurityConfig {
                         UsernamePasswordAuthenticationFilter.class
                 )
                 .addFilterBefore(
-                        accessTokenFilter,
+                        jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
                 );
         return http.build();

@@ -34,16 +34,11 @@ public class UserController {
         return ResponseEntity.ok(ResponseDto.success(200,"User profile fetched successfully", userProfileDto));
     }
 
-    public ResponseEntity<ResponseDto<Void>> findUser(@PathVariable UUID userUuid)
-    {
-        userService.findUserByUserId(userUuid);
-        return ResponseEntity.ok(ResponseDto.success(200,"User fetched successfully", null));
-    }
-
-    @PostMapping("/user/create")
-    public ResponseEntity<ResponseDto<Void>> registerUser(@Valid @RequestBody UserProfileDto userProfileDto) throws  AuthException {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        userService.createUserProfile(userProfileDto, userId);
+    @PostMapping("/user/register")
+    public ResponseEntity<ResponseDto<Void>> registerUser(HttpServletRequest request, @Valid @RequestBody UserProfileDto userProfileDto) throws  AuthException {
+        log.info("Inside register controller");
+        String identifier = (String) request.getAttribute("registrationIdentifier");
+        userService.createUserProfile(userProfileDto, identifier);
         return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", null));
     }
 
@@ -84,7 +79,7 @@ public class UserController {
         );
     }
 
-    @PostMapping("/User/{reportedUserId}/report")
+    @PostMapping("/user/{reportedUserId}/report")
     public ResponseEntity<ResponseDto<Void>> reportUser(@PathVariable String reportedUserId, @RequestBody @Valid UserReportRequestDto userReportRequestDto) throws AuthException {
         UUID reporterUserId = SecurityUtils.getCurrentUserUuid();
         userService.reportUser(reportedUserId,reporterUserId, userReportRequestDto);
