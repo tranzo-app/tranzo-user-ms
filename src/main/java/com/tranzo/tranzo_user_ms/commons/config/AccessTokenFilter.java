@@ -28,9 +28,11 @@ public class AccessTokenFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        if (request.getRequestURI().startsWith("/auth/otp/**")
-                || request.getRequestURI().startsWith("/auth/session/**")
-                || request.getRequestURI().startsWith("/user/register")) {
+        String requestURI = request.getRequestURI();
+        if (requestURI.startsWith("/auth/otp")
+                || requestURI.startsWith("/auth/session")
+                || requestURI.equals("/user/register")
+                || requestURI.startsWith("/h2-console")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -40,7 +42,7 @@ public class AccessTokenFilter extends OncePerRequestFilter {
             return;
         }
         jwtService.validateTokenOrThrow(token);
-        if ("ACCESS".equals(jwtService.extractTokenType(token))) {
+        if (!"ACCESS".equals(jwtService.extractTokenType(token))) {
             throw new UnauthorizedException("Invalid token type for access");
         }
         UUID userUuid = UUID.fromString(jwtService.extractSubject(token));

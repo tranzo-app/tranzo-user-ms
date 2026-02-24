@@ -1,9 +1,9 @@
 package com.tranzo.tranzo_user_ms.user.repository;
 
 import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
-import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 import java.util.UUID;
