@@ -10,6 +10,9 @@ public interface JwtService {
     String generateRegistrationToken(String identifier);
     boolean validateAccessToken(String token);
     boolean validateRefreshToken(String token);
+    void validateTokenOrThrow(String token);
     UUID extractUserUuid(String token);
     String extractTokenType(String token);
+
+    String extractSubject(String token);
 }

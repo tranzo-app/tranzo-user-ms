@@ -9,13 +9,18 @@ import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestResponseDto;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
 import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
+import com.tranzo.tranzo_user_ms.trip.events.TripEventPublisher;
+import com.tranzo.tranzo_user_ms.trip.events.TripPublishedEventPayloadDto;
 import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
 import com.tranzo.tranzo_user_ms.trip.model.TripJoinRequestEntity;
 import com.tranzo.tranzo_user_ms.trip.model.TripMemberEntity;
+import com.tranzo.tranzo_user_ms.commons.events.*;
 import com.tranzo.tranzo_user_ms.trip.repository.TripJoinRequestRepository;
 import com.tranzo.tranzo_user_ms.trip.repository.TripMemberRepository;
 import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,12 +33,15 @@ import java.util.UUID;
 import static com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode.TRIP_NOT_FOUND;
 import static com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode.TRIP_NOT_PUBLISHED;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TripJoinRequestService {
-    TripRepository tripRepository;
-    TripMemberRepository tripMemberRepository;
-    TripJoinRequestRepository tripJoinRequestRepository;
+    private final TripRepository tripRepository;
+    private final TripMemberRepository tripMemberRepository;
+    private final TripJoinRequestRepository tripJoinRequestRepository;
+    private final TripEventPublisher tripEventPublisher;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public TripJoinRequestResponseDto createJoinRequest(TripJoinRequestDto tripJoinRequestDto, UUID tripId, UUID userId)
@@ -95,6 +103,19 @@ public class TripJoinRequestService {
         TripJoinRequestEntity savedRequest =
                 tripJoinRequestRepository.save(tripJoinRequestEntity);
 
+        if (status == JoinRequestStatus.PENDING) {
+            UUID hostUserId = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
+                    .stream()
+                    .filter(m -> m.getRole() == TripMemberRole.HOST)
+                    .map(TripMemberEntity::getUserId)
+                    .findFirst()
+                    .orElse(null);
+            if (hostUserId != null) {
+                applicationEventPublisher.publishEvent(
+                        new JoinRequestCreatedEvent(tripId, trip.getTripTitle(), userId, hostUserId));
+            }
+        }
+
         // Auto-approve → create member
         if (status == JoinRequestStatus.AUTO_APPROVED) {
             TripMemberEntity member = new TripMemberEntity();
@@ -107,6 +128,34 @@ public class TripJoinRequestService {
             trip.setCurrentParticipants(updatedCount);
             trip.setIsFull(updatedCount >= trip.getMaxParticipants());
             tripRepository.save(trip);
+            // Spring event: add participant to trip's group chat
+            TripPublishedEventPayloadDto eventPayloadDto = TripPublishedEventPayloadDto.builder()
+                    .eventType("PARTICIPANT_JOINED")
+                    .tripId(tripId)
+                    .userId(userId)
+                    .conversationId(trip.getConversationID())
+                    .build();
+
+            tripEventPublisher.participantJoined(eventPayloadDto);
+            List<UUID> otherMemberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
+                    .stream()
+                    .map(TripMemberEntity::getUserId)
+                    .filter(id -> !id.equals(userId))
+                    .toList();
+            if (!otherMemberUserIds.isEmpty()) {
+                applicationEventPublisher.publishEvent(
+                        new MemberJoinedTripEvent(tripId, trip.getTripTitle(), userId, otherMemberUserIds));
+            }
+            if (Boolean.TRUE.equals(trip.getIsFull())) {
+                List<UUID> allMemberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
+                        .stream()
+                        .map(TripMemberEntity::getUserId)
+                        .toList();
+                if (!allMemberUserIds.isEmpty()) {
+                    applicationEventPublisher.publishEvent(
+                            new TripFullCapacityReachedEvent(tripId, trip.getTripTitle(), allMemberUserIds));
+                }
+            }
         }
 
         // Response
@@ -161,6 +210,28 @@ public class TripJoinRequestService {
         trip.setCurrentParticipants(updatedCount);
         trip.setIsFull(updatedCount >= trip.getMaxParticipants());
 
+        applicationEventPublisher.publishEvent(
+                new JoinRequestApprovedEvent(trip.getTripId(), trip.getTripTitle(), joinRequest.getUserId()));
+        List<UUID> otherMemberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(trip.getTripId(), TripMemberStatus.ACTIVE)
+                .stream()
+                .map(TripMemberEntity::getUserId)
+                .filter(id -> !id.equals(joinRequest.getUserId()))
+                .toList();
+        if (!otherMemberUserIds.isEmpty()) {
+            applicationEventPublisher.publishEvent(
+                    new MemberJoinedTripEvent(trip.getTripId(), trip.getTripTitle(), joinRequest.getUserId(), otherMemberUserIds));
+        }
+        if (Boolean.TRUE.equals(trip.getIsFull())) {
+            List<UUID> allMemberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(trip.getTripId(), TripMemberStatus.ACTIVE)
+                    .stream()
+                    .map(TripMemberEntity::getUserId)
+                    .toList();
+            if (!allMemberUserIds.isEmpty()) {
+                applicationEventPublisher.publishEvent(
+                        new TripFullCapacityReachedEvent(trip.getTripId(), trip.getTripTitle(), allMemberUserIds));
+            }
+        }
+
         return TripJoinRequestResponseDto.builder()
                 .joinRequestId(joinRequest.getRequestId())
                 .tripId(trip.getTripId())
@@ -172,6 +243,7 @@ public class TripJoinRequestService {
                 .build();
     }
 
+    @Transactional
     public TripJoinRequestResponseDto rejectJoinRequest(UUID joinRequestId, UUID userId)
     {
         TripJoinRequestEntity joinRequest = tripJoinRequestRepository.findById(joinRequestId)
@@ -183,6 +255,7 @@ public class TripJoinRequestService {
         TripEntity trip = tripRepository.findById(joinRequest.getTrip().getTripId())
                 .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
         boolean isHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+        log.info("Host user id : {}", userId);
         if (!isHost)
         {
             throw new ForbiddenException("Only host can reject join requests");
@@ -190,6 +263,9 @@ public class TripJoinRequestService {
         joinRequest.setStatus(JoinRequestStatus.REJECTED);
         joinRequest.setReviewedBy(userId);
         joinRequest.setReviewedAt(LocalDateTime.now());
+        tripJoinRequestRepository.save(joinRequest);
+        applicationEventPublisher.publishEvent(
+                new JoinRequestRejectedEvent(trip.getTripId(), trip.getTripTitle(), joinRequest.getUserId()));
         return TripJoinRequestResponseDto.builder()
                 .joinRequestId(joinRequest.getRequestId())
                 .tripId(trip.getTripId())
@@ -257,7 +333,13 @@ public class TripJoinRequestService {
         }
         TripMemberEntity tripMember = tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, removalParticipantUserId, TripMemberStatus.ACTIVE)
                 .orElseThrow(() -> new EntityNotFoundException("User is not member of the trip"));
+        List<UUID> otherMemberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
+                .stream()
+                .map(TripMemberEntity::getUserId)
+                .filter(id -> !id.equals(removalParticipantUserId))
+                .toList();
         boolean isTripHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(tripId, userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+        boolean removedByHost = isTripHost && !userId.equals(removalParticipantUserId);
         if (isTripHost)
         {
             if (userId.equals(removalParticipantUserId))
@@ -281,8 +363,14 @@ public class TripJoinRequestService {
         }
         tripMember.setExitedAt(LocalDateTime.now());
         tripMember.setRemovalReason(removeParticipantRequestDto.getRemovalReason());
+        tripMemberRepository.save(tripMember);
         int updatedCount = Math.max(0, trip.getCurrentParticipants() - 1);
         trip.setCurrentParticipants(updatedCount);
         trip.setIsFull(updatedCount >= trip.getMaxParticipants());
+        tripRepository.save(trip);
+        if (!otherMemberUserIds.isEmpty()) {
+            applicationEventPublisher.publishEvent(
+                    new MemberLeftOrRemovedTripEvent(tripId, trip.getTripTitle(), removalParticipantUserId, otherMemberUserIds, removedByHost));
+        }
     }
 }

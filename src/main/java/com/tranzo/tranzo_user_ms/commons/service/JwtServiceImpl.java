@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.commons.service;
 
+import com.tranzo.tranzo_user_ms.commons.exception.UnauthorizedException;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -26,6 +27,9 @@ public class JwtServiceImpl implements JwtService {
 
     @Value("${spring.jwt.refresh-token-expiry-days}")
     private long refreshExpiryDays;
+
+    @Value("${spring.jwt.registration-token-expiry-minutes}")
+    private long registrationExpiryMinutes;
 
     @Value("${spring.jwt.issuer}")
     private String issuer;
@@ -102,6 +106,14 @@ public class JwtServiceImpl implements JwtService {
         }
     }
 
+    public void validateTokenOrThrow(String token) {
+        try {
+            parseClaims(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new UnauthorizedException("Invalid or expired token");
+        }
+    }
+
     @Override
     public UUID extractUserUuid(String token) {
         return UUID.fromString(parseClaims(token).getSubject());
@@ -119,5 +131,10 @@ public class JwtServiceImpl implements JwtService {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    @Override
+    public String extractSubject(String token) {
+        return parseClaims(token).getSubject();
     }
 }

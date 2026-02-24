@@ -5,6 +5,7 @@ import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.user.dto.VerifyOtpDto;
 import com.tranzo.tranzo_user_ms.user.dto.VerifyOtpResponseDto;
 import com.tranzo.tranzo_user_ms.user.service.OtpService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,9 +28,9 @@ public class OtpController {
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<ResponseDto<VerifyOtpResponseDto>> verifyOtp(@Valid @RequestBody VerifyOtpDto verifyOtpDto)
+    public ResponseEntity<ResponseDto<VerifyOtpResponseDto>> verifyOtp(@Valid @RequestBody VerifyOtpDto verifyOtpDto, HttpServletResponse httpServletResponse)
     {
-        VerifyOtpResponseDto response = otpService.verifyOtp(verifyOtpDto);
+        VerifyOtpResponseDto response = otpService.verifyOtp(verifyOtpDto, httpServletResponse);
         return ResponseEntity.ok(ResponseDto.success(200, "OTP has been verified successfully", response));
     }
 }

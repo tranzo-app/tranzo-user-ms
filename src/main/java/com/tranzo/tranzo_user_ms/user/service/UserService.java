@@ -14,6 +14,7 @@ import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserReportRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import org.springframework.transaction.annotation.Transactional;
+import com.tranzo.tranzo_user_ms.user.utility.UserUtility;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,11 +26,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class UserService {
-
     private final UserProfileRepository userProfileRepository;
     private final UserRepository userRepository;
     private final UserReportRepository userReportRepository;
     private final UserProfileHistoryRepository userProfileHistoryRepository;
+    private final UserUtility userUtility;
 
     public void findUserByUserId(UUID userUuid) {
         userRepository.findUserByUserUuid(userUuid)
@@ -44,12 +45,16 @@ public class UserService {
     }
 
     @Transactional
-    public void createUserProfile(UserProfileDto userProfileDto, UUID userId) {
-        UsersEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    public void createUserProfile(UserProfileDto userProfileDto, String identifier) {
+        UsersEntity user = userUtility.findUserByIdentifier(identifier)
+                .orElseThrow(() -> new UserNotFoundException(
+                        "User not found for identifier: " + identifier
+                ));
         // Prevent duplicate profile creation
         if (user.getUserProfileEntity() != null) {
-            throw new RuntimeException("User profile already exists");
+            throw new UserProfileAlreadyExistsException(
+                    "User profile already exists for user: " + user.getUserUuid()
+            );
         }
         UserProfileEntity userProfileEntity = new UserProfileEntity();
         userProfileEntity.setFirstName(userProfileDto.getFirstName());
@@ -61,6 +66,8 @@ public class UserService {
         userProfileEntity.setLocation(userProfileDto.getLocation());
         userProfileEntity.setProfilePictureUrl(userProfileDto.getProfilePictureUrl());
         userProfileEntity.setVerificationStatus(VerificationStatus.NOT_VERIFIED);
+        userProfileEntity.setUser(user);
+        user.setUserProfileEntity(userProfileEntity);
         if (userProfileDto.getSocialHandleDtoList() != null && !userProfileDto.getSocialHandleDtoList().isEmpty())
         {
             List<SocialHandleEntity> socialHandles = userProfileDto.getSocialHandleDtoList().stream()
@@ -71,10 +78,8 @@ public class UserService {
                         socialHandleEntity.setUser(user);
                         return socialHandleEntity;
                     }).toList();
-            user.setSocialHandleEntity(socialHandles);
+            user.getSocialHandleEntity().addAll(socialHandles);
         }
-        userProfileEntity.setUser(user);
-        user.setUserProfileEntity(userProfileEntity);
         userRepository.save(user);
     }
 
