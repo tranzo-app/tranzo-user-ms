@@ -79,7 +79,11 @@ public class JwtServiceImpl implements JwtService {
                 .setIssuer(issuer)
                 .claim("type", "REGISTRATION")
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 10 * 60 * 1000))
+                .setExpiration(
+                        Date.from(
+                                Instant.now().plus(registrationExpiryMinutes, ChronoUnit.MINUTES)
+                        )
+                )
                 .signWith(getSigningKey())
                 .compact();
     }
