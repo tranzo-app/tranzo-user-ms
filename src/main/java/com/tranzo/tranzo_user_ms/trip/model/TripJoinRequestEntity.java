@@ -15,7 +15,8 @@ import java.util.UUID;
         name = "trip_join_requests",
         // Removed unique constraint because if a request gets REJECTED/CANCELLED user won't be able to create new request
         indexes = {
-                @Index(name = "idx_join_requests_trip_status", columnList = "trip_id, status")
+                @Index(name = "idx_join_requests_trip_status", columnList = "trip_id, status"),
+                @Index(name = "idx_join_requests_trip_user", columnList = "trip_id, user_id")
         }
 )
 @Getter
