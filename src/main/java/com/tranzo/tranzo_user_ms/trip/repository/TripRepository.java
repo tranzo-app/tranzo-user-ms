@@ -6,6 +6,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -31,4 +32,13 @@ public interface TripRepository extends JpaRepository<TripEntity, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select t from TripEntity t where t.tripId = :tripId")
     Optional<TripEntity> findByIdForUpdate(UUID tripId);
+
+    @Query("SELECT t FROM TripEntity t WHERE t.tripStatus = :status " +
+            "AND EXISTS (SELECT 1 FROM TripMemberEntity m1 WHERE m1.trip.tripId = t.tripId AND m1.userId = :userId1) " +
+            "AND EXISTS (SELECT 1 FROM TripMemberEntity m2 WHERE m2.trip.tripId = t.tripId AND m2.userId = :userId2) " +
+            "ORDER BY t.tripEndDate DESC")
+    List<TripEntity> findMutualCompletedTrips(
+            @Param("userId1") UUID userId1,
+            @Param("userId2") UUID userId2,
+            @Param("status") TripStatus status);
 }

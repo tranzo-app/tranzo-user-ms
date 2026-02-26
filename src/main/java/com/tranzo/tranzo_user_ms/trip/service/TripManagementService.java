@@ -178,6 +178,17 @@ public class TripManagementService {
         return mapTripEntityToDto(trip);
     }
 
+    public List<TripViewDto> getMutualCompletedTrips(UUID currentUserId, UUID otherUserId) {
+        if (currentUserId.equals(otherUserId)) {
+            return List.of();
+        }
+        List<TripEntity> trips = tripRepository.findMutualCompletedTrips(
+                currentUserId, otherUserId, TripStatus.COMPLETED);
+        return trips.stream()
+                .map(this::mapTripEntityToDto)
+                .toList();
+    }
+
     @Transactional
     public void cancelTrip(UUID tripId, UUID userId)
     {

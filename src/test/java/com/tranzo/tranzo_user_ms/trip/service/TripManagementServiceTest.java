@@ -806,6 +806,117 @@ class TripManagementServiceTest {
             tripManagementService.answerTripQnA(userId, tripId, qnaId, answerDto));
     }
 
+    // ============== MUTUAL TRIPS TESTS ==============
+
+    @Test
+    @DisplayName("Should return mutual completed trips when both users participated")
+    void testGetMutualCompletedTrips_WithMutualTrips() {
+        UUID currentUserId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        TripEntity trip1 = createSampleTripEntity();
+        trip1.setTripId(UUID.randomUUID());
+        trip1.setTripStatus(TripStatus.COMPLETED);
+        trip1.setTripEndDate(LocalDate.of(2026, 5, 15));
+        TripEntity trip2 = createSampleTripEntity();
+        trip2.setTripId(UUID.randomUUID());
+        trip2.setTripStatus(TripStatus.COMPLETED);
+        trip2.setTripTitle("Another Trip");
+        trip2.setTripEndDate(LocalDate.of(2026, 4, 10));
+        List<TripEntity> mutualTrips = Arrays.asList(trip1, trip2);
+
+        when(tripRepository.findMutualCompletedTrips(eq(currentUserId), eq(otherUserId), eq(TripStatus.COMPLETED)))
+            .thenReturn(mutualTrips);
+
+        List<TripViewDto> result = tripManagementService.getMutualCompletedTrips(currentUserId, otherUserId);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(trip1.getTripId(), result.get(0).getTripId());
+        assertEquals(trip1.getTripTitle(), result.get(0).getTripTitle());
+        assertEquals(trip2.getTripId(), result.get(1).getTripId());
+        assertEquals(trip2.getTripTitle(), result.get(1).getTripTitle());
+        verify(tripRepository).findMutualCompletedTrips(currentUserId, otherUserId, TripStatus.COMPLETED);
+    }
+
+    @Test
+    @DisplayName("Should return empty list when same user requests mutual trips with self")
+    void testGetMutualCompletedTrips_SameUser_ReturnsEmpty() {
+        UUID sameUserId = UUID.randomUUID();
+
+        List<TripViewDto> result = tripManagementService.getMutualCompletedTrips(sameUserId, sameUserId);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(tripRepository, never()).findMutualCompletedTrips(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no mutual trips exist")
+    void testGetMutualCompletedTrips_NoMutualTrips() {
+        UUID currentUserId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+
+        when(tripRepository.findMutualCompletedTrips(eq(currentUserId), eq(otherUserId), eq(TripStatus.COMPLETED)))
+            .thenReturn(Collections.emptyList());
+
+        List<TripViewDto> result = tripManagementService.getMutualCompletedTrips(currentUserId, otherUserId);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Should return only completed trips - repository filters by status")
+    void testGetMutualCompletedTrips_OnlyCompletedStatus() {
+        UUID currentUserId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+
+        when(tripRepository.findMutualCompletedTrips(eq(currentUserId), eq(otherUserId), eq(TripStatus.COMPLETED)))
+            .thenReturn(Collections.emptyList());
+
+        tripManagementService.getMutualCompletedTrips(currentUserId, otherUserId);
+
+        verify(tripRepository).findMutualCompletedTrips(currentUserId, otherUserId, TripStatus.COMPLETED);
+    }
+
+    @Test
+    @DisplayName("Should return single mutual trip with correct DTO mapping")
+    void testGetMutualCompletedTrips_SingleTrip_MapsCorrectly() {
+        UUID currentUserId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        TripEntity trip = createSampleTripEntity();
+        trip.setTripStatus(TripStatus.COMPLETED);
+        trip.setTripTitle("Paris Adventure");
+        trip.setTripDestination("Paris");
+        trip.setTripEndDate(LocalDate.of(2026, 7, 20));
+
+        when(tripRepository.findMutualCompletedTrips(eq(currentUserId), eq(otherUserId), eq(TripStatus.COMPLETED)))
+            .thenReturn(Collections.singletonList(trip));
+
+        List<TripViewDto> result = tripManagementService.getMutualCompletedTrips(currentUserId, otherUserId);
+
+        assertEquals(1, result.size());
+        TripViewDto dto = result.get(0);
+        assertEquals(trip.getTripId(), dto.getTripId());
+        assertEquals("Paris Adventure", dto.getTripTitle());
+        assertEquals("Paris", dto.getTripDestination());
+        assertEquals(LocalDate.of(2026, 7, 20), dto.getTripEndDate());
+    }
+
+    @Test
+    @DisplayName("Should handle non-existent otherUserId gracefully - empty list")
+    void testGetMutualCompletedTrips_NonExistentUser() {
+        UUID currentUserId = UUID.randomUUID();
+        UUID nonExistentUserId = UUID.randomUUID();
+
+        when(tripRepository.findMutualCompletedTrips(any(), any(), any())).thenReturn(Collections.emptyList());
+
+        List<TripViewDto> result = tripManagementService.getMutualCompletedTrips(currentUserId, nonExistentUserId);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
     // ============== HELPER METHODS ==============
 
     private TripEntity createSampleTripEntity() {

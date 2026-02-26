@@ -53,6 +53,13 @@ public class TripManagementController {
         return ResponseEntity.ok(ResponseDto.success("Trip details have been fetched successfully", tripDto));
     }
 
+    @GetMapping("/mutual-with/{otherUserId}")
+    public ResponseEntity<ResponseDto<List<TripViewDto>>> getMutualTrips(@PathVariable UUID otherUserId) throws AuthException {
+        UUID currentUserId = SecurityUtils.getCurrentUserUuid();
+        List<TripViewDto> trips = tripManagementService.getMutualCompletedTrips(currentUserId, otherUserId);
+        return ResponseEntity.ok(ResponseDto.success("Mutual trips retrieved", trips));
+    }
+
     @DeleteMapping("/{tripId}")
     public ResponseEntity<ResponseDto<Void>> cancelTrip(@PathVariable UUID tripId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
