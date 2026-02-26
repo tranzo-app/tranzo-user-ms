@@ -3,6 +3,8 @@ package com.tranzo.tranzo_user_ms.notification.events;
 import com.tranzo.tranzo_user_ms.commons.events.*;
 import com.tranzo.tranzo_user_ms.notification.enums.NotificationType;
 import com.tranzo.tranzo_user_ms.notification.service.NotificationService;
+import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
+import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,9 @@ class TripNotificationEventListenerTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private UserProfileRepository userProfileRepository;
 
     @InjectMocks
     private TripNotificationEventListener listener;
@@ -252,5 +257,73 @@ class TripNotificationEventListenerTest {
         verify(notificationService).createNotificationsForUsers(
             eq(memberIds), eq(tripId), eq(NotificationType.TRIP_CANCELLED),
             eq("Trip cancelled"), anyString());
+    }
+
+    @Test
+    @DisplayName("onTripInviteCreated skips when invitedUserId is null")
+    void testOnTripInviteCreated_NullInvitedUserId() {
+        TripInviteCreatedEvent event = new TripInviteCreatedEvent(tripId, tripTitle, null, userId);
+
+        listener.onTripInviteCreated(event);
+
+        verify(notificationService, never()).createNotification(any(), any(), any(), any(), any());
+        verify(userProfileRepository, never()).findAllUserProfileDetailByUserId(any());
+    }
+
+    @Test
+    @DisplayName("onTripInviteCreated creates notification with inviter name when profile exists")
+    void testOnTripInviteCreated_WithInviterName() {
+        UUID invitedUserId = UUID.randomUUID();
+        UUID invitedByUserId = UUID.randomUUID();
+        TripInviteCreatedEvent event = new TripInviteCreatedEvent(tripId, tripTitle, invitedUserId, invitedByUserId);
+
+        UserProfileEntity profile = new UserProfileEntity();
+        profile.setFirstName("Alice");
+        when(userProfileRepository.findAllUserProfileDetailByUserId(invitedByUserId)).thenReturn(java.util.Optional.of(profile));
+
+        listener.onTripInviteCreated(event);
+
+        verify(notificationService).createNotification(
+            eq(invitedUserId), eq(tripId), eq(NotificationType.TRIP_INVITED),
+            eq("Trip invite"), contains("Alice has invited you"));
+    }
+
+    @Test
+    @DisplayName("onTripInviteCreated creates notification with fallback when profile not found")
+    void testOnTripInviteCreated_WithoutProfile() {
+        UUID invitedUserId = UUID.randomUUID();
+        UUID invitedByUserId = UUID.randomUUID();
+        TripInviteCreatedEvent event = new TripInviteCreatedEvent(tripId, tripTitle, invitedUserId, invitedByUserId);
+
+        when(userProfileRepository.findAllUserProfileDetailByUserId(invitedByUserId)).thenReturn(java.util.Optional.empty());
+
+        listener.onTripInviteCreated(event);
+
+        verify(notificationService).createNotification(
+            eq(invitedUserId), eq(tripId), eq(NotificationType.TRIP_INVITED),
+            eq("Trip invite"), contains("A travel pal has invited you"));
+    }
+
+    @Test
+    @DisplayName("onTripBroadcast creates notifications for recipients")
+    void testOnTripBroadcast() {
+        List<UUID> broadcastToIds = List.of(UUID.randomUUID(), UUID.randomUUID());
+        TripBroadcastEvent event = new TripBroadcastEvent(tripId, tripTitle, userId, broadcastToIds);
+
+        listener.onTripBroadcast(event);
+
+        verify(notificationService).createNotificationsForUsers(
+            eq(broadcastToIds), eq(tripId), eq(NotificationType.TRIP_BROADCAST),
+            eq("New trip"), contains("A travel pal has hosted a trip"));
+    }
+
+    @Test
+    @DisplayName("onTripBroadcast does nothing when broadcastToUserIds empty")
+    void testOnTripBroadcast_EmptyList() {
+        TripBroadcastEvent event = new TripBroadcastEvent(tripId, tripTitle, userId, List.of());
+
+        listener.onTripBroadcast(event);
+
+        verify(notificationService, never()).createNotificationsForUsers(any(), any(), any(), any(), any());
     }
 }

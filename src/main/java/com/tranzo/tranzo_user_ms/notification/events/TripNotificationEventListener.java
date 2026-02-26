@@ -3,6 +3,7 @@ package com.tranzo.tranzo_user_ms.notification.events;
 import com.tranzo.tranzo_user_ms.commons.events.*;
 import com.tranzo.tranzo_user_ms.notification.enums.NotificationType;
 import com.tranzo.tranzo_user_ms.notification.service.NotificationService;
+import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class TripNotificationEventListener {
 
     private final NotificationService notificationService;
+    private final UserProfileRepository userProfileRepository;
 
     @EventListener
     @Transactional
@@ -249,6 +251,49 @@ public class TripNotificationEventListener {
                 NotificationType.TRIP_QUESTION_ANSWERED,
                 "Your question was answered",
                 "Your question for trip \"" + (event.getTripTitle() != null ? event.getTripTitle() : "") + "\" has been answered."
+        );
+    }
+
+    @EventListener
+    @Transactional
+    public void onTripInviteCreated(TripInviteCreatedEvent event) {
+        if (event.getInvitedUserId() == null) {
+            log.warn("Skipping TRIP_INVITED notification: invitedUserId is null");
+            return;
+        }
+        log.info("Creating TRIP_INVITED notification for tripId={}, invitedUserId={}", event.getTripId(), event.getInvitedUserId());
+        String inviterName = "A travel pal";
+        if (event.getInvitedByUserId() != null) {
+            inviterName = userProfileRepository.findAllUserProfileDetailByUserId(event.getInvitedByUserId())
+                    .map(up -> up.getFirstName() != null && !up.getFirstName().isBlank() ? up.getFirstName() : "A travel pal")
+                    .orElse("A travel pal");
+        }
+        String title = "Trip invite";
+        String body = inviterName + " has invited you to join the trip \"" + (event.getTripTitle() != null ? event.getTripTitle() : "") + "\".";
+        notificationService.createNotification(
+                event.getInvitedUserId(),
+                event.getTripId(),
+                NotificationType.TRIP_INVITED,
+                title,
+                body
+        );
+    }
+
+    @EventListener
+    @Transactional
+    public void onTripBroadcast(TripBroadcastEvent event) {
+        if (event.getBroadcastToUserIds() == null || event.getBroadcastToUserIds().isEmpty()) {
+            return;
+        }
+        log.info("Creating TRIP_BROADCAST notifications for tripId={}, recipientCount={}", event.getTripId(), event.getBroadcastToUserIds().size());
+        String title = "New trip";
+        String body = "A travel pal has hosted a trip \"" + (event.getTripTitle() != null ? event.getTripTitle() : "") + "\". Check it out!";
+        notificationService.createNotificationsForUsers(
+                event.getBroadcastToUserIds(),
+                event.getTripId(),
+                NotificationType.TRIP_BROADCAST,
+                title,
+                body
         );
     }
 }

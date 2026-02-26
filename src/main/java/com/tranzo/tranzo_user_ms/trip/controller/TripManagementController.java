@@ -7,6 +7,7 @@ import com.tranzo.tranzo_user_ms.trip.dto.CreateQnaRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripResponseDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripViewDto;
+import com.tranzo.tranzo_user_ms.trip.service.TripInviteService;
 import com.tranzo.tranzo_user_ms.trip.service.TripManagementService;
 import com.tranzo.tranzo_user_ms.trip.validation.groups.DraftChecks;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
@@ -28,6 +29,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TripManagementController {
     private final TripManagementService tripManagementService;
+    private final TripInviteService tripInviteService;
 
     @PostMapping("/")
     public ResponseEntity<ResponseDto<TripResponseDto>> createDraftTrip(@Validated(DraftChecks.class) @RequestBody TripDto tripDto) throws AuthException {
@@ -129,5 +131,26 @@ public class TripManagementController {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         tripManagementService.markTripFull(userId, tripId);
         return ResponseEntity.ok(ResponseDto.success("Trip has been marked full successfully", null));
+    }
+
+    @PostMapping("/{tripId}/invites/travel-pal/bulk")
+    public ResponseEntity<ResponseDto<Void>> inviteAllTravelPals(@PathVariable UUID tripId) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        tripInviteService.inviteAllTravelPals(tripId, userId);
+        return ResponseEntity.ok(ResponseDto.success("Travel pals invited successfully", null));
+    }
+
+    @PostMapping("/{tripId}/invites/travel-pal/{travelPalUserId}")
+    public ResponseEntity<ResponseDto<Void>> inviteTravelPal(@PathVariable UUID tripId, @PathVariable UUID travelPalUserId) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        tripInviteService.inviteTravelPal(tripId, userId, travelPalUserId);
+        return ResponseEntity.ok(ResponseDto.success("Travel pal invited successfully", null));
+    }
+
+    @PostMapping("/{tripId}/broadcast")
+    public ResponseEntity<ResponseDto<Void>> broadcastTrip(@PathVariable UUID tripId) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        tripManagementService.broadcastTripToTravelPals(userId, tripId);
+        return ResponseEntity.ok(ResponseDto.success("Trip broadcast to travel pals successfully", null));
     }
 }

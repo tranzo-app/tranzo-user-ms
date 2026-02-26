@@ -6,6 +6,7 @@ import com.tranzo.tranzo_user_ms.trip.dto.*;
 import com.tranzo.tranzo_user_ms.trip.enums.JoinPolicy;
 import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus;
+import com.tranzo.tranzo_user_ms.trip.service.TripInviteService;
 import com.tranzo.tranzo_user_ms.trip.service.TripManagementService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +36,9 @@ class TripManagementControllerTest {
 
     @Mock
     private TripManagementService tripManagementService;
+
+    @Mock
+    private TripInviteService tripInviteService;
 
     @InjectMocks
     private TripManagementController tripManagementController;
