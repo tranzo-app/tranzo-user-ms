@@ -32,6 +32,8 @@ public class OtpService {
         String identifier = otpUtility.resolveIdentifier(requestOtpDto);
         String otp = otpUtility.generateOtp();
 
+        log.info("Key built for caching OTP is {}", buildKey(identifier));
+
         otpCache.put(buildKey(identifier), otp);
 
         // TODO : Integrate SMS / Email Provider
@@ -42,6 +44,7 @@ public class OtpService {
     {
         String identifier = otpUtility.resolveIdentifier(verifyOtpDto);
         String key = buildKey(identifier);
+        log.info("Key for fetching OTP is {}", key);
         String cachedOtp = otpCache.getIfPresent(key);
         if (cachedOtp == null) {
             throw new OtpException("OTP expired or not found");
