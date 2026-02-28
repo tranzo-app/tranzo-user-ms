@@ -58,6 +58,7 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String generateRefreshToken(UsersEntity user) {
         return Jwts.builder()
+                .setId(UUID.randomUUID().toString())
                 .setSubject(user.getUserUuid().toString())
                 .setIssuer(issuer)
                 .claim("type", "REFRESH")

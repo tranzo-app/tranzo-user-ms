@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -155,14 +156,25 @@ public class SessionService {
     }
 
     private void saveNewRefreshToken(String token, UsersEntity user) {
+        revokeAllRefreshTokensForUser(user.getUserUuid());
         refreshTokenRepository.save(
                 RefreshTokenEntity.builder()
                         .tokenHash(hash(token))
                         .user(user)
-                        .expiresAt(LocalDateTime.now().plusDays(7))
+                        .expiresAt(LocalDateTime.now().plusDays(refreshExpiryDays))
                         .revoked(false)
                         .build()
         );
+    }
+
+    private void revokeAllRefreshTokensForUser(UUID userUuid) {
+        List<RefreshTokenEntity> tokens = refreshTokenRepository.findByUser_UserUuid(userUuid);
+        tokens.stream()
+                .filter(t -> !t.isRevoked())
+                .forEach(t -> {
+                    t.setRevoked(true);
+                    refreshTokenRepository.save(t);
+                });
     }
 
     private String extractRefreshToken(HttpServletRequest request) {
