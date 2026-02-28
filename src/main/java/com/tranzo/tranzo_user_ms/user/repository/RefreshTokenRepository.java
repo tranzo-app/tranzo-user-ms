@@ -4,6 +4,7 @@ import com.tranzo.tranzo_user_ms.user.model.RefreshTokenEntity;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,6 +14,8 @@ public interface RefreshTokenRepository
     Optional<RefreshTokenEntity> findByTokenHashAndRevokedFalse(String token);
 
     Optional<RefreshTokenEntity> findByUser_UserUuidAndRevokedFalse(UUID uuid);
+
+    List<RefreshTokenEntity> findByUser_UserUuid(UUID userUuid);
 
     void deleteAllByUser(UsersEntity user);
 }
