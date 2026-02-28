@@ -33,6 +33,12 @@ spring:
     registration-token-expiry-minutes: 10
     issuer: tranzo-auth
 
+aadhar:
+  base-url: https://api.sandbox.co.in
+  x-api-key: key_live_77585ca0542c49669172af8b58f6d16d
+  x-api-secret: secret_live_f81bf1268fb04bb69cc94a94e2c1e8fb
+  timeout: 5
+
 # Optional: cron for trip notification jobs (default: draft at 9am, upcoming at 8am daily)
 # trip:
 #   notification:
