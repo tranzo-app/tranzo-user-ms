@@ -25,17 +25,18 @@ spring:
       enabled: true      # allows web access to H2 console
       path: /h2-console  # the URL path for the H2 dashboard
 
-  data:
-    redis:
-      host: localhost
-      port: 6379
-
   jwt:
     secret: 7kP9xQeZyWvT2A1bNcLmJkHGFdsapOiuRANDOMKEY
     access-token-expiry-minutes: 15
     refresh-token-expiry-days: 7
     registration-token-expiry-minutes: 10
     issuer: tranzo-auth
+
+# Optional: cron for trip notification jobs (default: draft at 9am, upcoming at 8am daily)
+# trip:
+#   notification:
+#     draft-reminder-cron: "0 0 9 * * ?"
+#     upcoming-cron: "0 0 8 * * ?"
 
 logging:
   level:
