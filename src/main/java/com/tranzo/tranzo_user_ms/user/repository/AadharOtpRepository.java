@@ -10,7 +10,7 @@ import java.util.UUID;
 public interface AadharOtpRepository extends JpaRepository<AadharOtpEntity, UUID> {
     @Query("""
     SELECT o 
-    FROM AadhaarOtpEntity o
+    FROM AadharOtpEntity o
     WHERE o.userId = :userId
     AND o.used = false
     AND o.expiresAt > CURRENT_TIMESTAMP

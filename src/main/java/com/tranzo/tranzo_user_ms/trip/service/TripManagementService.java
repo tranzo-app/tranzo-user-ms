@@ -178,6 +178,23 @@ public class TripManagementService {
         return mapTripEntityToDto(trip);
     }
 
+    public List<TripViewDto> fetchTripForUser(UUID userId)
+    {
+        List<TripStatus> statuses = List.of(TripStatus.PUBLISHED, TripStatus.ONGOING, TripStatus.COMPLETED);
+        List<TripEntity> trips = tripMemberRepository.findTripsByUserIdAndStatusIn(userId, statuses);
+        return trips.stream()
+                .map(this::mapTripEntityToDto)
+                .toList();
+    }
+
+    public List<TripViewDto> fetchAllTrips()
+    {
+        List<TripEntity> trips = tripRepository.findAllTrips(TripStatus.COMPLETED);
+        return trips.stream()
+                .map(this::mapTripEntityToDto)
+                .toList();
+    }
+
     @Transactional
     public void cancelTrip(UUID tripId, UUID userId)
     {

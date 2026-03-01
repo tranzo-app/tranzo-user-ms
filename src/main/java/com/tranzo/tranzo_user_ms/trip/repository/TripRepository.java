@@ -31,4 +31,7 @@ public interface TripRepository extends JpaRepository<TripEntity, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select t from TripEntity t where t.tripId = :tripId")
     Optional<TripEntity> findByIdForUpdate(UUID tripId);
+
+    @Query("SELECT t FROM TripEntity t WHERE t.tripStatus <> :status")
+    List<TripEntity> findAllTrips(TripStatus status);
 }
