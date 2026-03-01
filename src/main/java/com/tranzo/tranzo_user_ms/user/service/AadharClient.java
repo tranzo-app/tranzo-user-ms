@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.user.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.tranzo.tranzo_user_ms.user.configuration.AadharProperties;
@@ -11,6 +12,9 @@ import com.tranzo.tranzo_user_ms.user.exception.AadharIntegrationException;
 import com.tranzo.tranzo_user_ms.user.exception.AadharServiceUnavailableException;
 import com.tranzo.tranzo_user_ms.user.exception.AadharUnauthorizedException;
 import com.tranzo.tranzo_user_ms.user.exception.AadharValidationException;
+import com.tranzo.tranzo_user_ms.user.model.AadharOtpVerifyBaseResponse;
+import com.tranzo.tranzo_user_ms.user.model.AadharOtpVerifyRequest;
+import com.tranzo.tranzo_user_ms.user.model.AadharOtpVerifySuccessResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
@@ -138,17 +142,59 @@ public class AadharClient {
         }
     }
 
-//    public AadharVerifyResponse verifyOtp(AadharVerifyRequest request) {
-//
-//        return aadharWebClient.post()
-//                .uri("/v1/aadhar/verify")
-//                .bodyValue(request)
-//                .retrieve()
-//                .onStatus(HttpStatusCode::isError, response ->
-//                        response.bodyToMono(String.class)
-//                                .map(body -> new RuntimeException("Aadhar verification failed: " + body))
-//                )
-//                .bodyToMono(AadharVerifyResponse.class)
-//                .block();
-//    }
+    public AadharOtpVerifySuccessResponse verifyOtp(
+            AadharOtpVerifyRequest request
+    ) {
+        String token = getAccessToken();
+        return aadharWebClient.post()
+                .uri("/kyc/aadhaar/okyc/otp/verify")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .header(HttpHeaders.CONTENT_TYPE, "application/json")
+                .bodyValue(request)
+                .exchangeToMono(response ->
+                        response.bodyToMono(String.class)
+                                .map(body -> handleVerifyResponse(
+                                        response.statusCode().value(),
+                                        body
+                                ))
+                )
+                .block();
+    }
+
+    private AadharOtpVerifySuccessResponse handleVerifyResponse(
+            int status,
+            String body
+    ) {
+        try {
+            if (status == 200) {
+                JsonNode root = objectMapper.readTree(body);
+                JsonNode dataNode = root.get("data");
+                // Case 1: OTP Expired
+                if (dataNode != null && dataNode.has("message")
+                        && !"Aadhaar Card Exists".equalsIgnoreCase(
+                        dataNode.get("message").asText())) {
+                    throw new AadharValidationException("OTP expired");
+                }
+                // Case 2: VALID
+                return objectMapper.readValue(
+                        body,
+                        AadharOtpVerifySuccessResponse.class
+                );
+            }
+            AadharOtpVerifyBaseResponse error =
+                    objectMapper.readValue(
+                            body,
+                            AadharOtpVerifyBaseResponse.class
+                    );
+            if (status == 422) {
+                throw new AadharValidationException(error.getMessage());
+            }
+            if (status == 503) {
+                throw new AadharServiceUnavailableException(error.getMessage());
+            }
+            throw new AadharIntegrationException(error.getMessage());
+        } catch (IOException e) {
+            throw new AadharIntegrationException("Failed to parse verify response");
+        }
+    }
 }
