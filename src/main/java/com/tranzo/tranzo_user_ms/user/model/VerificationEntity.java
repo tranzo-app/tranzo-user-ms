@@ -12,7 +12,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "verification")
+@Table(
+        name = "verification",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"user_uuid", "document_type"})
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,12 +25,12 @@ import java.util.UUID;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class VerificationEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @EqualsAndHashCode.Include
-    @Column(name = "verification_uuid", nullable = false, updatable = false)
+    @Column(name = "verification_uuid" , updatable = false, nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID verificationUuid;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_uuid", nullable = false)
     private UsersEntity user;
 
@@ -33,11 +38,11 @@ public class VerificationEntity {
     @Column(name = "document_type", nullable = false)
     private DocumentType documentType;
 
-    @Column(name = "document_number", nullable = false)
-    private String documentNumber;
+    @Column(name = "document_number", nullable = false, length = 20)
+    private String documentNumber; // masked
 
-    @Column(name = "document_image_url", nullable = false)
-    private String documentImageUrl;
+    @Column(name = "provider_reference_id")
+    private String providerReferenceId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "verification_status", nullable = false)
@@ -53,13 +58,9 @@ public class VerificationEntity {
     @Column(name = "verified_by")
     private String verifiedBy;
 
-    @Column(name = "created_at", updatable = false, nullable = false)
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     @CreationTimestamp
-    private LocalDateTime createdAt ;
+    private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 }

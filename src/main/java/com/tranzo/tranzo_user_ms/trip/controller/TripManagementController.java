@@ -53,6 +53,20 @@ public class TripManagementController {
         return ResponseEntity.ok(ResponseDto.success("Trip details have been fetched successfully", tripDto));
     }
 
+    @GetMapping("/user")
+    public ResponseEntity<ResponseDto<List<TripViewDto>>> fetchTripDetailsForUser() throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        log.info("User id : {} ", userId);
+        List<TripViewDto> tripDto = tripManagementService.fetchTripForUser(userId);
+        return ResponseEntity.ok(ResponseDto.success("Trip details have been fetched successfully for the user", tripDto));
+    }
+
+    @GetMapping("")
+    public ResponseEntity<ResponseDto<List<TripViewDto>>> fetchAllTrips() throws AuthException {
+        List<TripViewDto> tripDto = tripManagementService.fetchAllTrips();
+        return ResponseEntity.ok(ResponseDto.success("All trip details have been fetched successfully", tripDto));
+    }
+
     @DeleteMapping("/{tripId}")
     public ResponseEntity<ResponseDto<Void>> cancelTrip(@PathVariable UUID tripId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
