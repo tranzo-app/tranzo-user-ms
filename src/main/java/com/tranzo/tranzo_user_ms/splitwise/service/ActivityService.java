@@ -119,7 +119,7 @@ public class ActivityService {
                 .group(group)
                 .userId(user)
                 .activityType(Activity.ActivityType.EXPENSE_ADDED)
-                .description(String.format("Added expense '%s' for $%.2f", expenseName, amount))
+                .description(String.format("Added expense '%s' for ₹%.2f", expenseName, amount))
                 .relatedId(expenseId != null ? expenseId.toString() : null) // Store expense ID as string
                 .relatedType("EXPENSE")
                 .build();
@@ -167,7 +167,7 @@ public class ActivityService {
                 .group(group)
                 .userId(user)
                 .activityType(Activity.ActivityType.SETTLEMENT_CREATED)
-                .description(String.format("Created settlement for $%.2f", amount))
+                .description(String.format("Created settlement for ₹%.2f", amount))
                 .relatedId(settlementId != null ? settlementId.toString() : null) // Store settlement ID as string
                 .relatedType("SETTLEMENT")
                 .build();
@@ -183,7 +183,7 @@ public class ActivityService {
                 .group(group)
                 .userId(user)
                 .activityType(Activity.ActivityType.SETTLEMENT_DELETED)
-                .description(String.format("Deleted settlement for $%.2f", amount))
+                .description(String.format("Deleted settlement for ₹%.2f", amount))
                 .relatedId(settlementId != null ? settlementId.toString() : null) // Store settlement ID as string
                 .relatedType("SETTLEMENT")
                 .build();

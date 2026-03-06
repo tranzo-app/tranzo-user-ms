@@ -8,7 +8,7 @@ import java.util.UUID;
 public class UserNotMemberException extends SplitwiseException {
 
     public UserNotMemberException(UUID userId, Long groupId) {
-        super(String.format("User %d is not a member of group %d", userId, groupId));
+        super(String.format("User %s is not a member of group %d", userId.toString(), groupId));
     }
 
     public UserNotMemberException(String message) {

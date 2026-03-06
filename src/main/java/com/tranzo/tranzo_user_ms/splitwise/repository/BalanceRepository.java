@@ -84,15 +84,18 @@ public interface BalanceRepository extends JpaRepository<Balance, Long> {
 
     /**
      * Gets balance summary for all users in a group.
+     * Simplified query to avoid UserProfileEntity path resolution issues.
      */
     @Query("SELECT " +
            "gm.userId as userId, " +
            "'User' as userName, " +
+           "u.email as userEmail, " +
            "COALESCE(SUM(CASE WHEN b.owedTo = gm.userId THEN b.amount ELSE 0 END), 0) as totalOwedTo, " +
            "COALESCE(SUM(CASE WHEN b.owedBy = gm.userId THEN b.amount ELSE 0 END), 0) as totalOwedBy, " +
            "COALESCE(SUM(CASE WHEN b.owedTo = gm.userId THEN b.amount ELSE 0 END), 0) - " +
            "COALESCE(SUM(CASE WHEN b.owedBy = gm.userId THEN b.amount ELSE 0 END), 0) as netBalance " +
            "FROM GroupMember gm " +
+           "LEFT JOIN UsersEntity u ON u.userUuid = gm.userId " +
            "LEFT JOIN Balance b ON (b.owedBy = gm.userId OR b.owedTo = gm.userId) AND b.group.id = :groupId " +
            "WHERE gm.group.id = :groupId " +
            "GROUP BY gm.userId " +

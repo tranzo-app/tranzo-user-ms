@@ -351,8 +351,8 @@ public class BalanceService {
             // They can pay up to their available balance
             if (amount.compareTo(currentBalance) > 0) {
                 throw new SplitwiseException(
-                    String.format("User %d can only pay up to %.2f, but requested %.2f", 
-                            fromUserId, currentBalance, amount));
+                    String.format("User %s can only pay up to %.2f, but requested %.2f", 
+                            fromUserId.toString(), currentBalance, amount));
             }
         }
 
