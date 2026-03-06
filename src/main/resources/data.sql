@@ -332,6 +332,153 @@ INSERT INTO trip_join_requests (
     CURRENT_TIMESTAMP
 );
 
+---------------------------------------------------------
+-- SPLITWISE GROUPS (3 groups for testing)
+---------------------------------------------------------
+INSERT INTO splitwise_groups (id, trip_id, description, created_by, created_at, updated_at)
+VALUES
+(1, 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa', 'Manali Backpacking Group', '11111111-1111-4111-8111-111111111111', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb', 'Spiti Valley Ride Group', '11111111-1111-4111-8111-111111111111', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(3, 'cccccccc-3333-4333-8333-cccccccccccc', 'Goa Friends Trip Group', '88888888-8888-4888-8888-888888888888', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+---------------------------------------------------------
+-- SPLITWISE GROUP MEMBERS
+---------------------------------------------------------
+INSERT INTO splitwise_group_members (id, group_id, user_id, role, joined_at)
+VALUES
+-- Group 1 (Manali) - 4 members
+(1, 1, '11111111-1111-4111-8111-111111111111', 'ADMIN', CURRENT_TIMESTAMP),
+(2, 1, '22222222-2222-4222-8222-222222222222', 'MEMBER', CURRENT_TIMESTAMP),
+(3, 1, '33333333-3333-4333-8333-333333333333', 'MEMBER', CURRENT_TIMESTAMP),
+(4, 1, '55555555-5555-4555-8555-555555555555', 'MEMBER', CURRENT_TIMESTAMP),
+
+-- Group 2 (Spiti) - 3 members
+(5, 2, '11111111-1111-4111-8111-111111111111', 'ADMIN', CURRENT_TIMESTAMP),
+(6, 2, '33333333-3333-4333-8333-333333333333', 'MEMBER', CURRENT_TIMESTAMP),
+(7, 2, '66666666-6666-4666-8666-666666666666', 'MEMBER', CURRENT_TIMESTAMP),
+
+-- Group 3 (Goa) - 5 members
+(8, 3, '88888888-8888-4888-8888-888888888888', 'ADMIN', CURRENT_TIMESTAMP),
+(9, 3, '99999999-9999-4999-8999-999999999999', 'MEMBER', CURRENT_TIMESTAMP),
+(10, 3, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'MEMBER', CURRENT_TIMESTAMP),
+(11, 3, '77777777-7777-4777-8777-777777777777', 'MEMBER', CURRENT_TIMESTAMP),
+(12, 3, '44444444-4444-4444-8444-444444444444', 'MEMBER', CURRENT_TIMESTAMP);
+
+---------------------------------------------------------
+-- SPLITWISE EXPENSES (6 expenses across groups)
+---------------------------------------------------------
+INSERT INTO splitwise_expenses (id, name, description, amount, paid_by, group_id, split_type, expense_date, category, created_at, updated_at)
+VALUES
+-- Group 1 Expenses
+(1, 'Hotel Booking', '3 nights at Mountain View Hotel', 12000.00, '11111111-1111-4111-8111-111111111111', 1, 'EQUAL', '2026-03-01 10:00:00', 'ACCOMMODATION', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 'Dinner at Restaurant', 'Team dinner at local restaurant', 2400.00, '22222222-2222-4222-8222-222222222222', 1, 'EQUAL', '2026-03-02 19:00:00', 'FOOD', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(3, 'Taxi to Airport', 'Shared taxi to airport', 800.00, '33333333-3333-4333-8333-333333333333', 1, 'EQUAL', '2026-03-06 08:00:00', 'TRANSPORT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+-- Group 2 Expenses
+(4, 'Fuel for Bike Trip', 'Petrol for entire Spiti trip', 8500.00, '11111111-1111-4111-8111-111111111111', 2, 'UNEQUAL', '2026-04-10 09:00:00', 'TRANSPORT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(5, 'Camping Equipment', 'Tents and camping gear rental', 3600.00, '66666666-6666-4666-8666-666666666666', 2, 'EQUAL', '2026-04-11 14:00:00', 'EQUIPMENT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+-- Group 3 Expenses
+(6, 'Beach Resort Booking', '2 nights at beach resort', 15000.00, '88888888-8888-4888-8888-888888888888', 3, 'EQUAL', '2026-02-05 15:00:00', 'ACCOMMODATION', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+---------------------------------------------------------
+-- SPLITWISE EXPENSE SPLITS
+---------------------------------------------------------
+INSERT INTO splitwise_expense_splits (id, expense_id, user_id, amount, percentage, created_at)
+VALUES
+-- Expense 1 Splits (12000.00 / 4 = 3000.00 each)
+(1, 1, '11111111-1111-4111-8111-111111111111', 3000.00, 25.00, CURRENT_TIMESTAMP),
+(2, 1, '22222222-2222-4222-8222-222222222222', 3000.00, 25.00, CURRENT_TIMESTAMP),
+(3, 1, '33333333-3333-4333-8333-333333333333', 3000.00, 25.00, CURRENT_TIMESTAMP),
+(4, 1, '55555555-5555-4555-8555-555555555555', 3000.00, 25.00, CURRENT_TIMESTAMP),
+
+-- Expense 2 Splits (2400.00 / 4 = 600.00 each)
+(5, 2, '11111111-1111-4111-8111-111111111111', 600.00, 25.00, CURRENT_TIMESTAMP),
+(6, 2, '22222222-2222-4222-8222-222222222222', 600.00, 25.00, CURRENT_TIMESTAMP),
+(7, 2, '33333333-3333-4333-8333-333333333333', 600.00, 25.00, CURRENT_TIMESTAMP),
+(8, 2, '55555555-5555-4555-8555-555555555555', 600.00, 25.00, CURRENT_TIMESTAMP),
+
+-- Expense 3 Splits (800.00 / 4 = 200.00 each)
+(9, 3, '11111111-1111-4111-8111-111111111111', 200.00, 25.00, CURRENT_TIMESTAMP),
+(10, 3, '22222222-2222-4222-8222-222222222222', 200.00, 25.00, CURRENT_TIMESTAMP),
+(11, 3, '33333333-3333-4333-8333-333333333333', 200.00, 25.00, CURRENT_TIMESTAMP),
+(12, 3, '55555555-5555-4555-8555-555555555555', 200.00, 25.00, CURRENT_TIMESTAMP),
+
+-- Expense 4 Splits (UNEQUAL - User1 paid more, gets larger share)
+(13, 4, '11111111-1111-4111-8111-111111111111', 4250.00, 50.00, CURRENT_TIMESTAMP),
+(14, 4, '33333333-3333-4333-8333-333333333333', 2550.00, 30.00, CURRENT_TIMESTAMP),
+(15, 4, '66666666-6666-4666-8666-666666666666', 1700.00, 20.00, CURRENT_TIMESTAMP),
+
+-- Expense 5 Splits (3600.00 / 3 = 1200.00 each)
+(16, 5, '11111111-1111-4111-8111-111111111111', 1200.00, 33.33, CURRENT_TIMESTAMP),
+(17, 5, '33333333-3333-4333-8333-333333333333', 1200.00, 33.33, CURRENT_TIMESTAMP),
+(18, 5, '66666666-6666-4666-8666-666666666666', 1200.00, 33.33, CURRENT_TIMESTAMP),
+
+-- Expense 6 Splits (15000.00 / 5 = 3000.00 each)
+(19, 6, '88888888-8888-4888-8888-888888888888', 3000.00, 20.00, CURRENT_TIMESTAMP),
+(20, 6, '99999999-9999-4999-8999-999999999999', 3000.00, 20.00, CURRENT_TIMESTAMP),
+(21, 6, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 3000.00, 20.00, CURRENT_TIMESTAMP),
+(22, 6, '77777777-7777-4777-8777-777777777777', 3000.00, 20.00, CURRENT_TIMESTAMP),
+(23, 6, '44444444-4444-4444-8444-444444444444', 3000.00, 20.00, CURRENT_TIMESTAMP);
+
+---------------------------------------------------------
+-- SPLITWISE BALANCES (calculated based on expenses)
+---------------------------------------------------------
+INSERT INTO splitwise_balances (id, group_id, owed_by, owed_to, amount, last_updated)
+VALUES
+-- Group 1 Balances (after expenses 1,2,3)
+-- User1 paid 12000+800 = 12800, owes 600+200 = 800, net: +12000 (others owe him)
+(1, 1, '22222222-2222-4222-8222-222222222222', '11111111-1111-4111-8111-111111111111', 2200.00, CURRENT_TIMESTAMP),
+(2, 1, '33333333-3333-4333-8333-333333333333', '11111111-1111-4111-8111-111111111111', 2800.00, CURRENT_TIMESTAMP),
+(3, 1, '55555555-5555-4555-8555-555555555555', '11111111-1111-4111-8111-111111111111', 2800.00, CURRENT_TIMESTAMP),
+-- User2 paid 2400, owes 3000+200 = 3200, net: -800 (owes others)
+(4, 1, '22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333', 200.00, CURRENT_TIMESTAMP),
+(5, 1, '22222222-2222-4222-8222-222222222222', '55555555-5555-4555-8555-555555555555', 200.00, CURRENT_TIMESTAMP),
+
+-- Group 2 Balances (after expenses 4,5)
+-- User1 paid 8500+1200 = 9700, owes 4250+1200 = 5450, net: +4250 (others owe him)
+(6, 2, '33333333-3333-4333-8333-333333333333', '11111111-1111-4111-8111-111111111111', 1350.00, CURRENT_TIMESTAMP),
+(7, 2, '66666666-6666-4666-8666-666666666666', '11111111-1111-4111-8111-111111111111', 2900.00, CURRENT_TIMESTAMP),
+
+-- Group 3 Balances (after expense 6)
+-- User8 paid 15000, owes 3000, net: +12000 (others owe him)
+(8, 3, '99999999-9999-4999-8999-999999999999', '88888888-8888-4888-8888-888888888888', 3000.00, CURRENT_TIMESTAMP),
+(9, 3, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '88888888-8888-4888-8888-888888888888', 3000.00, CURRENT_TIMESTAMP),
+(10, 3, '77777777-7777-4777-8777-777777777777', '88888888-8888-4888-8888-888888888888', 3000.00, CURRENT_TIMESTAMP),
+(11, 3, '44444444-4444-4444-8444-444444444444', '88888888-8888-4888-8888-888888888888', 3000.00, CURRENT_TIMESTAMP);
+
+---------------------------------------------------------
+-- SPLITWISE SETTLEMENTS (3 settlements to test settlement functionality)
+---------------------------------------------------------
+INSERT INTO splitwise_settlements (id, group_id, paid_by, paid_to, amount, payment_method, transaction_id, notes, status, settled_at)
+VALUES
+-- Settlement 1: User2 pays User1 partial amount
+(1, 1, '22222222-2222-4222-8222-222222222222', '11111111-1111-4111-8111-111111111111', 1000.00, 'CASH', 'TXN123456', 'Partial settlement for hotel expenses', 'COMPLETED', CURRENT_TIMESTAMP),
+
+-- Settlement 2: User3 pays User1 partial amount  
+(2, 1, '33333333-3333-4333-8333-333333333333', '11111111-1111-4111-8111-111111111111', 1500.00, 'UPI', 'TXN123457', 'Settlement for dinner and taxi', 'COMPLETED', CURRENT_TIMESTAMP),
+
+-- Settlement 3: User6 pays User1 partial amount
+(3, 2, '66666666-6666-4666-8666-666666666666', '11111111-1111-4111-8111-111111111111', 2000.00, 'BANK_TRANSFER', 'TXN123458', 'Partial settlement for fuel costs', 'PENDING', CURRENT_TIMESTAMP);
+
+-- Reset settlement ID sequence to avoid conflicts with new settlements (H2 specific)
+ALTER TABLE splitwise_settlements ALTER COLUMN id RESTART WITH 4;
+
+---------------------------------------------------------
+-- SPLITWISE ACTIVITIES (activity log for testing)
+---------------------------------------------------------
+INSERT INTO splitwise_activities (id, group_id, user_id, activity_type, related_id, related_type, description, created_at)
+VALUES
+(1, 1, '11111111-1111-4111-8111-111111111111', 'EXPENSE_ADDED', '1', 'EXPENSE', 'Added expense: Hotel Booking (₹12000.00)', CURRENT_TIMESTAMP),
+(2, 1, '22222222-2222-4222-8222-222222222222', 'EXPENSE_ADDED', '2', 'EXPENSE', 'Added expense: Dinner at Restaurant (₹2400.00)', CURRENT_TIMESTAMP),
+(3, 1, '33333333-3333-4333-8333-333333333333', 'EXPENSE_ADDED', '3', 'EXPENSE', 'Added expense: Taxi to Airport (₹800.00)', CURRENT_TIMESTAMP),
+(4, 1, '22222222-2222-4222-8222-222222222222', 'SETTLEMENT_CREATED', '1', 'SETTLEMENT', 'Settled ₹1000.00 with User1', CURRENT_TIMESTAMP),
+(5, 1, '33333333-3333-4333-8333-333333333333', 'SETTLEMENT_CREATED', '2', 'SETTLEMENT', 'Settled ₹1500.00 with User1', CURRENT_TIMESTAMP),
+(6, 2, '11111111-1111-4111-8111-111111111111', 'EXPENSE_ADDED', '4', 'EXPENSE', 'Added expense: Fuel for Bike Trip (₹8500.00)', CURRENT_TIMESTAMP),
+(7, 2, '66666666-6666-4666-8666-666666666666', 'EXPENSE_ADDED', '5', 'EXPENSE', 'Added expense: Camping Equipment (₹3600.00)', CURRENT_TIMESTAMP),
+(8, 2, '66666666-6666-4666-8666-666666666666', 'SETTLEMENT_CREATED', '3', 'SETTLEMENT', 'Settled ₹2000.00 with User1', CURRENT_TIMESTAMP),
+(9, 3, '88888888-8888-4888-8888-888888888888', 'EXPENSE_ADDED', '6', 'EXPENSE', 'Added expense: Beach Resort Booking (₹15000.00)', CURRENT_TIMESTAMP);
+
 ----------------------------------------------------------------
 -- TRIP REPORTS
 ----------------------------------------------------------------
