@@ -5,8 +5,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {RedisAutoConfiguration.class})
 @EnableConfigurationProperties
 @EnableScheduling
 @EnableCaching
