@@ -30,5 +30,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/ec2-user/tranzo-user-ms
-            sudo docker compose up -d --build --force-recreate --no-deps app
+            export DOCKER_BUILDKIT=0
+            docker compose up -d --build --force-recreate --no-deps app
             sudo docker system prune -af
