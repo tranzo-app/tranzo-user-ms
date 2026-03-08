@@ -141,7 +141,7 @@ public class SplitwiseGroupController {
         
         GroupResponse group = groupService.getGroup(groupId, userId);
         
-        log.debug("Retrieved {} members for group: {}", group.getMembers().size(), groupId);
+        log.debug("Retrieved {} members for group: {}", group.getMembers() != null ? group.getMembers().size() : 0, groupId);
         return ResponseEntity.ok(group);
     }
 }

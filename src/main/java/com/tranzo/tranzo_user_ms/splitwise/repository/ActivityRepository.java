@@ -18,7 +18,8 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     /**
      * Finds activities for a specific group ordered by creation date (newest first).
      */
-    List<Activity> findByGroupIdOrderByCreatedAtDesc(Long groupId);
+    @Query("SELECT a FROM Activity a WHERE a.group.id = :groupId ORDER BY a.createdAt DESC")
+    List<Activity> findByGroupIdOrderByCreatedAtDesc(@Param("groupId") Long groupId);
 
     /**
      * Finds activities for a specific user ordered by creation date (newest first).
@@ -65,7 +66,8 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     /**
      * Finds activities by activity type for a specific group.
      */
-    List<Activity> findByGroupIdAndActivityType(Long groupId, Activity.ActivityType activityType);
+    @Query("SELECT a FROM Activity a WHERE a.group.id = :groupId AND a.activityType = :activityType")
+    List<Activity> findByGroupIdAndActivityType(@Param("groupId") Long groupId, @Param("activityType") Activity.ActivityType activityType);
 
     /**
      * Finds activities by activity type for a specific user.

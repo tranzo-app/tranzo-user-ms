@@ -22,7 +22,8 @@ public class ActivityResponse {
     private UserResponse user;
     private Activity.ActivityType activityType;
     private String description;
-    private Long relatedId;
+    /** Related entity ID (expense id, settlement id, group id as number, or user UUID as string). */
+    private String relatedId;
     private String relatedType;
     private String oldValue;
     private String newValue;

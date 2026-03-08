@@ -46,16 +46,13 @@ public class UserService {
 
     @Transactional
     public void createUserProfile(UserProfileDto userProfileDto, String identifier) {
-        UsersEntity user = userUtility.findUserByIdentifier(identifier)
-                .orElseThrow(() -> new UserNotFoundException(
-                        "User not found for identifier: " + identifier
-                ));
-        // Prevent duplicate profile creation
-        if (user.getUserProfileEntity() != null) {
+        Optional<UsersEntity> user = userUtility.findUserByIdentifier(identifier);
+        if (user.isPresent()) {
             throw new UserProfileAlreadyExistsException(
-                    "User profile already exists for user: " + user.getUserUuid()
+                    "User profile already exists for user: " + user.get().getUserUuid()
             );
         }
+
         UserProfileEntity userProfileEntity = new UserProfileEntity();
         userProfileEntity.setFirstName(userProfileDto.getFirstName());
         userProfileEntity.setMiddleName(userProfileDto.getMiddleName());
@@ -66,8 +63,8 @@ public class UserService {
         userProfileEntity.setLocation(userProfileDto.getLocation());
         userProfileEntity.setProfilePictureUrl(userProfileDto.getProfilePictureUrl());
         userProfileEntity.setVerificationStatus(VerificationStatus.NOT_VERIFIED);
-        userProfileEntity.setUser(user);
-        user.setUserProfileEntity(userProfileEntity);
+        userProfileEntity.setUser(user.get());
+        user.get().setUserProfileEntity(userProfileEntity);
         if (userProfileDto.getSocialHandleDtoList() != null && !userProfileDto.getSocialHandleDtoList().isEmpty())
         {
             List<SocialHandleEntity> socialHandles = userProfileDto.getSocialHandleDtoList().stream()
@@ -75,12 +72,12 @@ public class UserService {
                         SocialHandleEntity socialHandleEntity = new SocialHandleEntity();
                         socialHandleEntity.setPlatform(sh.getPlatform());
                         socialHandleEntity.setPlatformUrl(sh.getUrl());
-                        socialHandleEntity.setUser(user);
+                        socialHandleEntity.setUser(user.get());
                         return socialHandleEntity;
                     }).toList();
-            user.getSocialHandleEntity().addAll(socialHandles);
+            user.get().getSocialHandleEntity().addAll(socialHandles);
         }
-        userRepository.save(user);
+        userRepository.save(user.get());
     }
 
     private UserProfileDto mapToUserProfileDto(UserProfileEntity profileEntity) {
