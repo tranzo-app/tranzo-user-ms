@@ -1,0 +1,8 @@
+services:
+  app:
+    build: .
+    image: tranzo-user-ms:latest
+    container_name: tranzo-user
+    ports:
+      - "8083:8083"
+    restart: unless-stopped
