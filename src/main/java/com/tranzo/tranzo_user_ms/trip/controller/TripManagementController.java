@@ -172,7 +172,8 @@ public class TripManagementController {
 
     @PostMapping("/search")
     public ResponseEntity<ResponseDto<Page<TripViewDto>>> searchTrips(
-            @RequestBody SearchRequest request) {
+            @RequestBody SearchRequest request) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
         List<String> globalFields = new ArrayList<>();
         Page<TripViewDto> searchedTrips = tripManagementService.search(request, globalFields);
         return ResponseEntity.ok(ResponseDto.success("Trip search is success", searchedTrips));
