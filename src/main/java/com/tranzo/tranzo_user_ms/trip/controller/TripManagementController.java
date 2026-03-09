@@ -14,11 +14,13 @@ import jakarta.security.auth.message.AuthException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -136,5 +138,13 @@ public class TripManagementController {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         tripManagementService.markTripFull(userId, tripId);
         return ResponseEntity.ok(ResponseDto.success("Trip has been marked full successfully", null));
+    }
+
+    @PostMapping("/search")
+    public ResponseEntity<ResponseDto<Page<TripViewDto>>> searchTrips(
+            @RequestBody SearchRequest request) {
+        List<String> globalFields = new ArrayList<>();
+        Page<TripViewDto> searchedTrips = tripManagementService.search(request, globalFields);
+        return ResponseEntity.ok(ResponseDto.success("Trip search is success", searchedTrips));
     }
 }
