@@ -1,0 +1,19 @@
+# Build output
+target/
+
+# Version control
+.git/
+.gitignore
+
+# IDE and editor
+.idea/
+*.iml
+.vscode/
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (optional, keeps image build context smaller)
+*.md
