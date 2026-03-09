@@ -3,6 +3,7 @@ package com.tranzo.tranzo_user_ms.commons.utility;
 import jakarta.security.auth.message.AuthException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.UUID;
 
@@ -21,6 +22,9 @@ public final class SecurityUtils {
         }
         if (principal instanceof String str) {
             return UUID.fromString(str);
+        }
+        if (principal instanceof UserDetails userDetails) {
+            return UUID.fromString(userDetails.getUsername());
         }
         throw new AuthException("Invalid authentication principal");
     }

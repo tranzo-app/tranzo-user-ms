@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.user.controller;
 
+import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
 import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import org.junit.jupiter.api.DisplayName;
@@ -98,11 +99,12 @@ class TravelPalControllerTest {
             security.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
             when(service.getMyTravelPals(userId)).thenReturn(List.of(otherId));
 
-            ResponseEntity<List<UUID>> res = controller.myPals();
+
+            ResponseEntity<ResponseDto<List<UUID>>> res = controller.myPals();
 
             assertEquals(HttpStatus.OK, res.getStatusCode());
             assertNotNull(res.getBody());
-            assertEquals(1, res.getBody().size());
+            assertEquals(1, res.getBody().getData().size());
         }
     }
 
