@@ -8,16 +8,22 @@ import com.tranzo.tranzo_user_ms.trip.events.TripEventPublisher;
 import com.tranzo.tranzo_user_ms.trip.events.TripPublishedEventPayloadDto;
 import com.tranzo.tranzo_user_ms.trip.model.*;
 import com.tranzo.tranzo_user_ms.trip.repository.*;
+import com.tranzo.tranzo_user_ms.trip.specification.SpecificationBuilder;
+import com.tranzo.tranzo_user_ms.trip.utility.PageableBuilder;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
 import com.tranzo.tranzo_user_ms.commons.events.*;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import jakarta.persistence.criteria.Predicate;
 import java.util.stream.Collectors;
 
 import static com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode.*;
@@ -670,4 +676,37 @@ public class TripManagementService {
         }
     }
 
+    public Page<TripViewDto> search(
+            SearchRequest request,
+            List<String> globalFields
+    ) {
+        SpecificationBuilder<TripEntity> builder = new SpecificationBuilder<>();
+        Specification<TripEntity> spec = builder.build(request.getFilters());
+        if (request.getGlobalSearch() != null && globalFields != null && !globalFields.isEmpty()) {
+            Specification<TripEntity> globalSpec =
+                    buildGlobalSearch(request.getGlobalSearch(), globalFields);
+            spec = spec.and(globalSpec);
+        }
+        Pageable pageable = PageableBuilder.build(request);
+        Page<TripEntity> trips = tripRepository.findAll(spec, pageable);
+        return trips.map(this::mapTripEntityToDto);
+    }
+
+    private Specification<TripEntity> buildGlobalSearch(
+            String keyword,
+            List<String> fields
+    ) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            for (String field : fields) {
+                predicates.add(
+                        cb.like(
+                                cb.lower(root.get(field).as(String.class)),
+                                "%" + keyword.toLowerCase() + "%"
+                        )
+                );
+            }
+            return cb.or(predicates.toArray(new Predicate[0]));
+        };
+    }
 }

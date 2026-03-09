@@ -53,7 +53,7 @@ public class UserService {
         // Prevent duplicate profile creation
         if (user.getUserProfileEntity() != null) {
             throw new UserProfileAlreadyExistsException(
-                    "User profile already exists for user: " + user.getUserUuid()
+                    "User profile already exists for user: " + user.getUserProfileEntity().getFirstName()
             );
         }
         UserProfileEntity userProfileEntity = new UserProfileEntity();
@@ -65,7 +65,7 @@ public class UserService {
         userProfileEntity.setDob(userProfileDto.getDob());
         userProfileEntity.setLocation(userProfileDto.getLocation());
         userProfileEntity.setProfilePictureUrl(userProfileDto.getProfilePictureUrl());
-        userProfileEntity.setVerificationStatus(VerificationStatus.NOT_VERIFIED);
+        userProfileEntity.setVerificationStatus(VerificationStatus.VERIFIED);
         userProfileEntity.setUser(user);
         user.setUserProfileEntity(userProfileEntity);
         if (userProfileDto.getSocialHandleDtoList() != null && !userProfileDto.getSocialHandleDtoList().isEmpty())

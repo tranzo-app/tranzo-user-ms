@@ -1,7 +1,9 @@
 package com.tranzo.tranzo_user_ms.user.model;
 
+import com.tranzo.tranzo_user_ms.user.enums.OtpStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -35,6 +37,14 @@ public class AadharOtpEntity {
 
     private boolean used;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "otp_status", nullable = false)
+    private OtpStatus status;
+
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 }

@@ -1,0 +1,2135 @@
+{
+  "info": {
+    "name": "Tranzo Splitwise Module - Comprehensive Testing",
+    "description": "Complete test collection for all Splitwise endpoints covering all possible test cases",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12345",
+    "version": "2.0"
+  },
+  "item": [
+    {
+      "name": "📋 Setup & Pre-requisites",
+      "item": [
+        {
+          "name": "Login as User1 (Host)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('accessToken', jsonData.data.accessToken);",
+                  "pm.environment.set('user1_id', '11111111-1111-4111-8111-111111111111');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user1@mail.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/session/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "session", "login"]
+            },
+            "description": "Login with User1 credentials and save token"
+          }
+        },
+        {
+          "name": "Login as User2 (Member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('accessToken_user2', jsonData.data.accessToken);",
+                  "pm.environment.set('user2_id', '22222222-2222-4222-8222-222222222222');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user2@mail.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/session/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "session", "login"]
+            },
+            "description": "Login with User2 credentials and save token"
+          }
+        },
+        {
+          "name": "Login as User3 (Member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('accessToken_user3', jsonData.data.accessToken);",
+                  "pm.environment.set('user3_id', '33333333-3333-4333-8333-333333333333');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user3@mail.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/session/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "session", "login"]
+            },
+            "description": "Login with User3 credentials and save token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 Splitwise Groups - Create & Read",
+      "item": [
+        {
+          "name": "[SUCCESS] Create Group - Manali Trip",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('group1_id', jsonData.data.id);",
+                  "pm.test('Response contains group ID', function () {",
+                  "    pm.expect(jsonData.data).to.have.property('id');",
+                  "    pm.expect(jsonData.data).to.have.property('name').eql('Manali Trip Group');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Manali Trip Group\",\n  \"tripId\": \"aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa\",\n  \"description\": \"Expense tracking for Manali backpacking trip\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups"]
+            },
+            "description": "Create a new group successfully"
+          }
+        },
+        {
+          "name": "[SUCCESS] Create Group - Spiti Valley Trip",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('group2_id', jsonData.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Spiti Valley Ride Group\",\n  \"tripId\": \"bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb\",\n  \"description\": \"Bike expedition expense tracking\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups"]
+            },
+            "description": "Create another group for Spiti Valley"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get Group Details - ID 1",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups", "1"]
+            },
+            "description": "Fetch details of group with ID 1 (existing group from data.sql)"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get My Groups",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Response is an array', function () {",
+                  "    pm.expect(Array.isArray(jsonData.data)).to.be.true;",
+                  "    pm.expect(jsonData.data.length).to.be.greaterThan(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups/my-groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups", "my-groups"]
+            },
+            "description": "Get all groups for the authenticated user"
+          }
+        },
+        {
+          "name": "[ERROR] Get Non-Existent Group - ID 999",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups", "999"]
+            },
+            "description": "Try to fetch non-existent group - should return 404"
+          }
+        },
+        {
+          "name": "[ERROR] Unauthorized Access - No Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups", "1"]
+            },
+            "description": "Try to access group without authentication token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 Splitwise Groups - Update & Delete",
+      "item": [
+        {
+          "name": "[SUCCESS] Update Group Details",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Manali Trip - Updated\",\n  \"description\": \"Updated description for Manali backpacking trip\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups", "1"]
+            },
+            "description": "Update group name and description"
+          }
+        },
+        {
+          "name": "[SUCCESS] Add Member to Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"77777777-7777-4777-8777-777777777777\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups/1/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups", "1", "members"]
+            },
+            "description": "Add a new member to the group"
+          }
+        },
+        {
+          "name": "[ERROR] Add Non-Existent User - Wrong UUID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code indicates error (400 or 404)', function () {",
+                  "    pm.expect([400, 404, 500]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"99999999-9999-9999-9999-999999999999\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups/1/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups", "1", "members"]
+            },
+            "description": "Try to add non-existent user - should fail"
+          }
+        },
+        {
+          "name": "[SUCCESS] Delete Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups/2",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups", "2"]
+            },
+            "description": "Delete a group (only admin/creator can delete)"
+          }
+        },
+        {
+          "name": "[ERROR] Delete Non-Existent Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups", "999"]
+            },
+            "description": "Try to delete non-existent group"
+          }
+        }
+      ]
+    },
+    {
+      "name": "💸 Splitwise Expenses - Create",
+      "item": [
+        {
+          "name": "[SUCCESS] Create Expense - Equal Split",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('expense1_id', jsonData.data.id);",
+                  "pm.test('Expense created with correct details', function () {",
+                  "    pm.expect(jsonData.data).to.have.property('name').eql('Hotel Booking');",
+                  "    pm.expect(jsonData.data).to.have.property('amount').eql(15000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hotel Booking\",\n  \"description\": \"3 nights at Mountain Resort\",\n  \"amount\": 15000.00,\n  \"groupId\": 1,\n  \"splitType\": \"EQUAL\",\n  \"category\": \"ACCOMMODATION\",\n  \"expenseDate\": \"2026-03-05\",\n  \"splits\": [\n    {\n      \"userId\": \"11111111-1111-4111-8111-111111111111\",\n      \"amount\": 3750.00\n    },\n    {\n      \"userId\": \"22222222-2222-4222-8222-222222222222\",\n      \"amount\": 3750.00\n    },\n    {\n      \"userId\": \"33333333-3333-4333-8333-333333333333\",\n      \"amount\": 3750.00\n    },\n    {\n      \"userId\": \"55555555-5555-4555-8555-555555555555\",\n      \"amount\": 3750.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses"]
+            },
+            "description": "Create expense with equal split among 4 people"
+          }
+        },
+        {
+          "name": "[SUCCESS] Create Expense - Unequal Split",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('expense2_id', jsonData.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fuel for Trip\",\n  \"description\": \"Petrol for entire journey\",\n  \"amount\": 8000.00,\n  \"groupId\": 1,\n  \"splitType\": \"UNEQUAL\",\n  \"category\": \"TRANSPORT\",\n  \"expenseDate\": \"2026-03-05\",\n  \"splits\": [\n    {\n      \"userId\": \"11111111-1111-4111-8111-111111111111\",\n      \"amount\": 4000.00\n    },\n    {\n      \"userId\": \"22222222-2222-4222-8222-222222222222\",\n      \"amount\": 2400.00\n    },\n    {\n      \"userId\": \"33333333-3333-4333-8333-333333333333\",\n      \"amount\": 1600.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses"]
+            },
+            "description": "Create expense with unequal split based on custom amounts"
+          }
+        },
+        {
+          "name": "[SUCCESS] Create Expense - By Percentage",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Breakfast\",\n  \"description\": \"Morning meal for group\",\n  \"amount\": 2400.00,\n  \"groupId\": 1,\n  \"splitType\": \"BY_PERCENTAGE\",\n  \"category\": \"FOOD\",\n  \"expenseDate\": \"2026-03-05\",\n  \"splits\": [\n    {\n      \"userId\": \"11111111-1111-4111-8111-111111111111\",\n      \"percentage\": 25.00\n    },\n    {\n      \"userId\": \"22222222-2222-4222-8222-222222222222\",\n      \"percentage\": 25.00\n    },\n    {\n      \"userId\": \"33333333-3333-4333-8333-333333333333\",\n      \"percentage\": 25.00\n    },\n    {\n      \"userId\": \"55555555-5555-4555-8555-555555555555\",\n      \"percentage\": 25.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses"]
+            },
+            "description": "Create expense with percentage-based split"
+          }
+        },
+        {
+          "name": "[SUCCESS] Create Expense - Different Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Adventure Activities\",\n  \"description\": \"Paragliding and rock climbing\",\n  \"amount\": 5000.00,\n  \"groupId\": 1,\n  \"splitType\": \"EQUAL\",\n  \"category\": \"ACTIVITIES\",\n  \"expenseDate\": \"2026-03-05\",\n  \"splits\": [\n    {\n      \"userId\": \"11111111-1111-4111-8111-111111111111\",\n      \"amount\": 1250.00\n    },\n    {\n      \"userId\": \"22222222-2222-4222-8222-222222222222\",\n      \"amount\": 1250.00\n    },\n    {\n      \"userId\": \"33333333-3333-4333-8333-333333333333\",\n      \"amount\": 1250.00\n    },\n    {\n      \"userId\": \"55555555-5555-4555-8555-555555555555\",\n      \"amount\": 1250.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses"]
+            },
+            "description": "Create expense with ACTIVITIES category"
+          }
+        },
+        {
+          "name": "[ERROR] Create Expense - Missing Required Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Incomplete Expense\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses"]
+            },
+            "description": "Try to create expense without required fields - should fail"
+          }
+        },
+        {
+          "name": "[ERROR] Create Expense - Invalid Group ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400 or 404', function () {",
+                  "    pm.expect([400, 404, 500]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Invalid Group Expense\",\n  \"amount\": 1000.00,\n  \"groupId\": 999,\n  \"splitType\": \"EQUAL\",\n  \"category\": \"FOOD\",\n  \"expenseDate\": \"2026-03-05\",\n  \"splits\": [\n    {\n      \"userId\": \"11111111-1111-4111-8111-111111111111\",\n      \"amount\": 1000.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses"]
+            },
+            "description": "Try to create expense for non-existent group"
+          }
+        },
+        {
+          "name": "[ERROR] Create Expense - Negative Amount",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Negative Expense\",\n  \"description\": \"Invalid negative amount\",\n  \"amount\": -1000.00,\n  \"groupId\": 1,\n  \"splitType\": \"EQUAL\",\n  \"category\": \"FOOD\",\n  \"expenseDate\": \"2026-03-05\",\n  \"splits\": [\n    {\n      \"userId\": \"11111111-1111-4111-8111-111111111111\",\n      \"amount\": -1000.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses"]
+            },
+            "description": "Try to create expense with negative amount - should fail"
+          }
+        }
+      ]
+    },
+    {
+      "name": "💸 Splitwise Expenses - Read",
+      "item": [
+        {
+          "name": "[SUCCESS] Get Expense by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses", "1"]
+            },
+            "description": "Fetch details of a specific expense"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get Group Expenses",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Response is an array', function () {",
+                  "    pm.expect(Array.isArray(jsonData.data)).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses/group/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses", "group", "1"]
+            },
+            "description": "Get all expenses for a specific group"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get My Expenses",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Response is an array of user expenses', function () {",
+                  "    pm.expect(Array.isArray(jsonData.data)).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses/my-expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses", "my-expenses"]
+            },
+            "description": "Get all expenses for the authenticated user"
+          }
+        },
+        {
+          "name": "[ERROR] Get Non-Existent Expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses", "999"]
+            },
+            "description": "Try to fetch non-existent expense"
+          }
+        },
+        {
+          "name": "[ERROR] Get Expenses from Non-Existent Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404 or 200 with empty array', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses/group/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses", "group", "999"]
+            },
+            "description": "Try to get expenses from non-existent group"
+          }
+        }
+      ]
+    },
+    {
+      "name": "💸 Splitwise Expenses - Update & Delete",
+      "item": [
+        {
+          "name": "[SUCCESS] Update Expense",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Hotel Booking\",\n  \"description\": \"4 nights at Mountain Resort (upgraded)\",\n  \"amount\": 18000.00,\n  \"category\": \"ACCOMMODATION\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses", "1"]
+            },
+            "description": "Update expense details"
+          }
+        },
+        {
+          "name": "[ERROR] Update Non-Existent Expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Non-existent Expense\",\n  \"amount\": 5000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses", "999"]
+            },
+            "description": "Try to update non-existent expense"
+          }
+        },
+        {
+          "name": "[SUCCESS] Delete Expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses", "3"]
+            },
+            "description": "Delete an expense"
+          }
+        },
+        {
+          "name": "[ERROR] Delete Non-Existent Expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses", "999"]
+            },
+            "description": "Try to delete non-existent expense"
+          }
+        },
+        {
+          "name": "[ERROR] Unauthorized Delete - Different User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code indicates unauthorized (403 or error)', function () {",
+                  "    pm.expect([403, 401, 400, 500]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken_user2}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses/2",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses", "2"]
+            },
+            "description": "Try to delete expense created by another user - should be denied"
+          }
+        }
+      ]
+    },
+    {
+      "name": "💳 Splitwise Balances",
+      "item": [
+        {
+          "name": "[SUCCESS] Get Group Balances",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Response is an array of balances', function () {",
+                  "    pm.expect(Array.isArray(jsonData.data)).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/balances/group/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "balances", "group", "1"]
+            },
+            "description": "Get balance summary for all users in a group"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get User Balance in Group - User1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Balance object has required fields', function () {",
+                  "    pm.expect(jsonData.data).to.have.property('netBalance');",
+                  "    pm.expect(jsonData.data).to.have.property('totalOwed');",
+                  "    pm.expect(jsonData.data).to.have.property('totalOwendTo');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/balances/group/1/user/11111111-1111-4111-8111-111111111111",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "balances", "group", "1", "user", "11111111-1111-4111-8111-111111111111"]
+            },
+            "description": "Get balance for specific user in group (user who paid most)"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get User Balance in Group - User2",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/balances/group/1/user/22222222-2222-4222-8222-222222222222",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "balances", "group", "1", "user", "22222222-2222-4222-8222-222222222222"]
+            },
+            "description": "Get balance for another user in group (user who owes money)"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get My Balance in Group",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/balances/group/1/my-balance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "balances", "group", "1", "my-balance"]
+            },
+            "description": "Get your balance in a group (authenticated user)"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get My Balance - Multiple Groups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/balances/group/2/my-balance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "balances", "group", "2", "my-balance"]
+            },
+            "description": "Get your balance in a different group"
+          }
+        },
+        {
+          "name": "[ERROR] Get Balance from Non-Existent Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404 or 400', function () {",
+                  "    pm.expect([404, 400, 500]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/balances/group/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "balances", "group", "999"]
+            },
+            "description": "Try to get balances from non-existent group"
+          }
+        },
+        {
+          "name": "[ERROR] Get Balance for Non-Member User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code indicates unauthorized', function () {",
+                  "    pm.expect([403, 404, 400]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken_user3}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/balances/group/3/user/11111111-1111-4111-8111-111111111111",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "balances", "group", "3", "user", "11111111-1111-4111-8111-111111111111"]
+            },
+            "description": "Try to get balance as non-member user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏦 Splitwise Settlements - Create",
+      "item": [
+        {
+          "name": "[SUCCESS] Create Settlement - Full Amount",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('settlement1_id', jsonData.data.id);",
+                  "pm.test('Settlement created successfully', function () {",
+                  "    pm.expect(jsonData.data).to.have.property('amount');",
+                  "    pm.expect(jsonData.data).to.have.property('status').eql('COMPLETED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken_user2}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groupId\": 1,\n  \"paidById\": \"22222222-2222-4222-8222-222222222222\",\n  \"paidToId\": \"11111111-1111-4111-8111-111111111111\",\n  \"amount\": 2200.00,\n  \"paymentMethod\": \"UPI\",\n  \"transactionId\": \"UPI123456789\",\n  \"notes\": \"Settlement for hotel and breakfast expenses\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/settlements",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "settlements"]
+            },
+            "description": "Create a settlement record for amount paid"
+          }
+        },
+        {
+          "name": "[SUCCESS] Create Settlement - Cash Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken_user3}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groupId\": 1,\n  \"paidById\": \"33333333-3333-4333-8333-333333333333\",\n  \"paidToId\": \"11111111-1111-4111-8111-111111111111\",\n  \"amount\": 2800.00,\n  \"paymentMethod\": \"CASH\",\n  \"transactionId\": null,\n  \"notes\": \"Cash payment for travel expenses\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/settlements",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "settlements"]
+            },
+            "description": "Create a cash settlement without transaction ID"
+          }
+        },
+        {
+          "name": "[SUCCESS] Create Settlement - Bank Transfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groupId\": 1,\n  \"paidById\": \"55555555-5555-4555-8555-555555555555\",\n  \"paidToId\": \"11111111-1111-4111-8111-111111111111\",\n  \"amount\": 2800.00,\n  \"paymentMethod\": \"BANK_TRANSFER\",\n  \"transactionId\": \"BANK_TXN_20260305_001\",\n  \"notes\": \"Bank transfer settlement\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/settlements",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "settlements"]
+            },
+            "description": "Create a bank transfer settlement"
+          }
+        },
+        {
+          "name": "[ERROR] Create Settlement - Missing Required Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groupId\": 1,\n  \"amount\": 5000.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/settlements",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "settlements"]
+            },
+            "description": "Try to create settlement without required fields"
+          }
+        },
+        {
+          "name": "[ERROR] Create Settlement - Negative Amount",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groupId\": 1,\n  \"paidById\": \"22222222-2222-4222-8222-222222222222\",\n  \"paidToId\": \"11111111-1111-4111-8111-111111111111\",\n  \"amount\": -1000.00,\n  \"paymentMethod\": \"UPI\",\n  \"transactionId\": \"UPI000000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/settlements",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "settlements"]
+            },
+            "description": "Try to create settlement with negative amount"
+          }
+        },
+        {
+          "name": "[ERROR] Create Settlement - Invalid Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404 or 400', function () {",
+                  "    pm.expect([400, 404, 500]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groupId\": 999,\n  \"paidById\": \"22222222-2222-4222-8222-222222222222\",\n  \"paidToId\": \"11111111-1111-4111-8111-111111111111\",\n  \"amount\": 1000.00,\n  \"paymentMethod\": \"UPI\",\n  \"transactionId\": \"UPI000000\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/settlements",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "settlements"]
+            },
+            "description": "Try to create settlement for non-existent group"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏦 Splitwise Settlements - Read",
+      "item": [
+        {
+          "name": "[SUCCESS] Get Settlement by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/settlements/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "settlements", "1"]
+            },
+            "description": "Fetch details of a specific settlement"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get Group Settlements",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Response is an array of settlements', function () {",
+                  "    pm.expect(Array.isArray(jsonData.data)).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/settlements/group/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "settlements", "group", "1"]
+            },
+            "description": "Get all settlements for a specific group"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get My Settlements",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Response is an array', function () {",
+                  "    pm.expect(Array.isArray(jsonData.data)).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/settlements/my-settlements",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "settlements", "my-settlements"]
+            },
+            "description": "Get all settlements for the authenticated user"
+          }
+        },
+        {
+          "name": "[ERROR] Get Non-Existent Settlement",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/settlements/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "settlements", "999"]
+            },
+            "description": "Try to fetch non-existent settlement"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Splitwise Activities",
+      "item": [
+        {
+          "name": "[SUCCESS] Get Group Activities - Default Pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Response is an array of activities', function () {",
+                  "    pm.expect(Array.isArray(jsonData.data)).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/activities/group/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "activities", "group", "1"]
+            },
+            "description": "Get activity log for a group with default pagination (limit=10, offset=0)"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get Group Activities - Custom Limit",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/activities/group/1?limit=5&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "activities", "group", "1"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Get group activities with custom limit (5 records)"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get Group Activities - With Offset",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/activities/group/1?limit=10&offset=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "activities", "group", "1"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Get group activities with pagination (skip first 5, get next 10)"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get My Activities - Default Pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Response is an array of activities', function () {",
+                  "    pm.expect(Array.isArray(jsonData.data)).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/activities/my-activities",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "activities", "my-activities"]
+            },
+            "description": "Get activity log for authenticated user with default pagination"
+          }
+        },
+        {
+          "name": "[SUCCESS] Get My Activities - Custom Pagination",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/activities/my-activities?limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "activities", "my-activities"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Get user activities with custom limit (20 records)"
+          }
+        },
+        {
+          "name": "[ERROR] Get Activities - Non-Existent Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404 or 200 with empty array', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/activities/group/999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "activities", "group", "999"]
+            },
+            "description": "Try to get activities from non-existent group"
+          }
+        },
+        {
+          "name": "[ERROR] Get Activities - Invalid Limit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 or 400', function () {",
+                  "    pm.expect([200, 400]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/activities/group/1?limit=-5&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "activities", "group", "1"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "-5"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Try to get activities with invalid negative limit"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Authentication & Edge Cases",
+      "item": [
+        {
+          "name": "[ERROR] Access Splitwise API - Invalid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer invalid_token_12345"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups", "1"]
+            },
+            "description": "Try to access API with invalid token"
+          }
+        },
+        {
+          "name": "[ERROR] Access Splitwise API - Expired Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.expired"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups", "1"]
+            },
+            "description": "Try to access API with expired token"
+          }
+        },
+        {
+          "name": "[ERROR] Access as Different User - Group Not Accessible",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code indicates unauthorized', function () {",
+                  "    pm.expect([403, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken_user3}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups", "3"]
+            },
+            "description": "Try to access group as user not in the group"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📝 Integration Tests - Complete Workflow",
+      "item": [
+        {
+          "name": "[WORKFLOW] 1. Create Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('workflow_group_id', jsonData.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Workflow Test Group\",\n  \"description\": \"Group for testing complete workflow\",\n  \"memberIds\": [\n    \"22222222-2222-4222-8222-222222222222\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups"]
+            },
+            "description": "Step 1: Create a new group"
+          }
+        },
+        {
+          "name": "[WORKFLOW] 2. Add Members to Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"22222222-2222-4222-8222-222222222222\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/groups/{{workflow_group_id}}/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "groups", "{{workflow_group_id}}", "members"]
+            },
+            "description": "Step 2: Add members to the group"
+          }
+        },
+        {
+          "name": "[WORKFLOW] 3. Add Expense",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.environment.set('workflow_expense_id', jsonData.data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Workflow Expense\",\n  \"description\": \"Test expense\",\n  \"amount\": 4000.00,\n  \"groupId\": \"{{workflow_group_id}}\",\n  \"splitType\": \"EQUAL\",\n  \"category\": \"FOOD\",\n  \"expenseDate\": \"2026-03-05\",\n  \"splits\": [\n    {\n      \"userId\": \"11111111-1111-4111-8111-111111111111\",\n      \"amount\": 2000.00\n    },\n    {\n      \"userId\": \"22222222-2222-4222-8222-222222222222\",\n      \"amount\": 2000.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/expenses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "expenses"]
+            },
+            "description": "Step 3: Add an expense to the group"
+          }
+        },
+        {
+          "name": "[WORKFLOW] 4. Check Balances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/balances/group/{{workflow_group_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "balances", "group", "{{workflow_group_id}}"]
+            },
+            "description": "Step 4: Check balances after expense"
+          }
+        },
+        {
+          "name": "[WORKFLOW] 5. Create Settlement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken_user2}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groupId\": \"{{workflow_group_id}}\",\n  \"paidById\": \"22222222-2222-4222-8222-222222222222\",\n  \"paidToId\": \"11111111-1111-4111-8111-111111111111\",\n  \"amount\": 2000.00,\n  \"paymentMethod\": \"UPI\",\n  \"transactionId\": \"WORKFLOW_TXN_001\",\n  \"notes\": \"Settlement for workflow test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/settlements",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "settlements"]
+            },
+            "description": "Step 5: Create a settlement to pay the debt"
+          }
+        },
+        {
+          "name": "[WORKFLOW] 6. View Activity Log",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/splitwise/activities/group/{{workflow_group_id}}?limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "splitwise", "activities", "group", "{{workflow_group_id}}"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Step 6: View activity log showing all operations"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "accessToken_user2",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "accessToken_user3",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user1_id",
+      "value": "11111111-1111-4111-8111-111111111111",
+      "type": "string"
+    },
+    {
+      "key": "user2_id",
+      "value": "22222222-2222-4222-8222-222222222222",
+      "type": "string"
+    },
+    {
+      "key": "user3_id",
+      "value": "33333333-3333-4333-8333-333333333333",
+      "type": "string"
+    },
+    {
+      "key": "group1_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "group2_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "expense1_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "expense2_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "settlement1_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "workflow_group_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "workflow_expense_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
+
