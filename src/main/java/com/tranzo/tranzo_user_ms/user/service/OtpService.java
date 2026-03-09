@@ -25,7 +25,6 @@ public class OtpService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final SessionService sessionService;
-    private final EmailService emailService;
     private final Cache<String, String> otpCache;
 
     public void sendOtp(RequestOtpDto requestOtpDto)
