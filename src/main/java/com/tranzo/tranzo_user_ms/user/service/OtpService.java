@@ -31,12 +31,10 @@ public class OtpService {
     {
         String identifier = otpUtility.resolveIdentifier(requestOtpDto);
         String otp = otpUtility.generateOtp();
-
         log.info("Key built for caching OTP is {}", buildKey(identifier));
-
         otpCache.put(buildKey(identifier), otp);
-
         // TODO : Integrate SMS / Email Provider
+//        emailService.sendOtp(requestOtpDto.getEmailId(), otp);
         log.info("OTP for {} is {}", identifier, otp);
     }
 
@@ -63,6 +61,14 @@ public class OtpService {
             otpCache.invalidate(buildKey(identifier));
             return VerifyOtpResponseDto.builder()
                     .userExists(userExists)
+                    .registrationToken(registrationToken)
+                    .build();
+        }
+        else if (user.get().getUserProfileEntity() == null)
+        {
+            String registrationToken = jwtService.generateRegistrationToken(identifier);
+            return VerifyOtpResponseDto.builder()
+                    .userExists(false)
                     .registrationToken(registrationToken)
                     .build();
         }

@@ -49,7 +49,7 @@ public class UserService {
         Optional<UsersEntity> user = userUtility.findUserByIdentifier(identifier);
         if (user.isPresent()) {
             throw new UserProfileAlreadyExistsException(
-                    "User profile already exists for user: " + user.get().getUserUuid()
+                    "User profile already exists for user: " + user.getUserProfileEntity().getFirstName()
             );
         }
 
@@ -62,7 +62,7 @@ public class UserService {
         userProfileEntity.setDob(userProfileDto.getDob());
         userProfileEntity.setLocation(userProfileDto.getLocation());
         userProfileEntity.setProfilePictureUrl(userProfileDto.getProfilePictureUrl());
-        userProfileEntity.setVerificationStatus(VerificationStatus.NOT_VERIFIED);
+        userProfileEntity.setVerificationStatus(VerificationStatus.VERIFIED);
         userProfileEntity.setUser(user.get());
         user.get().setUserProfileEntity(userProfileEntity);
         if (userProfileDto.getSocialHandleDtoList() != null && !userProfileDto.getSocialHandleDtoList().isEmpty())
