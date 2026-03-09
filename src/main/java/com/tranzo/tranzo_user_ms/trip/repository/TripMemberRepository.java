@@ -16,6 +16,9 @@ import java.util.UUID;
 public interface TripMemberRepository extends JpaRepository<TripMemberEntity, UUID> {
 
     List<TripMemberEntity> findByTrip_TripIdAndStatus(UUID tripId, TripMemberStatus status);
+
+    Optional<TripMemberEntity> findFirstByTrip_TripIdAndRoleAndStatus(UUID tripId, TripMemberRole role, TripMemberStatus status);
+
     Optional<TripMemberEntity> findByTrip_TripIdAndUserIdAndRole(UUID tripId, UUID userUuid, TripMemberRole role);
 
     Optional<TripMemberEntity> findByTrip_TripIdAndUserIdAndStatus(UUID tripId, UUID userUuid, TripMemberStatus status);

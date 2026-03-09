@@ -5,6 +5,7 @@ import com.tranzo.tranzo_user_ms.splitwise.dto.response.BalanceResponse;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.IndividualBalanceResponse;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.UserResponse;
 import com.tranzo.tranzo_user_ms.splitwise.entity.*;
+import com.tranzo.tranzo_user_ms.splitwise.exception.InsufficientBalanceException;
 import com.tranzo.tranzo_user_ms.splitwise.exception.SplitwiseException;
 import com.tranzo.tranzo_user_ms.splitwise.repository.BalanceRepository;
 import com.tranzo.tranzo_user_ms.splitwise.repository.ExpenseRepository;
@@ -258,10 +259,11 @@ public class BalanceService {
             Optional<Balance> reverseBalance = balanceRepository.findByGroupIdAndOwedByAndOwedTo(groupId, toUserId, fromUserId);
             
             if (reverseBalance.isPresent()) {
-                // Update reverse balance (subtract amount)
+                // Update reverse balance: we are reducing (fromUserId owes toUserId) by |amount|,
+                // so we reduce (toUserId owes fromUserId) by the same positive amount.
                 Balance reverse = reverseBalance.get();
-                reverse.subtractAmount(amount);
-                
+                reverse.subtractAmount(amount.compareTo(BigDecimal.ZERO) < 0 ? amount.negate() : amount);
+
                 // Remove if becomes zero or negative
                 if (reverse.shouldDelete()) {
                     balanceRepository.delete(reverse);
@@ -336,24 +338,18 @@ public class BalanceService {
 
     /**
      * Validates that a settlement amount is valid for the given users.
+     * Settlement is "fromUserId pays toUserId"; so fromUserId must owe toUserId at least the amount.
      */
     public void validateSettlementAmount(Long groupId, UUID fromUserId, UUID toUserId, BigDecimal amount) {
         log.debug("Validating settlement amount: {} from user {} to user {} in group {}", 
                  amount, fromUserId, toUserId, groupId);
 
-        // Get current balance between these users
-        BigDecimal currentBalance = balanceRepository.getNetBalanceForUserInGroup(groupId, fromUserId);
-        
-        // If fromUserId has negative balance (owes money), they can pay
-        // If fromUserId has positive balance (is owed money), they can only pay if they have enough
-        if (currentBalance.compareTo(BigDecimal.ZERO) >= 0) {
-            // User is owed money or has zero balance
-            // They can pay up to their available balance
-            if (amount.compareTo(currentBalance) > 0) {
-                throw new SplitwiseException(
-                    String.format("User %s can only pay up to %.2f, but requested %.2f", 
-                            fromUserId.toString(), currentBalance, amount));
-            }
+        // Get directional balance: how much does fromUserId owe toUserId?
+        Optional<Balance> balanceOpt = balanceRepository.findByGroupIdAndOwedByAndOwedTo(groupId, fromUserId, toUserId);
+        BigDecimal owedAmount = balanceOpt.map(Balance::getAmount).orElse(BigDecimal.ZERO);
+
+        if (amount.compareTo(owedAmount) > 0) {
+            throw new InsufficientBalanceException(owedAmount, amount);
         }
 
         log.debug("Settlement amount validation passed");

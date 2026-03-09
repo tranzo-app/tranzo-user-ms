@@ -69,6 +69,7 @@ public class ExpenseService {
                 .name(request.getName())
                 .description(request.getDescription())
                 .amount(request.getAmount())
+                .groupId(request.getGroupId())
                 .paidBy(paidBy.getUserUuid())
                 .splitType(request.getSplitType())
                 .category(request.getCategory())

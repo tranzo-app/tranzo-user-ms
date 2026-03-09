@@ -36,7 +36,7 @@ public class UserController {
 
     @PostMapping("/user/register")
     public ResponseEntity<ResponseDto<Void>> registerUser(HttpServletRequest request, @Valid @RequestBody UserProfileDto userProfileDto) throws  AuthException {
-        log.info("Inside register controller");
+        log.info("Inside register controller {}", userProfileDto);
         String identifier = (String) request.getAttribute("registrationIdentifier");
         userService.createUserProfile(userProfileDto, identifier);
         return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", null));

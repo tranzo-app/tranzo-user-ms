@@ -17,7 +17,8 @@ import java.util.UUID;
                 @UniqueConstraint(columnNames = {"trip_id", "user_id"})
         },
         indexes = {
-                @Index(name = "idx_members_trip_status", columnList = "trip_id, status")
+                @Index(name = "idx_members_trip_status", columnList = "trip_id, status"),
+                @Index(name = "idx_members_user_id", columnList = "user_id")
         }
 )
 @Getter

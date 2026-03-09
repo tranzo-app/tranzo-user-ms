@@ -53,7 +53,7 @@ public class UserService {
         // Prevent duplicate profile creation
         if (user.getUserProfileEntity() != null) {
             throw new UserProfileAlreadyExistsException(
-                    "User profile already exists for user: " + user.getUserProfileEntity().getFirstName()
+                    "User profile already exists for user: " + user.getUserUuid()
             );
         }
         UserProfileEntity userProfileEntity = new UserProfileEntity();
@@ -65,7 +65,7 @@ public class UserService {
         userProfileEntity.setDob(userProfileDto.getDob());
         userProfileEntity.setLocation(userProfileDto.getLocation());
         userProfileEntity.setProfilePictureUrl(userProfileDto.getProfilePictureUrl());
-        userProfileEntity.setVerificationStatus(VerificationStatus.VERIFIED);
+        userProfileEntity.setVerificationStatus(VerificationStatus.NOT_VERIFIED);
         userProfileEntity.setUser(user);
         user.setUserProfileEntity(userProfileEntity);
         if (userProfileDto.getSocialHandleDtoList() != null && !userProfileDto.getSocialHandleDtoList().isEmpty())
@@ -112,11 +112,11 @@ public class UserService {
                 .url(entity.getPlatformUrl())
                 .build();
     }
-    private UserProfileHistoryEntity mapToUserProfileHistoryEntity(UserProfileEntity profileEntity) {
+    private UserProfileHistoryEntity mapToUserProfileHistoryEntity(UserProfileEntity profileEntity, int historyVersion) {
         UsersEntity user = profileEntity.getUser();
         return UserProfileHistoryEntity.builder()
                 .userProfileUuid(profileEntity.getUserProfileUuid())
-                .profileVersion(profileEntity.getVersion())
+                .profileVersion(historyVersion)
                 .user(profileEntity.getUser())
                 .firstName(profileEntity.getFirstName())
                 .middleName(profileEntity.getMiddleName())
@@ -128,6 +128,11 @@ public class UserService {
                 .location(profileEntity.getLocation())
                 .verificationStatus(profileEntity.getVerificationStatus())
                 .build();
+    }
+
+    private void saveProfileHistory(UserProfileEntity profileEntity) {
+        int nextVersion = userProfileHistoryRepository.findMaxVersionByUserProfileUuid(profileEntity.getUserProfileUuid()) + 1;
+        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity, nextVersion));
     }
 
     @Transactional
@@ -142,7 +147,7 @@ public class UserService {
 
         UsersEntity user = profileEntity.getUser();
 
-        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+        saveProfileHistory(profileEntity);
 
         if(modifiedUserProfileDto.getFirstName() != null) {
             profileEntity.setFirstName(modifiedUserProfileDto.getFirstName());
@@ -204,7 +209,7 @@ public class UserService {
             throw new UserAlreadyDeletedException("User already deleted for id: " + userId);
         }
 
-        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+        saveProfileHistory(profileEntity);
 
         user.setAccountStatus(AccountStatus.DELETED);
         user.setUserProfileEntity(null);
@@ -232,7 +237,7 @@ public class UserService {
                 .findAllUserProfileDetailByUserId(userId)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
 
-        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+        saveProfileHistory(profileEntity);
 
         profileEntity.setProfilePictureUrl(profilePictureUrl.getUrl());
 
@@ -246,7 +251,7 @@ public class UserService {
                 .findAllUserProfileDetailByUserId(userId)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
 
-        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+        saveProfileHistory(profileEntity);
 
         profileEntity.setProfilePictureUrl(null);
         log.info("Profile picture deleted for userId: {}", userId);

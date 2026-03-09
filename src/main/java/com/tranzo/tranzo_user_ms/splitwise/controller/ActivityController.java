@@ -94,7 +94,7 @@ public class ActivityController {
                 .user(getUserResponse(activity.getUserId()))
                 .activityType(activity.getActivityType())
                 .description(activity.getDescription())
-                .relatedId(activity.getRelatedId() != null ? Long.valueOf(activity.getRelatedId()) : null)
+                .relatedId(activity.getRelatedId())
                 .relatedType(activity.getRelatedType())
                 .oldValue(activity.getOldValue())
                 .newValue(activity.getNewValue())

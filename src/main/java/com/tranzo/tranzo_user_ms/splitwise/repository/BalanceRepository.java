@@ -2,6 +2,7 @@ package com.tranzo.tranzo_user_ms.splitwise.repository;
 
 import com.tranzo.tranzo_user_ms.splitwise.entity.Balance;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -20,7 +21,8 @@ public interface BalanceRepository extends JpaRepository<Balance, Long> {
     /**
      * Finds balances for a specific group.
      */
-    List<Balance> findByGroupId(Long groupId);
+    @Query("SELECT b FROM Balance b WHERE b.group.id = :groupId")
+    List<Balance> findByGroupId(@Param("groupId") Long groupId);
 
     /**
      * Finds balances where a specific user owes money.
@@ -35,7 +37,8 @@ public interface BalanceRepository extends JpaRepository<Balance, Long> {
     /**
      * Finds balances between two specific users in a group.
      */
-    Optional<Balance> findByGroupIdAndOwedByAndOwedTo(Long groupId, UUID owedBy, UUID owedTo);
+    @Query("SELECT b FROM Balance b WHERE b.group.id = :groupId AND b.owedBy = :owedBy AND b.owedTo = :owedTo")
+    Optional<Balance> findByGroupIdAndOwedByAndOwedTo(@Param("groupId") Long groupId, @Param("owedBy") UUID owedBy, @Param("owedTo") UUID owedTo);
 
     /**
      * Finds all balances involving a specific user in a group.
@@ -129,22 +132,28 @@ public interface BalanceRepository extends JpaRepository<Balance, Long> {
     /**
      * Checks if there are any balances for a group.
      */
-    boolean existsByGroupId(Long groupId);
+    @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Balance b WHERE b.group.id = :groupId")
+    boolean existsByGroupId(@Param("groupId") Long groupId);
 
     /**
      * Checks if there are any balances between two users in a group.
      */
-    boolean existsByGroupIdAndOwedByAndOwedTo(Long groupId, UUID owedBy, UUID owedTo);
+    @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Balance b WHERE b.group.id = :groupId AND b.owedBy = :owedBy AND b.owedTo = :owedTo")
+    boolean existsByGroupIdAndOwedByAndOwedTo(@Param("groupId") Long groupId, @Param("owedBy") UUID owedBy, @Param("owedTo") UUID owedTo);
 
     /**
      * Deletes all balances for a group.
      */
-    void deleteByGroupId(Long groupId);
+    @Modifying
+    @Query("DELETE FROM Balance b WHERE b.group.id = :groupId")
+    void deleteByGroupId(@Param("groupId") Long groupId);
 
     /**
      * Deletes balances between two users in a group.
      */
-    void deleteByGroupIdAndOwedByAndOwedTo(Long groupId, UUID owedBy, UUID owedTo);
+    @Modifying
+    @Query("DELETE FROM Balance b WHERE b.group.id = :groupId AND b.owedBy = :owedBy AND b.owedTo = :owedTo")
+    void deleteByGroupIdAndOwedByAndOwedTo(@Param("groupId") Long groupId, @Param("owedBy") UUID owedBy, @Param("owedTo") UUID owedTo);
 
     /**
      * Gets balance count for a group.

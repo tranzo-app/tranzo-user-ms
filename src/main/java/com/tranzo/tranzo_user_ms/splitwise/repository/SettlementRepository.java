@@ -22,12 +22,14 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
     /**
      * Finds settlements for a specific group.
      */
-    List<Settlement> findByGroupId(Long groupId);
+    @Query("SELECT s FROM Settlement s WHERE s.group.id = :groupId")
+    List<Settlement> findByGroupId(@Param("groupId") Long groupId);
 
     /**
      * Finds settlements for a specific group with pagination.
      */
-    Page<Settlement> findByGroupId(Long groupId, Pageable pageable);
+    @Query("SELECT s FROM Settlement s WHERE s.group.id = :groupId")
+    Page<Settlement> findByGroupId(@Param("groupId") Long groupId, Pageable pageable);
 
     /**
      * Finds settlements where a specific user paid.
@@ -200,7 +202,8 @@ public interface SettlementRepository extends JpaRepository<Settlement, Long> {
     /**
      * Checks if there are any settlements for a group.
      */
-    boolean existsByGroupId(Long groupId);
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM Settlement s WHERE s.group.id = :groupId")
+    boolean existsByGroupId(@Param("groupId") Long groupId);
 
     /**
      * Gets settlement count for a group.

@@ -28,13 +28,12 @@ public class SettlementOptimizationService {
      * @return List of optimized settlement proposals
      */
     public List<SettlementProposal> optimizeSettlements(Map<UUID, BigDecimal> netBalances) {
-        log.info("Starting settlement optimization for {} users", netBalances.size());
-        
         // Validate input
         if (netBalances == null || netBalances.isEmpty()) {
             log.warn("No balances provided for optimization");
             return Collections.emptyList();
         }
+        log.info("Starting settlement optimization for {} users", netBalances.size());
 
         // Log initial state
         logInitialBalances(netBalances);

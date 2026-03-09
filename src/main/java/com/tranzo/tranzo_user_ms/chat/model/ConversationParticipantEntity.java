@@ -20,6 +20,9 @@ import java.util.UUID;
                         name = "uk_conversation_user",
                         columnNames = {"conversation_id", "user_id"}
                 )
+        },
+        indexes = {
+                @Index(name = "idx_cp_user_left", columnList = "user_id, left_at")
         }
 )
 @Getter
