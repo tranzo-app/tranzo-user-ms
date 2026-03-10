@@ -25,6 +25,7 @@ public class TripViewDto {
     private LocalDate tripEndDate;
     private Double estimatedBudget;
     private Integer maxParticipants;
+    private Integer currentParticipants;
     private Boolean isFull;
     private String tripFullReason;
     private JoinPolicy joinPolicy;
@@ -33,4 +34,6 @@ public class TripViewDto {
     private TripMetaDataViewDto tripMetaData;
     private Set<TripTagViewDto> tripTags = new HashSet<>();
     private Set<TripItineraryViewDto> tripItineraries = new HashSet<>();
+    private UUID conversationId;
+    private Boolean isHost;
 }

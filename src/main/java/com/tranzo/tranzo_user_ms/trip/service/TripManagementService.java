@@ -175,7 +175,9 @@ public class TripManagementService {
             tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE)
                     .orElseThrow(() -> new ForbiddenException("User is not allowed to view this private trip as the user is not the member of the trip"));
         }
-        return mapTripEntityToDto(trip);
+        TripViewDto dto = mapTripEntityToDto(trip);
+        dto.setIsHost(isTripHost);
+        return dto;
     }
 
     public List<TripViewDto> fetchTripForUser(UUID userId)
@@ -183,7 +185,11 @@ public class TripManagementService {
         List<TripStatus> statuses = List.of(TripStatus.PUBLISHED, TripStatus.ONGOING, TripStatus.COMPLETED);
         List<TripEntity> trips = tripMemberRepository.findTripsByUserIdAndStatusIn(userId, statuses);
         return trips.stream()
-                .map(this::mapTripEntityToDto)
+                .map(trip -> {
+                    TripViewDto dto = mapTripEntityToDto(trip);
+                    dto.setIsHost(tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE));
+                    return dto;
+                })
                 .toList();
     }
 
@@ -431,6 +437,7 @@ public class TripManagementService {
                 .tripEndDate(trip.getTripEndDate())
                 .estimatedBudget(trip.getEstimatedBudget())
                 .maxParticipants(trip.getMaxParticipants())
+                .currentParticipants(trip.getCurrentParticipants() != null ? trip.getCurrentParticipants() : 0)
                 .isFull(trip.getIsFull())
                 .tripFullReason(trip.getTripFullReason())
                 .joinPolicy(trip.getJoinPolicy())
@@ -439,6 +446,7 @@ public class TripManagementService {
                 .tripMetaData(trip.getTripMetaData() != null ? mapTripMetaDataToDto(trip.getTripMetaData()) : null)
                 .tripTags(trip.getTripTags() != null ? mapTripTagsToDto(trip.getTripTags()) :Set.of())
                 .tripItineraries(trip.getTripItineraries() != null ? mapTripItinerariesToDto(trip.getTripItineraries()) : Set.of())
+                .conversationId(trip.getConversationID())
                 .build();
     }
 
