@@ -46,8 +46,6 @@ public class UserProfileDto {
     @Size(max = 100, message = "Location cannot exceed 100 characters")
     private String location;
 
-    private String profilePictureUrl;
-
     @Valid
     private List<SocialHandleDto> socialHandleDtoList;
 

@@ -11,6 +11,7 @@ import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.user.service.PublicProfileService;
+import com.tranzo.tranzo_user_ms.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,9 @@ class PublicProfileServiceTest {
 
     @Mock
     private MemberRatingRepository memberRatingRepository;
+
+    @Mock
+    private UserService userService;
 
     @InjectMocks
     private PublicProfileService publicProfileService;
@@ -76,6 +80,7 @@ class PublicProfileServiceTest {
         when(hostRatingRepository.findByHostUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of());
         when(memberRatingRepository.findByRatedUserIdAndVisibleAtIsNotNullOrderByCreatedAtDesc(userId))
                 .thenReturn(List.of());
+        when(userService.resolveProfilePictureUrl(any())).thenAnswer(inv -> inv.getArgument(0));
 
         PublicProfileResponseDto result = publicProfileService.getPublicProfile(userId, 0, 20);
 
@@ -91,6 +96,7 @@ class PublicProfileServiceTest {
     @DisplayName("Should return profile with host and member reviews")
     void getPublicProfile_WithReviews() {
         when(userProfileRepository.findAllUserProfileDetailByUserId(userId)).thenReturn(Optional.of(profile));
+        when(userService.resolveProfilePictureUrl(any())).thenAnswer(inv -> inv.getArgument(0));
         HostRatingEntity hostRating = new HostRatingEntity();
         hostRating.setCoordinationRating(5);
         hostRating.setCommunicationRating(4);
@@ -119,6 +125,7 @@ class PublicProfileServiceTest {
     @DisplayName("Should paginate reviews")
     void getPublicProfile_Pagination() {
         when(userProfileRepository.findAllUserProfileDetailByUserId(userId)).thenReturn(Optional.of(profile));
+        when(userService.resolveProfilePictureUrl(any())).thenAnswer(inv -> inv.getArgument(0));
         HostRatingEntity r1 = new HostRatingEntity();
         r1.setCoordinationRating(4);
         r1.setCommunicationRating(4);

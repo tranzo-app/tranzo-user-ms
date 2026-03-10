@@ -13,6 +13,7 @@ import com.tranzo.tranzo_user_ms.user.repository.UserProfileHistoryRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserReportRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
+import com.tranzo.tranzo_user_ms.media.service.S3MediaService;
 import org.springframework.transaction.annotation.Transactional;
 import com.tranzo.tranzo_user_ms.user.utility.UserUtility;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class UserService {
     private final UserReportRepository userReportRepository;
     private final UserProfileHistoryRepository userProfileHistoryRepository;
     private final UserUtility userUtility;
+    private final S3MediaService s3MediaService;
 
     public void findUserByUserId(UUID userUuid) {
         userRepository.findUserByUserUuid(userUuid)
@@ -45,7 +47,7 @@ public class UserService {
     }
 
     @Transactional
-    public void createUserProfile(UserProfileDto userProfileDto, String identifier) {
+    public UUID createUserProfile(UserProfileDto userProfileDto, String identifier) {
         UsersEntity user = userUtility.findUserByIdentifier(identifier)
                 .orElseThrow(() -> new UserNotFoundException(
                         "User not found for identifier: " + identifier
@@ -81,6 +83,7 @@ public class UserService {
             user.getSocialHandleEntity().addAll(socialHandles);
         }
         userRepository.save(user);
+        return user.getUserUuid();
     }
 
     private UserProfileDto mapToUserProfileDto(UserProfileEntity profileEntity) {
@@ -90,6 +93,8 @@ public class UserService {
         List<SocialHandleDto> socialHandleDtos = user.getSocialHandleEntity().stream()
                 .map(this::mapToSocialHandleDto)
                 .collect(Collectors.toList());
+
+        String profilePictureUrl = resolveProfilePictureUrl(profileEntity.getProfilePictureUrl());
 
         return UserProfileDto.builder()
                 .firstName(profileEntity.getFirstName())
@@ -101,9 +106,28 @@ public class UserService {
                 .emailId(user.getEmail())
                 .dob(profileEntity.getDob())
                 .location(profileEntity.getLocation())
-                .profilePictureUrl(profileEntity.getProfilePictureUrl())
+                .profilePictureUrl(profilePictureUrl)
                 .socialHandleDtoList(socialHandleDtos)
                 .build();
+    }
+
+    /**
+     * If the value is an S3 key (starts with "uploads/"), returns a presigned URL for display.
+     * Otherwise returns the value as-is (e.g. external URL).
+     */
+    public String resolveProfilePictureUrl(String urlOrKey) {
+        if (urlOrKey == null || urlOrKey.isBlank()) {
+            return urlOrKey;
+        }
+        if (!urlOrKey.startsWith("uploads/")) {
+            return urlOrKey;
+        }
+        try {
+            return s3MediaService.getPresignedUrl(urlOrKey, null).getUrl();
+        } catch (Exception e) {
+            log.debug("Could not resolve S3 key to presigned URL (S3 may not be configured): {}", e.getMessage());
+            return urlOrKey;
+        }
     }
 
     private SocialHandleDto mapToSocialHandleDto(SocialHandleEntity entity) {
@@ -218,7 +242,7 @@ public class UserService {
         // Additional cleanup logic can be added here if needed and after discussion we will implement it.
     }
 
-    boolean isEmptyUpdateRequest(UserProfileDto dto){
+    public boolean isEmptyUpdateRequest(UserProfileDto dto){
         return dto.getFirstName() == null &&
                 dto.getMiddleName() == null &&
                 dto.getLastName() == null &&

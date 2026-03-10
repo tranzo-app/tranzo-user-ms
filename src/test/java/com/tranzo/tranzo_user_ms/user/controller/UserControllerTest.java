@@ -3,6 +3,8 @@ package com.tranzo.tranzo_user_ms.user.controller;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.commons.service.JwtService;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
+import com.tranzo.tranzo_user_ms.media.dto.UploadResponseDto;
+import com.tranzo.tranzo_user_ms.media.service.S3MediaService;
 import com.tranzo.tranzo_user_ms.user.dto.*;
 import com.tranzo.tranzo_user_ms.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +17,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -33,6 +36,9 @@ class UserControllerTest {
 
     @Mock
     private JwtService jwtService;
+
+    @Mock
+    private S3MediaService s3MediaService;
 
     @Mock
     private HttpServletRequest request;
@@ -72,24 +78,53 @@ class UserControllerTest {
     @DisplayName("Should register user")
     void registerUser_Success() throws Exception {
         when(request.getAttribute("registrationIdentifier")).thenReturn("email:u@test.com");
-        doNothing().when(userService).createUserProfile(any(UserProfileDto.class), eq("email:u@test.com"));
+        when(userService.createUserProfile(any(UserProfileDto.class), eq("email:u@test.com"))).thenReturn(userId);
+        when(userService.getUserProfile(userId)).thenReturn(profileDto);
 
-        ResponseEntity<ResponseDto<Void>> res = controller.registerUser(request, profileDto);
+        ResponseEntity<ResponseDto<UserProfileDto>> res = controller.registerUser(request, profileDto, null);
 
         assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertNotNull(res.getBody().getData());
         verify(userService).createUserProfile(any(UserProfileDto.class), eq("email:u@test.com"));
+        verify(userService).getUserProfile(userId);
     }
 
     @Test
     @DisplayName("Should update user profile")
     void updateUserProfile_Success() throws Exception {
-        when(userService.updateUserProfile(userId, profileDto)).thenReturn(profileDto);
+        when(userService.getUserProfile(userId)).thenReturn(profileDto);
         try (MockedStatic<SecurityUtils> security = mockStatic(SecurityUtils.class)) {
             security.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
 
-            ResponseEntity<ResponseDto<UserProfileDto>> res = controller.updateUserProfile(profileDto);
+            ResponseEntity<ResponseDto<UserProfileDto>> res = controller.updateUserProfile(profileDto, null);
 
             assertEquals(HttpStatus.OK, res.getStatusCode());
+            assertNotNull(res.getBody().getData());
+            verify(userService).updateUserProfile(userId, profileDto);
+            verify(userService).getUserProfile(userId);
+        }
+    }
+
+    @Test
+    @DisplayName("Should update user profile with new picture")
+    void updateUserProfile_WithFile_Success() throws Exception {
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(false);
+        String s3Key = "uploads/media/" + userId + "/pic.jpg";
+        when(s3MediaService.upload(eq(file), eq(userId.toString())))
+                .thenReturn(UploadResponseDto.builder().key(s3Key).build());
+        when(userService.getUserProfile(userId)).thenReturn(profileDto);
+        try (MockedStatic<SecurityUtils> security = mockStatic(SecurityUtils.class)) {
+            security.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
+
+            ResponseEntity<ResponseDto<UserProfileDto>> res = controller.updateUserProfile(profileDto, file);
+
+            assertEquals(HttpStatus.OK, res.getStatusCode());
+            verify(s3MediaService).upload(eq(file), eq(userId.toString()));
+            verify(userService).updateProfilePicture(eq(userId), argThat(dto -> s3Key.equals(dto.getUrl())));
+            verify(userService).updateUserProfile(userId, profileDto);
+            verify(userService).getUserProfile(userId);
         }
     }
 

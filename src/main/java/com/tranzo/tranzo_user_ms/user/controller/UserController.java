@@ -2,6 +2,8 @@ package com.tranzo.tranzo_user_ms.user.controller;
 
 import com.tranzo.tranzo_user_ms.commons.service.JwtService;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
+import com.tranzo.tranzo_user_ms.media.dto.UploadResponseDto;
+import com.tranzo.tranzo_user_ms.media.service.S3MediaService;
 import com.tranzo.tranzo_user_ms.user.dto.*;
 import com.tranzo.tranzo_user_ms.user.service.UserService;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
@@ -9,9 +11,12 @@ import jakarta.security.auth.message.AuthException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,10 +25,12 @@ import java.util.UUID;
 public class UserController {
     private final UserService userService;
     private final JwtService jwtService;
+    private final S3MediaService s3MediaService;
 
-    public UserController(UserService userService, JwtService jwtService) {
+    public UserController(UserService userService, JwtService jwtService, S3MediaService s3MediaService) {
         this.userService = userService;
         this.jwtService = jwtService;
+        this.s3MediaService = s3MediaService;
     }
 
     @GetMapping("/user")
@@ -34,19 +41,45 @@ public class UserController {
         return ResponseEntity.ok(ResponseDto.success(200,"User profile fetched successfully", userProfileDto));
     }
 
-    @PostMapping("/user/register")
-    public ResponseEntity<ResponseDto<Void>> registerUser(HttpServletRequest request, @Valid @RequestBody UserProfileDto userProfileDto) throws  AuthException {
-        log.info("Inside register controller {}", userProfileDto);
+    /**
+     * Register user. Multipart: part "profile" (JSON), optional part "file" (profile picture).
+     * If file is present, it is uploaded to S3 and the key is stored as profile picture.
+     */
+    @PostMapping(value = "/user/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseDto<UserProfileDto>> registerUser(
+            HttpServletRequest request,
+            @RequestPart("profile") @Valid UserProfileDto userProfileDto,
+            @RequestPart(value = "file", required = false) MultipartFile file) throws AuthException, IOException {
+        log.info("Register with file present: {}", file != null && !file.isEmpty());
         String identifier = (String) request.getAttribute("registrationIdentifier");
-        userService.createUserProfile(userProfileDto, identifier);
-        return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", null));
+        UUID userId = userService.createUserProfile(userProfileDto, identifier);
+        if (file != null && !file.isEmpty()) {
+            UploadResponseDto uploadResult = s3MediaService.upload(file, userId.toString());
+            userService.updateProfilePicture(userId, new UrlDto(uploadResult.getKey()));
+        }
+        UserProfileDto createdProfile = userService.getUserProfile(userId);
+        return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", createdProfile));
     }
 
-    @PatchMapping("/user/update")
-    public ResponseEntity<ResponseDto<UserProfileDto>> updateUserProfile(@RequestBody @Valid UserProfileDto userProfileDto) throws AuthException {
+    /**
+     * Update user profile. Multipart: part "profile" (JSON), optional part "file" (new profile picture).
+     * If file is present, it is uploaded to S3 and the key is stored as profile picture.
+     * When only file is sent (no profile fields), only the picture is updated.
+     */
+    @PatchMapping(value = "/user/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseDto<UserProfileDto>> updateUserProfile(
+            @RequestPart("profile") @Valid UserProfileDto userProfileDto,
+            @RequestPart(value = "file", required = false) MultipartFile file) throws AuthException, IOException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        UserProfileDto updatedUserProfile = userService.updateUserProfile(userId, userProfileDto);
-        return ResponseEntity.ok(ResponseDto.success(200,"User profile updated successfully", updatedUserProfile));
+        if (file != null && !file.isEmpty()) {
+            UploadResponseDto uploadResult = s3MediaService.upload(file, userId.toString());
+            userService.updateProfilePicture(userId, new UrlDto(uploadResult.getKey()));
+        }
+        if (!userService.isEmptyUpdateRequest(userProfileDto)) {
+            userService.updateUserProfile(userId, userProfileDto);
+        }
+        UserProfileDto updatedProfile = userService.getUserProfile(userId);
+        return ResponseEntity.ok(ResponseDto.success(200, "User profile updated successfully", updatedProfile));
     }
 
     @DeleteMapping("/user/delete-user")
