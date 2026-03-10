@@ -5,4 +5,6 @@ services:
     container_name: tranzo-user
     ports:
       - "8083:8083"
+    env_file:
+      - .env
     restart: unless-stopped
