@@ -2,8 +2,6 @@ package com.tranzo.tranzo_user_ms.user.controller;
 
 import com.tranzo.tranzo_user_ms.commons.service.JwtService;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
-import com.tranzo.tranzo_user_ms.media.dto.UploadResponseDto;
-import com.tranzo.tranzo_user_ms.media.service.S3MediaService;
 import com.tranzo.tranzo_user_ms.user.dto.*;
 import com.tranzo.tranzo_user_ms.user.service.UserService;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
@@ -25,14 +23,16 @@ import java.util.UUID;
 public class UserController {
     private final UserService userService;
     private final JwtService jwtService;
-    private final S3MediaService s3MediaService;
 
-    public UserController(UserService userService, JwtService jwtService, S3MediaService s3MediaService) {
+    public UserController(UserService userService, JwtService jwtService) {
         this.userService = userService;
         this.jwtService = jwtService;
-        this.s3MediaService = s3MediaService;
     }
 
+    /**
+     * Get current user's profile. Profile picture URL in the response is resolved to a presigned URL
+     * when stored in S3 (keys starting with "uploads/"); otherwise the stored URL is returned as-is.
+     */
     @GetMapping("/user")
     public ResponseEntity<ResponseDto<UserProfileDto>> getUser() throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
@@ -43,42 +43,29 @@ public class UserController {
 
     /**
      * Register user. Multipart: part "profile" (JSON), optional part "file" (profile picture).
-     * If file is present, it is uploaded to S3 and the key is stored as profile picture.
+     * Profile picture is set from file (S3) or from DTO URL in the service.
      */
     @PostMapping(value = "/user/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<UserProfileDto>> registerUser(
             HttpServletRequest request,
             @RequestPart("profile") @Valid UserProfileDto userProfileDto,
             @RequestPart(value = "file", required = false) MultipartFile file) throws AuthException, IOException {
-        log.info("Register with file present: {}", file != null && !file.isEmpty());
         String identifier = (String) request.getAttribute("registrationIdentifier");
-        UUID userId = userService.createUserProfile(userProfileDto, identifier);
-        if (file != null && !file.isEmpty()) {
-            UploadResponseDto uploadResult = s3MediaService.upload(file, userId.toString());
-            userService.updateProfilePicture(userId, new UrlDto(uploadResult.getKey()));
-        }
+        UUID userId = userService.createUserProfile(userProfileDto, identifier, file);
         UserProfileDto createdProfile = userService.getUserProfile(userId);
         return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", createdProfile));
     }
 
     /**
      * Update user profile. Multipart: part "profile" (JSON), optional part "file" (new profile picture).
-     * If file is present, it is uploaded to S3 and the key is stored as profile picture.
-     * When only file is sent (no profile fields), only the picture is updated.
+     * Picture and/or profile fields are updated in the service.
      */
     @PatchMapping(value = "/user/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<UserProfileDto>> updateUserProfile(
             @RequestPart("profile") @Valid UserProfileDto userProfileDto,
             @RequestPart(value = "file", required = false) MultipartFile file) throws AuthException, IOException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        if (file != null && !file.isEmpty()) {
-            UploadResponseDto uploadResult = s3MediaService.upload(file, userId.toString());
-            userService.updateProfilePicture(userId, new UrlDto(uploadResult.getKey()));
-        }
-        if (!userService.isEmptyUpdateRequest(userProfileDto)) {
-            userService.updateUserProfile(userId, userProfileDto);
-        }
-        UserProfileDto updatedProfile = userService.getUserProfile(userId);
+        UserProfileDto updatedProfile = userService.updateUserProfile(userId, userProfileDto, file);
         return ResponseEntity.ok(ResponseDto.success(200, "User profile updated successfully", updatedProfile));
     }
 
