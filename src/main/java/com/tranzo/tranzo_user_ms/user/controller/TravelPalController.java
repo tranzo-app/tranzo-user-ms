@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.user.controller;
 
+import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
 import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import jakarta.security.auth.message.AuthException;
@@ -45,14 +46,14 @@ public class TravelPalController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<UUID>> myPals() throws AuthException {
+    public ResponseEntity<ResponseDto<List<UUID>>> myPals() throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        return ResponseEntity.ok(service.getMyTravelPals(userId));
+        return ResponseEntity.ok(ResponseDto.success("Travel pals retrieved", service.getMyTravelPals(userId)));
     }
 
     @GetMapping("/pending")
-    public ResponseEntity<?> pending() throws AuthException {
+    public ResponseEntity<ResponseDto<?>> pending() throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        return ResponseEntity.ok(service.getIncomingPendingRequests(userId));
+        return ResponseEntity.ok(ResponseDto.success("Pending requests retrieved", service.getIncomingPendingRequests(userId)));
     }
 }

@@ -37,6 +37,6 @@ public class UserUtility {
     }
 
     private String normalizeMobile(String mobile) {
-        return mobile.replaceAll("\\s+", "");
+        return mobile.replaceAll("\\s+", "").substring(3);
     }
 }
