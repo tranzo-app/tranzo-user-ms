@@ -1,10 +1,9 @@
 package com.tranzo.tranzo_user_ms.trip.model;
 
+import com.tranzo.tranzo_user_ms.commons.converter.JsonMapConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -43,16 +42,16 @@ public class TripItineraryEntity {
     @Column(name = "description")
     private String description;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "activities")
+    @Convert(converter = JsonMapConverter.class)
+    @Column(name = "activities", columnDefinition = "TEXT")
     private Map<String, Object> activities;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "meals")
+    @Convert(converter = JsonMapConverter.class)
+    @Column(name = "meals", columnDefinition = "TEXT")
     private Map<String, Object> meals;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "stay")
+    @Convert(converter = JsonMapConverter.class)
+    @Column(name = "stay", columnDefinition = "TEXT")
     private Map<String, Object> stay;
 
     @CreationTimestamp
