@@ -375,7 +375,7 @@ CREATE TABLE task_lock (
 -- 2.17 Splitwise (column names match entity @Column / @JoinColumn)
 -- ---------------------------------------------------------------------------
 CREATE TABLE splitwise_groups (
-    id          BIGINT       NOT NULL AUTO_INCREMENT,
+    id          BIGSERIAL    NOT NULL,
     trip_id     UUID         NOT NULL,
     description VARCHAR(500),
     created_by  UUID         NOT NULL,
@@ -387,7 +387,7 @@ CREATE TABLE splitwise_groups (
 );
 
 CREATE TABLE splitwise_group_members (
-    id        BIGINT       NOT NULL AUTO_INCREMENT,
+    id        BIGSERIAL    NOT NULL,
     group_id  BIGINT       NOT NULL,
     user_id   UUID         NOT NULL,
     role      VARCHAR(255) NOT NULL,
@@ -397,7 +397,7 @@ CREATE TABLE splitwise_group_members (
 );
 
 CREATE TABLE splitwise_expenses (
-    id           BIGINT         NOT NULL AUTO_INCREMENT,
+    id           BIGSERIAL      NOT NULL,
     name         VARCHAR(200)   NOT NULL,
     description  VARCHAR(1000),
     amount       NUMERIC(19,2)  NOT NULL,
@@ -414,7 +414,7 @@ CREATE TABLE splitwise_expenses (
 );
 
 CREATE TABLE splitwise_expense_splits (
-    id         BIGINT         NOT NULL AUTO_INCREMENT,
+    id         BIGSERIAL      NOT NULL,
     expense_id BIGINT         NOT NULL,
     user_id    UUID           NOT NULL,
     amount     NUMERIC(19,2)  NOT NULL,
@@ -425,7 +425,7 @@ CREATE TABLE splitwise_expense_splits (
 );
 
 CREATE TABLE splitwise_balances (
-    id           BIGINT         NOT NULL AUTO_INCREMENT,
+    id           BIGSERIAL      NOT NULL,
     group_id     BIGINT         NOT NULL,
     owed_by      UUID           NOT NULL,
     owed_to      UUID           NOT NULL,
@@ -437,7 +437,7 @@ CREATE TABLE splitwise_balances (
 );
 
 CREATE TABLE splitwise_settlements (
-    id              BIGINT         NOT NULL AUTO_INCREMENT,
+    id              BIGSERIAL      NOT NULL,
     group_id        BIGINT         NOT NULL,
     paid_by         UUID           NOT NULL,
     paid_to         UUID           NOT NULL,
@@ -452,7 +452,7 @@ CREATE TABLE splitwise_settlements (
 );
 
 CREATE TABLE splitwise_settlement_expenses (
-    id            BIGINT         NOT NULL AUTO_INCREMENT,
+    id            BIGSERIAL      NOT NULL,
     settlement_id BIGINT         NOT NULL,
     expense_id    BIGINT         NOT NULL,
     amount        NUMERIC(19,2)  NOT NULL,
@@ -464,7 +464,7 @@ CREATE TABLE splitwise_settlement_expenses (
 );
 
 CREATE TABLE splitwise_activities (
-    id            BIGINT       NOT NULL AUTO_INCREMENT,
+    id            BIGSERIAL    NOT NULL,
     group_id      BIGINT,
     user_id       UUID,
     activity_type VARCHAR(255) NOT NULL,

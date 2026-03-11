@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: 8089
 
 # Schema: Flyway runs first (V1__create_all_tables.sql), then Hibernate validates.
 # Tables are created once; on restart Flyway skips applied migrations, data persists (file-based H2).

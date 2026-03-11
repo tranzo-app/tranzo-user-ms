@@ -34,3 +34,6 @@ build/
 
 ### Local DB (file-based H2) ###
 data/
+
+### Env and secrets (do not commit) ###
+.env

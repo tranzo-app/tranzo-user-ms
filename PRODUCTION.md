@@ -18,7 +18,7 @@ Set these where your app runs (ECS task definition, Elastic Beanstalk, Lambda, o
 | `SPRING_DATASOURCE_URL` | JDBC URL for PostgreSQL | `jdbc:postgresql://your-rds-endpoint.region.rds.amazonaws.com:5432/tranzo_db` |
 | `SPRING_DATASOURCE_USERNAME` | DB username | RDS master username |
 | `SPRING_DATASOURCE_PASSWORD` | DB password | RDS master password |
-| `SPRING_JWT_SECRET` | Secret for JWT signing (use a strong value) | e.g. from AWS Secrets Manager |
+| `SPRING_JWT_SECRET` | **Required.** Secret for JWT signing (min 32 chars, use a strong random value in prod) | e.g. from AWS Secrets Manager. If unset, a default is used and the app starts but you must set a proper secret for production. |
 | `AWS_S3_MEDIA_BUCKET` | S3 bucket for media | Your bucket name |
 | `AWS_REGION` | AWS region (optional, default `ap-south-1`) | `ap-south-1` |
 
@@ -32,7 +32,34 @@ Optional JWT tuning: `JWT_ACCESS_EXPIRY_MINUTES`, `JWT_REFRESH_EXPIRY_DAYS`, `JW
 
 On first run, **Flyway** will apply `V1__create_all_tables.sql` and create all tables in RDS. On later restarts, Flyway skips already-applied migrations; **data in RDS persists** when the app stops.
 
-## 4. Security
+## 4. Docker
+
+If you run the app in a container, pass the required env vars:
+
+```bash
+docker run -e SPRING_PROFILES_ACTIVE=prod \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://... \
+  -e SPRING_DATASOURCE_USERNAME=... \
+  -e SPRING_DATASOURCE_PASSWORD=... \
+  -e SPRING_JWT_SECRET=your-strong-secret \
+  -e AWS_S3_MEDIA_BUCKET=... \
+  -p 8083:8083 \
+  your-image
+```
+
+Or in `docker-compose.yml`:
+
+```yaml
+environment:
+  SPRING_PROFILES_ACTIVE: prod
+  SPRING_DATASOURCE_URL: jdbc:postgresql://...
+  SPRING_DATASOURCE_USERNAME: ...
+  SPRING_DATASOURCE_PASSWORD: ...
+  SPRING_JWT_SECRET: ${SPRING_JWT_SECRET}   # set in .env or host
+  AWS_S3_MEDIA_BUCKET: ...
+```
+
+## 5. Security
 
 - Do **not** commit real `SPRING_DATASOURCE_*` or `SPRING_JWT_SECRET` values.
 - Prefer **AWS Secrets Manager** or **Parameter Store** and inject them into the task/instance environment at runtime.
