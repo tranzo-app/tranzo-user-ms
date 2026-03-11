@@ -9,9 +9,12 @@ import jakarta.security.auth.message.AuthException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +29,10 @@ public class UserController {
         this.jwtService = jwtService;
     }
 
+    /**
+     * Get current user's profile. Profile picture URL in the response is resolved to a presigned URL
+     * when stored in S3 (keys starting with "uploads/"); otherwise the stored URL is returned as-is.
+     */
     @GetMapping("/user")
     public ResponseEntity<ResponseDto<UserProfileDto>> getUser() throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
@@ -34,19 +41,32 @@ public class UserController {
         return ResponseEntity.ok(ResponseDto.success(200,"User profile fetched successfully", userProfileDto));
     }
 
-    @PostMapping("/user/register")
-    public ResponseEntity<ResponseDto<Void>> registerUser(HttpServletRequest request, @Valid @RequestBody UserProfileDto userProfileDto) throws  AuthException {
-        log.info("Inside register controller {}", userProfileDto);
+    /**
+     * Register user. Multipart: part "profile" (JSON), optional part "file" (profile picture).
+     * Profile picture is set from file (S3) or from DTO URL in the service.
+     */
+    @PostMapping(value = "/user/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseDto<UserProfileDto>> registerUser(
+            HttpServletRequest request,
+            @RequestPart("profile") @Valid UserProfileDto userProfileDto,
+            @RequestPart(value = "file", required = false) MultipartFile file) throws AuthException, IOException {
         String identifier = (String) request.getAttribute("registrationIdentifier");
-        userService.createUserProfile(userProfileDto, identifier);
-        return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", null));
+        UUID userId = userService.createUserProfile(userProfileDto, identifier, file);
+        UserProfileDto createdProfile = userService.getUserProfile(userId);
+        return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", createdProfile));
     }
 
-    @PatchMapping("/user/update")
-    public ResponseEntity<ResponseDto<UserProfileDto>> updateUserProfile(@RequestBody @Valid UserProfileDto userProfileDto) throws AuthException {
+    /**
+     * Update user profile. Multipart: part "profile" (JSON), optional part "file" (new profile picture).
+     * Picture and/or profile fields are updated in the service.
+     */
+    @PatchMapping(value = "/user/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseDto<UserProfileDto>> updateUserProfile(
+            @RequestPart("profile") @Valid UserProfileDto userProfileDto,
+            @RequestPart(value = "file", required = false) MultipartFile file) throws AuthException, IOException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        UserProfileDto updatedUserProfile = userService.updateUserProfile(userId, userProfileDto);
-        return ResponseEntity.ok(ResponseDto.success(200,"User profile updated successfully", updatedUserProfile));
+        UserProfileDto updatedProfile = userService.updateUserProfile(userId, userProfileDto, file);
+        return ResponseEntity.ok(ResponseDto.success(200, "User profile updated successfully", updatedProfile));
     }
 
     @DeleteMapping("/user/delete-user")

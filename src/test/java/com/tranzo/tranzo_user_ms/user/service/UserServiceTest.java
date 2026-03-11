@@ -8,6 +8,7 @@ import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.user.repository.UserProfileHistoryRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserReportRepository;
+import com.tranzo.tranzo_user_ms.media.service.S3MediaService;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.user.utility.UserUtility;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,9 @@ class UserServiceTest {
 
     @Mock
     private UserUtility userUtility;
+
+    @Mock
+    private S3MediaService s3MediaService;
 
     @InjectMocks
     private UserService userService;
