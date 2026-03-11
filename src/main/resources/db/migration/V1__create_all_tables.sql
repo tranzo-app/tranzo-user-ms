@@ -372,6 +372,113 @@ CREATE TABLE task_lock (
 );
 
 -- ---------------------------------------------------------------------------
+-- 2.17 Splitwise (column names match entity @Column / @JoinColumn)
+-- ---------------------------------------------------------------------------
+CREATE TABLE splitwise_groups (
+    id          BIGINT       NOT NULL AUTO_INCREMENT,
+    trip_id     UUID         NOT NULL,
+    description VARCHAR(500),
+    created_by  UUID         NOT NULL,
+    created_at  TIMESTAMP    NOT NULL,
+    updated_at  TIMESTAMP    NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_splitwise_groups_trip_id UNIQUE (trip_id),
+    CONSTRAINT fk_splitwise_groups_trip FOREIGN KEY (trip_id) REFERENCES core_trip_details (trip_id)
+);
+
+CREATE TABLE splitwise_group_members (
+    id        BIGINT       NOT NULL AUTO_INCREMENT,
+    group_id  BIGINT       NOT NULL,
+    user_id   UUID         NOT NULL,
+    role      VARCHAR(255) NOT NULL,
+    joined_at TIMESTAMP    NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_splitwise_group_members_group FOREIGN KEY (group_id) REFERENCES splitwise_groups (id)
+);
+
+CREATE TABLE splitwise_expenses (
+    id           BIGINT         NOT NULL AUTO_INCREMENT,
+    name         VARCHAR(200)   NOT NULL,
+    description  VARCHAR(1000),
+    amount       NUMERIC(19,2)  NOT NULL,
+    paid_by      UUID           NOT NULL,
+    group_id     BIGINT         NOT NULL,
+    split_type   VARCHAR(255)   NOT NULL,
+    expense_date TIMESTAMP,
+    category     VARCHAR(50),
+    receipt_url  VARCHAR(500),
+    created_at   TIMESTAMP      NOT NULL,
+    updated_at   TIMESTAMP      NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_splitwise_expenses_group FOREIGN KEY (group_id) REFERENCES splitwise_groups (id)
+);
+
+CREATE TABLE splitwise_expense_splits (
+    id         BIGINT         NOT NULL AUTO_INCREMENT,
+    expense_id BIGINT         NOT NULL,
+    user_id    UUID           NOT NULL,
+    amount     NUMERIC(19,2)  NOT NULL,
+    percentage NUMERIC(5,2),
+    created_at TIMESTAMP      NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_splitwise_expense_splits_expense FOREIGN KEY (expense_id) REFERENCES splitwise_expenses (id)
+);
+
+CREATE TABLE splitwise_balances (
+    id           BIGINT         NOT NULL AUTO_INCREMENT,
+    group_id     BIGINT         NOT NULL,
+    owed_by      UUID           NOT NULL,
+    owed_to      UUID           NOT NULL,
+    amount       NUMERIC(19,2)  NOT NULL,
+    last_updated TIMESTAMP      NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_splitwise_balances_group_owed UNIQUE (group_id, owed_by, owed_to),
+    CONSTRAINT fk_splitwise_balances_group FOREIGN KEY (group_id) REFERENCES splitwise_groups (id)
+);
+
+CREATE TABLE splitwise_settlements (
+    id              BIGINT         NOT NULL AUTO_INCREMENT,
+    group_id        BIGINT         NOT NULL,
+    paid_by         UUID           NOT NULL,
+    paid_to         UUID           NOT NULL,
+    amount          NUMERIC(19,2)  NOT NULL,
+    payment_method  VARCHAR(50),
+    transaction_id  VARCHAR(100),
+    notes           VARCHAR(500),
+    status          VARCHAR(20)    NOT NULL DEFAULT 'PENDING',
+    settled_at      TIMESTAMP      NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_splitwise_settlements_group FOREIGN KEY (group_id) REFERENCES splitwise_groups (id)
+);
+
+CREATE TABLE splitwise_settlement_expenses (
+    id            BIGINT         NOT NULL AUTO_INCREMENT,
+    settlement_id BIGINT         NOT NULL,
+    expense_id    BIGINT         NOT NULL,
+    amount        NUMERIC(19,2)  NOT NULL,
+    created_at    TIMESTAMP      NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_splitwise_settlement_expenses_settlement_expense UNIQUE (settlement_id, expense_id),
+    CONSTRAINT fk_splitwise_settlement_expenses_settlement FOREIGN KEY (settlement_id) REFERENCES splitwise_settlements (id),
+    CONSTRAINT fk_splitwise_settlement_expenses_expense FOREIGN KEY (expense_id) REFERENCES splitwise_expenses (id)
+);
+
+CREATE TABLE splitwise_activities (
+    id            BIGINT       NOT NULL AUTO_INCREMENT,
+    group_id      BIGINT,
+    user_id       UUID,
+    activity_type VARCHAR(255) NOT NULL,
+    description   VARCHAR(1000),
+    related_id    VARCHAR(255),
+    related_type  VARCHAR(50),
+    old_value     VARCHAR(500),
+    new_value     VARCHAR(500),
+    created_at    TIMESTAMP    NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_splitwise_activities_group FOREIGN KEY (group_id) REFERENCES splitwise_groups (id)
+);
+
+-- ---------------------------------------------------------------------------
 -- 3. Chat domain
 -- ---------------------------------------------------------------------------
 CREATE TABLE conversation (

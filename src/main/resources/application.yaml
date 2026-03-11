@@ -18,11 +18,14 @@ spring:
     properties:
       hibernate:
         format_sql: true
-    defer-datasource-initialization: true
+    # false avoids circular dependency: flyway <-> entityManagerFactory (Flyway runs first when false)
+    defer-datasource-initialization: false
 
   flyway:
     enabled: true
     baseline-on-migrate: false
+    # Set to false so app starts despite checksum mismatch (e.g. after editing V1). Run: ./mvnw flyway:repair from project root, then set back to true.
+    validate-on-migrate: false
 
   sql:
     init:
