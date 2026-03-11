@@ -15,6 +15,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -72,26 +73,48 @@ class UserControllerTest {
     @DisplayName("Should register user")
     void registerUser_Success() throws Exception {
         when(request.getAttribute("registrationIdentifier")).thenReturn("email:u@test.com");
-        doNothing().when(userService).createUserProfile(any(UserProfileDto.class), eq("email:u@test.com"));
+        when(userService.createUserProfile(any(UserProfileDto.class), eq("email:u@test.com"), any())).thenReturn(userId);
+        when(userService.getUserProfile(userId)).thenReturn(profileDto);
 
-        ResponseEntity<ResponseDto<Void>> res = controller.registerUser(request, profileDto);
+        ResponseEntity<ResponseDto<UserProfileDto>> res = controller.registerUser(request, profileDto, null);
 
         assertEquals(HttpStatus.OK, res.getStatusCode());
-        verify(userService).createUserProfile(any(UserProfileDto.class), eq("email:u@test.com"));
+        assertNotNull(res.getBody());
+        assertNotNull(res.getBody().getData());
+        verify(userService).createUserProfile(any(UserProfileDto.class), eq("email:u@test.com"), any());
+        verify(userService).getUserProfile(userId);
     }
 
     @Test
     @DisplayName("Should update user profile")
     void updateUserProfile_Success() throws Exception {
-        when(userService.updateUserProfile(userId, profileDto)).thenReturn(profileDto);
+        when(userService.updateUserProfile(eq(userId), any(UserProfileDto.class), any())).thenReturn(profileDto);
         try (MockedStatic<SecurityUtils> security = mockStatic(SecurityUtils.class)) {
             security.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
 
-            ResponseEntity<ResponseDto<UserProfileDto>> res = controller.updateUserProfile(profileDto);
+            ResponseEntity<ResponseDto<UserProfileDto>> res = controller.updateUserProfile(profileDto, null);
 
             assertEquals(HttpStatus.OK, res.getStatusCode());
+            assertNotNull(res.getBody().getData());
+            verify(userService).updateUserProfile(eq(userId), any(UserProfileDto.class), any());
         }
     }
+
+/*    @Test
+    @DisplayName("Should update user profile with new picture")
+    void updateUserProfile_WithFile_Success() throws Exception {
+        MultipartFile file = mock(MultipartFile.class);
+        when(file.isEmpty()).thenReturn(false);
+        when(userService.updateUserProfile(eq(userId), any(UserProfileDto.class), eq(file))).thenReturn(profileDto);
+        try (MockedStatic<SecurityUtils> security = mockStatic(SecurityUtils.class)) {
+            security.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
+
+            ResponseEntity<ResponseDto<UserProfileDto>> res = controller.updateUserProfile(profileDto, file);
+
+            assertEquals(HttpStatus.OK, res.getStatusCode());
+            verify(userService).updateUserProfile(eq(userId), any(UserProfileDto.class), eq(file));
+        }
+    }*/
 
     @Test
     @DisplayName("Should delete user")

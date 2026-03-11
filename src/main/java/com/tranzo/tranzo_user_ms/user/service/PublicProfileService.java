@@ -26,6 +26,7 @@ import java.util.UUID;
 public class PublicProfileService {
 
     private final UserProfileRepository userProfileRepository;
+    private final UserService userService;
     private final HostRatingRepository hostRatingRepository;
     private final MemberRatingRepository memberRatingRepository;
 
@@ -60,11 +61,12 @@ public class PublicProfileService {
         int to = Math.min(from + size, total);
         List<ReviewItemDto> pagedReviews = from < total ? allReviews.subList(from, to) : List.of();
 
+        String profilePictureUrl = userService.resolveProfilePictureUrl(profile.getProfilePictureUrl());
         return PublicProfileResponseDto.builder()
                 .firstName(profile.getFirstName())
                 .middleName(profile.getMiddleName())
                 .lastName(profile.getLastName())
-                .profilePictureUrl(profile.getProfilePictureUrl())
+                .profilePictureUrl(profilePictureUrl)
                 .bio(profile.getBio())
                 .trustScore(profile.getTrustScore() != null ? profile.getTrustScore() : BigDecimal.ZERO)
                 .reviews(pagedReviews)
