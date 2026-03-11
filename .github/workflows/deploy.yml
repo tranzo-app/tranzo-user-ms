@@ -2,6 +2,11 @@ name: Build & Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch, tag, or commit SHA to deploy (leave empty for latest master)'
+        required: false
+        default: 'master'
   push:
     branches: [master]
 
@@ -12,6 +17,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.sha }}
 
       - name: Transfer Code To Server
         uses: appleboy/scp-action@master
@@ -30,5 +37,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/ec2-user/tranzo-user-ms
-            sudo docker compose up -d --build --force-recreate --no-deps app
+            export DOCKER_BUILDKIT=0
+            docker compose up -d --build --force-recreate --no-deps app
             sudo docker system prune -af

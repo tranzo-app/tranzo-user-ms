@@ -13,12 +13,15 @@ import com.tranzo.tranzo_user_ms.user.repository.UserProfileHistoryRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserReportRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
+import com.tranzo.tranzo_user_ms.media.service.S3MediaService;
 import org.springframework.transaction.annotation.Transactional;
 import com.tranzo.tranzo_user_ms.user.utility.UserUtility;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,12 +34,16 @@ public class UserService {
     private final UserReportRepository userReportRepository;
     private final UserProfileHistoryRepository userProfileHistoryRepository;
     private final UserUtility userUtility;
+    private final S3MediaService s3MediaService;
 
     public void findUserByUserId(UUID userUuid) {
         userRepository.findUserByUserUuid(userUuid)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
     }
 
+    /**
+     * Returns the user profile. Profile picture URL is resolved to a presigned URL when stored in S3.
+     */
     public UserProfileDto getUserProfile(UUID userId) {
         UserProfileEntity profileEntity = userProfileRepository
                 .findAllUserProfileDetailByUserId(userId)
@@ -44,8 +51,12 @@ public class UserService {
         return mapToUserProfileDto(profileEntity);
     }
 
+    /**
+     * Creates user profile. Profile picture is set from uploaded file (S3 key) if present,
+     * otherwise from DTO's profilePictureUrl (e.g. external URL) when non-blank.
+     */
     @Transactional
-    public void createUserProfile(UserProfileDto userProfileDto, String identifier) {
+    public UUID createUserProfile(UserProfileDto userProfileDto, String identifier, MultipartFile file) throws IOException {
         UsersEntity user = userUtility.findUserByIdentifier(identifier)
                 .orElseThrow(() -> new UserNotFoundException(
                         "User not found for identifier: " + identifier
@@ -64,7 +75,6 @@ public class UserService {
         userProfileEntity.setGender(userProfileDto.getGender());
         userProfileEntity.setDob(userProfileDto.getDob());
         userProfileEntity.setLocation(userProfileDto.getLocation());
-        userProfileEntity.setProfilePictureUrl(userProfileDto.getProfilePictureUrl());
         userProfileEntity.setVerificationStatus(VerificationStatus.NOT_VERIFIED);
         userProfileEntity.setUser(user);
         user.setUserProfileEntity(userProfileEntity);
@@ -81,6 +91,14 @@ public class UserService {
             user.getSocialHandleEntity().addAll(socialHandles);
         }
         userRepository.save(user);
+        UUID userId = user.getUserUuid();
+        if (file != null && !file.isEmpty()) {
+            var uploadResult = s3MediaService.upload(file, userId.toString());
+            updateProfilePicture(userId, new UrlDto(uploadResult.getKey()));
+        } else if (userProfileDto.getProfilePictureUrl() != null && !userProfileDto.getProfilePictureUrl().isBlank()) {
+            updateProfilePicture(userId, new UrlDto(userProfileDto.getProfilePictureUrl()));
+        }
+        return userId;
     }
 
     private UserProfileDto mapToUserProfileDto(UserProfileEntity profileEntity) {
@@ -90,6 +108,8 @@ public class UserService {
         List<SocialHandleDto> socialHandleDtos = user.getSocialHandleEntity().stream()
                 .map(this::mapToSocialHandleDto)
                 .collect(Collectors.toList());
+
+        String profilePictureUrl = resolveProfilePictureUrl(profileEntity.getProfilePictureUrl());
 
         return UserProfileDto.builder()
                 .firstName(profileEntity.getFirstName())
@@ -101,9 +121,28 @@ public class UserService {
                 .emailId(user.getEmail())
                 .dob(profileEntity.getDob())
                 .location(profileEntity.getLocation())
-                .profilePictureUrl(profileEntity.getProfilePictureUrl())
+                .profilePictureUrl(profilePictureUrl)
                 .socialHandleDtoList(socialHandleDtos)
                 .build();
+    }
+
+    /**
+     * If the value is an S3 key (starts with "uploads/"), returns a presigned URL for display.
+     * Otherwise returns the value as-is (e.g. external URL).
+     */
+    public String resolveProfilePictureUrl(String urlOrKey) {
+        if (urlOrKey == null || urlOrKey.isBlank()) {
+            return urlOrKey;
+        }
+        if (!urlOrKey.startsWith("uploads/")) {
+            return urlOrKey;
+        }
+        try {
+            return s3MediaService.getPresignedUrl(urlOrKey, null).getUrl();
+        } catch (Exception e) {
+            log.debug("Could not resolve S3 key to presigned URL (S3 may not be configured): {}", e.getMessage());
+            return urlOrKey;
+        }
     }
 
     private SocialHandleDto mapToSocialHandleDto(SocialHandleEntity entity) {
@@ -112,11 +151,11 @@ public class UserService {
                 .url(entity.getPlatformUrl())
                 .build();
     }
-    private UserProfileHistoryEntity mapToUserProfileHistoryEntity(UserProfileEntity profileEntity) {
+    private UserProfileHistoryEntity mapToUserProfileHistoryEntity(UserProfileEntity profileEntity, int historyVersion) {
         UsersEntity user = profileEntity.getUser();
         return UserProfileHistoryEntity.builder()
                 .userProfileUuid(profileEntity.getUserProfileUuid())
-                .profileVersion(profileEntity.getVersion())
+                .profileVersion(historyVersion)
                 .user(profileEntity.getUser())
                 .firstName(profileEntity.getFirstName())
                 .middleName(profileEntity.getMiddleName())
@@ -128,6 +167,11 @@ public class UserService {
                 .location(profileEntity.getLocation())
                 .verificationStatus(profileEntity.getVerificationStatus())
                 .build();
+    }
+
+    private void saveProfileHistory(UserProfileEntity profileEntity) {
+        int nextVersion = userProfileHistoryRepository.findMaxVersionByUserProfileUuid(profileEntity.getUserProfileUuid()) + 1;
+        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity, nextVersion));
     }
 
     @Transactional
@@ -142,7 +186,7 @@ public class UserService {
 
         UsersEntity user = profileEntity.getUser();
 
-        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+        saveProfileHistory(profileEntity);
 
         if(modifiedUserProfileDto.getFirstName() != null) {
             profileEntity.setFirstName(modifiedUserProfileDto.getFirstName());
@@ -188,6 +232,22 @@ public class UserService {
         return mapToUserProfileDto(profileEntity);
     }
 
+    /**
+     * Updates user profile with optional new picture. If file is present, uploads to S3 and sets key;
+     * if no file but profile has other fields, updates those. Returns the updated profile.
+     */
+    @Transactional
+    public UserProfileDto updateUserProfile(UUID userId, UserProfileDto modifiedUserProfileDto, MultipartFile file) throws IOException {
+        if (file != null && !file.isEmpty()) {
+            var uploadResult = s3MediaService.upload(file, userId.toString());
+            updateProfilePicture(userId, new UrlDto(uploadResult.getKey()));
+        }
+        if (!isEmptyUpdateRequest(modifiedUserProfileDto)) {
+            updateUserProfile(userId, modifiedUserProfileDto);
+        }
+        return getUserProfile(userId);
+    }
+
     @Transactional
     public void deleteUserProfile(UUID userId) {
        /* UsersEntity user = userRepository
@@ -204,7 +264,7 @@ public class UserService {
             throw new UserAlreadyDeletedException("User already deleted for id: " + userId);
         }
 
-        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+        saveProfileHistory(profileEntity);
 
         user.setAccountStatus(AccountStatus.DELETED);
         user.setUserProfileEntity(null);
@@ -213,7 +273,7 @@ public class UserService {
         // Additional cleanup logic can be added here if needed and after discussion we will implement it.
     }
 
-    boolean isEmptyUpdateRequest(UserProfileDto dto){
+    public boolean isEmptyUpdateRequest(UserProfileDto dto){
         return dto.getFirstName() == null &&
                 dto.getMiddleName() == null &&
                 dto.getLastName() == null &&
@@ -232,9 +292,10 @@ public class UserService {
                 .findAllUserProfileDetailByUserId(userId)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
 
-        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+        saveProfileHistory(profileEntity);
 
         profileEntity.setProfilePictureUrl(profilePictureUrl.getUrl());
+        userProfileRepository.save(profileEntity);
 
         log.info("Profile picture updated for userId: {}", userId);
         return mapToUserProfileDto(profileEntity);
@@ -246,9 +307,10 @@ public class UserService {
                 .findAllUserProfileDetailByUserId(userId)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
 
-        userProfileHistoryRepository.save(mapToUserProfileHistoryEntity(profileEntity));
+        saveProfileHistory(profileEntity);
 
         profileEntity.setProfilePictureUrl(null);
+        userProfileRepository.save(profileEntity);
         log.info("Profile picture deleted for userId: {}", userId);
         return mapToUserProfileDto(profileEntity);
     }

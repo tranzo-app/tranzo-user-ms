@@ -32,6 +32,13 @@ spring:
     registration-token-expiry-minutes: 10
     issuer: tranzo-auth
 
+# S3 media storage (env: AWS_S3_MEDIA_BUCKET, AWS_REGION)
+app:
+  s3:
+    media-bucket: ${AWS_S3_MEDIA_BUCKET:}
+    region: ${AWS_REGION:ap-south-1}
+    presigned-url-expiry-minutes: 15
+
 # Optional: cron for trip notification jobs (default: draft at 9am, upcoming at 8am daily)
 # trip:
 #   notification:

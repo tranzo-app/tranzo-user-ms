@@ -269,6 +269,23 @@ chown ec2-user:ec2-user /home/ec2-user/tranzo-user-ms
 
 ---
 
+## Version History and Rollback
+
+**Seeing previous versions:** Every merge to `master` is a commit. In GitHub go to **Code** → **Commits** (or the commit history of any file) to see all past versions. Each commit has a unique **SHA** (e.g. `0629082` or full `0629082...`).
+
+**Reverting to a previous version:** You can deploy an older version without changing `master`:
+
+1. In GitHub go to **Actions** → **Build & Deploy** → **Run workflow**.
+2. In **Branch** leave `master` (or pick the branch that has the version you want).
+3. In **ref** (if shown) enter the **commit SHA** or **branch/tag** you want to deploy:
+   - **Commit SHA:** e.g. `0629082` or the full 40-character SHA from the commit list.
+   - **Branch/tag:** e.g. `release/v1` if you use release branches.
+4. Click **Run workflow**. The workflow will checkout that ref, copy it to the server, build the image, and start the container. The server will run that version until the next deploy.
+
+So: push/merge to master = deploy latest; manual **Run workflow** with a **ref** = deploy that version (rollback or re-deploy any previous commit).
+
+---
+
 ## How It All Connects
 
 - **User** visits `https://api.yourdomain.com` → GoDaddy DNS points to **ALB**.

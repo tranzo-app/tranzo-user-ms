@@ -143,6 +143,7 @@ public class SessionService {
         cookie.setSecure(true);   // true in prod
         cookie.setPath("/");
         cookie.setMaxAge(maxAge);
+        cookie.setAttribute("SameSite", "None");
         response.addCookie(cookie);
     }
 

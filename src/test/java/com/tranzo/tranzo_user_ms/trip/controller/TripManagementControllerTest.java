@@ -6,6 +6,7 @@ import com.tranzo.tranzo_user_ms.trip.dto.*;
 import com.tranzo.tranzo_user_ms.trip.enums.JoinPolicy;
 import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus;
+import com.tranzo.tranzo_user_ms.trip.service.TripInviteService;
 import com.tranzo.tranzo_user_ms.trip.service.TripManagementService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +36,9 @@ class TripManagementControllerTest {
 
     @Mock
     private TripManagementService tripManagementService;
+
+    @Mock
+    private TripInviteService tripInviteService;
 
     @InjectMocks
     private TripManagementController tripManagementController;
@@ -339,6 +343,72 @@ class TripManagementControllerTest {
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             verify(tripManagementService, times(1)).markTripFull(eq(userId), eq(tripId));
+        }
+    }
+
+    // ============== MUTUAL TRIPS TESTS ==============
+
+    @Test
+    @DisplayName("Should return mutual trips successfully")
+    void testGetMutualTrips_Success() throws Exception {
+        UUID otherUserId = UUID.randomUUID();
+        TripViewDto tripDto = TripViewDto.builder()
+            .tripId(tripId)
+            .tripTitle("Shared Trip")
+            .tripDestination("Paris")
+            .build();
+        List<TripViewDto> mutualTrips = List.of(tripDto);
+        when(tripManagementService.getMutualCompletedTrips(eq(userId), eq(otherUserId)))
+            .thenReturn(mutualTrips);
+
+        try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
+            securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
+
+            ResponseEntity<ResponseDto<List<TripViewDto>>> response =
+                tripManagementController.getMutualTrips(otherUserId);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertNotNull(response.getBody());
+            assertNotNull(response.getBody().getData());
+            assertEquals(1, response.getBody().getData().size());
+            assertEquals("Shared Trip", response.getBody().getData().get(0).getTripTitle());
+            verify(tripManagementService).getMutualCompletedTrips(userId, otherUserId);
+        }
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no mutual trips")
+    void testGetMutualTrips_EmptyList() throws Exception {
+        UUID otherUserId = UUID.randomUUID();
+        when(tripManagementService.getMutualCompletedTrips(eq(userId), eq(otherUserId)))
+            .thenReturn(List.of());
+
+        try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
+            securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
+
+            ResponseEntity<ResponseDto<List<TripViewDto>>> response =
+                tripManagementController.getMutualTrips(otherUserId);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertNotNull(response.getBody());
+            assertNotNull(response.getBody().getData());
+            assertTrue(response.getBody().getData().isEmpty());
+        }
+    }
+
+    @Test
+    @DisplayName("Should pass current user and other user to service")
+    void testGetMutualTrips_PassesCorrectParams() throws Exception {
+        UUID otherUserId = UUID.randomUUID();
+        when(tripManagementService.getMutualCompletedTrips(any(UUID.class), any(UUID.class)))
+            .thenReturn(List.of());
+
+        try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
+            securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
+
+            tripManagementController.getMutualTrips(otherUserId);
+
+            verify(tripManagementService).getMutualCompletedTrips(eq(userId), eq(otherUserId));
         }
     }
 

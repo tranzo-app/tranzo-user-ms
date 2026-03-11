@@ -8,16 +8,23 @@ import com.tranzo.tranzo_user_ms.trip.events.TripEventPublisher;
 import com.tranzo.tranzo_user_ms.trip.events.TripPublishedEventPayloadDto;
 import com.tranzo.tranzo_user_ms.trip.model.*;
 import com.tranzo.tranzo_user_ms.trip.repository.*;
+import com.tranzo.tranzo_user_ms.trip.specification.SpecificationBuilder;
+import com.tranzo.tranzo_user_ms.trip.utility.PageableBuilder;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
+import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
 import com.tranzo.tranzo_user_ms.commons.events.*;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import jakarta.persistence.criteria.Predicate;
 import java.util.stream.Collectors;
 
 import static com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode.*;
@@ -34,6 +41,7 @@ public class TripManagementService {
     private final TripEventPublisher tripEventPublisher;
     private final UserUtil userUtil;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final TravelPalService travelPalService;
 
     public TripManagementService(TripMemberRepository tripMemberRepository,
                                  TripRepository tripRepository,
@@ -44,7 +52,8 @@ public class TripManagementService {
                                  TripPublishEligibilityValidator tripPublishEligibilityValidator,
                                  TripEventPublisher tripEventPublisher,
                                  UserUtil userUtil,
-                                 ApplicationEventPublisher applicationEventPublisher) {
+                                 ApplicationEventPublisher applicationEventPublisher,
+                                 TravelPalService travelPalService) {
         this.tripMemberRepository = tripMemberRepository;
         this.tripRepository = tripRepository;
         this.tagRepository = tagRepository;
@@ -55,6 +64,7 @@ public class TripManagementService {
         this.tripEventPublisher = tripEventPublisher;
         this.userUtil = userUtil;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.travelPalService = travelPalService;
     }
 
 
@@ -176,6 +186,17 @@ public class TripManagementService {
                     .orElseThrow(() -> new ForbiddenException("User is not allowed to view this private trip as the user is not the member of the trip"));
         }
         return mapTripEntityToDto(trip);
+    }
+
+    public List<TripViewDto> getMutualCompletedTrips(UUID currentUserId, UUID otherUserId) {
+        if (currentUserId.equals(otherUserId)) {
+            return List.of();
+        }
+        List<TripEntity> trips = tripRepository.findMutualCompletedTrips(
+                currentUserId, otherUserId, TripStatus.COMPLETED);
+        return trips.stream()
+                .map(this::mapTripEntityToDto)
+                .toList();
     }
 
     public List<TripViewDto> fetchTripForUser(UUID userId)
@@ -670,4 +691,57 @@ public class TripManagementService {
         }
     }
 
+    @Transactional
+    public void broadcastTripToTravelPals(UUID userId, UUID tripId) {
+        TripEntity trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+        userUtil.validateUserIsHost(tripId, userId);
+        if (trip.getTripStatus() != TripStatus.PUBLISHED) {
+            throw new BadRequestException("Can only broadcast published trips");
+        }
+
+        List<UUID> travelPals = travelPalService.getMyTravelPals(userId);
+        List<UUID> broadcastToUserIds = travelPals.stream()
+                .filter(palId -> !tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(tripId, palId, TripMemberStatus.ACTIVE))
+                .toList();
+
+        if (!broadcastToUserIds.isEmpty()) {
+            applicationEventPublisher.publishEvent(
+                    new TripBroadcastEvent(tripId, trip.getTripTitle(), userId, broadcastToUserIds));
+        }
+    }
+
+    public Page<TripViewDto> search(
+            SearchRequest request,
+            List<String> globalFields
+    ) {
+        SpecificationBuilder<TripEntity> builder = new SpecificationBuilder<>();
+        Specification<TripEntity> spec = builder.build(request.getFilters());
+        if (request.getGlobalSearch() != null && globalFields != null && !globalFields.isEmpty()) {
+            Specification<TripEntity> globalSpec =
+                    buildGlobalSearch(request.getGlobalSearch(), globalFields);
+            spec = spec.and(globalSpec);
+        }
+        Pageable pageable = PageableBuilder.build(request);
+        Page<TripEntity> trips = tripRepository.findAll(spec, pageable);
+        return trips.map(this::mapTripEntityToDto);
+    }
+
+    private Specification<TripEntity> buildGlobalSearch(
+            String keyword,
+            List<String> fields
+    ) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            for (String field : fields) {
+                predicates.add(
+                        cb.like(
+                                cb.lower(root.get(field).as(String.class)),
+                                "%" + keyword.toLowerCase() + "%"
+                        )
+                );
+            }
+            return cb.or(predicates.toArray(new Predicate[0]));
+        };
+    }
 }

@@ -51,6 +51,5 @@ public class UserProfileDto {
     @Valid
     private List<SocialHandleDto> socialHandleDtoList;
 
-    @NotNull
     private VerificationStatus verificationStatus;
 }

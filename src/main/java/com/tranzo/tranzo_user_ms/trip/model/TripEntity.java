@@ -16,7 +16,11 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "core_trip_details")
+@Table(name = "core_trip_details", indexes = {
+        @Index(name = "idx_trip_status", columnList = "trip_status"),
+        @Index(name = "idx_trip_status_start_date", columnList = "trip_status, trip_start_date"),
+        @Index(name = "idx_trip_status_end_date", columnList = "trip_status, trip_end_date")
+})
 @Getter
 @Setter
 @NoArgsConstructor

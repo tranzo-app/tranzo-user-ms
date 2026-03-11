@@ -10,7 +10,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "refresh_token")
+@Table(name = "refresh_token", indexes = {
+        @Index(name = "idx_refresh_token_user_revoked", columnList = "user_uuid, revoked")
+})
 @Getter
 @Setter
 @Builder
