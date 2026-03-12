@@ -42,6 +42,20 @@ public class UserController {
     }
 
     /**
+     * Register user (JSON only, no file). Use when profile picture is omitted or provided via profilePictureUrl in the body.
+     * Auth: Bearer registration token from OTP verify.
+     */
+    @PostMapping(value = "/user/register", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ResponseDto<UserProfileDto>> registerUserWithoutFile(
+            HttpServletRequest request,
+            @RequestBody @Valid UserProfileDto userProfileDto) throws AuthException, IOException {
+        String identifier = (String) request.getAttribute("registrationIdentifier");
+        UUID userId = userService.createUserProfile(userProfileDto, identifier, null);
+        UserProfileDto createdProfile = userService.getUserProfile(userId);
+        return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", createdProfile));
+    }
+
+    /**
      * Register user. Multipart: part "profile" (JSON), optional part "file" (profile picture).
      * Profile picture is set from file (S3) or from DTO URL in the service.
      */
