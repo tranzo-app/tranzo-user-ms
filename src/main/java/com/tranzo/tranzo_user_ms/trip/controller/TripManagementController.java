@@ -57,6 +57,14 @@ public class TripManagementController {
         return ResponseEntity.ok(ResponseDto.success("Trip details have been fetched successfully", tripDto));
     }
 
+    @GetMapping("/{tripId}/members")
+    public ResponseEntity<ResponseDto<TripMembersListResponseDto>> getTripMembers(@PathVariable UUID tripId) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        log.info("Fetching trip members for tripId: {}, userId: {}", tripId, userId);
+        TripMembersListResponseDto members = tripManagementService.getTripMembers(tripId, userId);
+        return ResponseEntity.ok(ResponseDto.success("Trip members fetched successfully", members));
+    }
+
     @GetMapping("/mutual-with/{otherUserId}")
     public ResponseEntity<ResponseDto<List<TripViewDto>>> getMutualTrips(@PathVariable UUID otherUserId) throws AuthException {
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
