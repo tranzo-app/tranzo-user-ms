@@ -10,7 +10,7 @@ Single reference for architecture, database tables, API, and event flows.
 
 - **Modular monolith**: One Spring Boot application with clear packages (trip, chat, notification, user, commons).
 - **In-process events**: Spring `ApplicationEventPublisher` for cross-module communication (no Kafka). Trip module publishes events; Chat and Notification modules subscribe.
-- **Persistence**: JPA/Hibernate with H2 in-memory (dev). All entities in one schema.
+- **Persistence**: JPA/Hibernate with H2 (file-based by default; in-memory with `spring.profiles.active=dev`). Schema is created by **Flyway** (V1) on first run; Hibernate uses `ddl-auto: validate` so tables are never dropped or re-created on restart. All entities in one schema.
 
 ### 1.2 Module Layout
 
@@ -428,12 +428,18 @@ Base URL: `http://localhost:8085` (no context path in default config). All authe
 
 ## 6. Configuration (application.yaml)
 
-- **Server**: port 8085.  
-- **DB**: H2 in-memory `jdbc:h2:mem:tranzo_user_db`, `ddl-auto: create`, H2 console at `/h2-console`.  
+- **Server**: port 8083.  
+- **DB**: H2 file-based by default (`jdbc:h2:file:./data/tranzo_db`); use `spring.profiles.active=dev` for in-memory H2. **Flyway** creates schema (V1) on first run; **ddl-auto: validate** so tables are never dropped on restart. H2 console at `/h2-console`.  
 - **Redis**: localhost:6379 (e.g. session/cache).  
 - **JWT**: secret, access-token-expiry-minutes (15), refresh-token-expiry-days (7), issuer.  
 - **Logging**: SQL and transaction debug in dev.  
 - Optional: `trip.notification.draft-reminder-cron`, `upcoming-cron` for scheduler.
+
+### 6.1 Database migrations (Flyway)
+
+- **First run**: Flyway runs `src/main/resources/db/migration/V1__create_all_tables.sql` and creates all tables; Hibernate then validates.  
+- **Later runs**: Flyway skips V1 (already applied); no re-create, data persists (with file-based H2).  
+- **Future changes**: Add a new migration file (e.g. `V2__add_xyz.sql`, `V3__alter_abc.sql`). **Never edit V1** after it has been applied in any environment. Run the app (or `mvn flyway:migrate` with correct datasource) to apply new migrations.
 
 ---
 

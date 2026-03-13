@@ -1,20 +1,31 @@
 server:
   port: 8083
+
+# Schema: Flyway runs first (V1__create_all_tables.sql), then Hibernate validates.
+# Tables are created once; on restart Flyway skips applied migrations, data persists (file-based H2).
+# For future changes: add V2__description.sql, V3__..., never edit V1 after it has been applied.
 spring:
   datasource:
-    url: jdbc:h2:mem:tranzo_user_db;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:file:./data/tranzo_db;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
     driver-class-name: org.h2.Driver
     username: sa
     password:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: create
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-    defer-datasource-initialization: true
+    # false avoids circular dependency: flyway <-> entityManagerFactory (Flyway runs first when false)
+    defer-datasource-initialization: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    # Set to false so app starts despite checksum mismatch (e.g. after editing V1). Run: ./mvnw flyway:repair from project root, then set back to true.
+    validate-on-migrate: false
 
   sql:
     init:
@@ -27,9 +38,9 @@ spring:
 
   jwt:
     secret: 7kP9xQeZyWvT2A1bNcLmJkHGFdsapOiuRANDOMKEY
-    access-token-expiry-minutes: 15
+    access-token-expiry-minutes: 100
     refresh-token-expiry-days: 7
-    registration-token-expiry-minutes: 10
+    registration-token-expiry-minutes: 100
     issuer: tranzo-auth
 
 # S3 media storage (env: AWS_S3_MEDIA_BUCKET, AWS_REGION)
