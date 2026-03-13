@@ -1,5 +1,5 @@
 server:
-  port: 8089
+  port: 8083
 
 # Schema: Flyway runs first (V1__create_all_tables.sql), then Hibernate validates.
 # Tables are created once; on restart Flyway skips applied migrations, data persists (file-based H2).
@@ -38,9 +38,9 @@ spring:
 
   jwt:
     secret: 7kP9xQeZyWvT2A1bNcLmJkHGFdsapOiuRANDOMKEY
-    access-token-expiry-minutes: 15
+    access-token-expiry-minutes: 100
     refresh-token-expiry-days: 7
-    registration-token-expiry-minutes: 10
+    registration-token-expiry-minutes: 100
     issuer: tranzo-auth
 
 # S3 media storage (env: AWS_S3_MEDIA_BUCKET, AWS_REGION)
