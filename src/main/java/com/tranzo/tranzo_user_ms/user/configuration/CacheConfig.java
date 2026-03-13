@@ -1,7 +1,8 @@
-package com.tranzo.tranzo_user_ms.commons.config;
+package com.tranzo.tranzo_user_ms.user.configuration;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.tranzo.tranzo_user_ms.user.dto.OtpData;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
@@ -16,22 +17,26 @@ public class CacheConfig {
     // TODO : What should be maximum entry size?
 
     @Bean
-    public Cache<String, String> otpCache() {
+    public Cache<String, OtpData> otpCache() {
         return Caffeine.newBuilder()
                 .expireAfterWrite(5, TimeUnit.MINUTES) // OTP expiry
-                .maximumSize(10_000) // max entries
+                .maximumSize(100000) // max entries
                 .build();
     }
 
     @Bean
-    public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager =
-                new CaffeineCacheManager("aadhaarTokenCache");
-        cacheManager.setCaffeine(
-                Caffeine.newBuilder()
-                        .expireAfterWrite(23, TimeUnit.HOURS)
-                        .maximumSize(1)
-        );
-        return cacheManager;
+    public Cache<String, Integer> rateLimitCache() {
+        return Caffeine.newBuilder()
+                .expireAfterWrite(10, TimeUnit.MINUTES)
+                .maximumSize(100000)
+                .build();
+    }
+
+    @Bean
+    public Cache<String, String> aadhaarTokenCache() {
+        return Caffeine.newBuilder()
+                .expireAfterWrite(23, TimeUnit.HOURS)
+                .maximumSize(1)
+                .build();
     }
 }
