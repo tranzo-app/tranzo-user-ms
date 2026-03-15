@@ -37,6 +37,7 @@ class ExpenseControllerTest {
     private ExpenseController controller;
 
     private UUID userId;
+    private UUID tripId;
     private Long groupId;
     private Long expenseId;
     private ExpenseResponse expenseResponse;
@@ -46,13 +47,14 @@ class ExpenseControllerTest {
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
+        tripId = UUID.randomUUID();
         groupId = 1L;
         expenseId = 100L;
         expenseResponse = ExpenseResponse.builder().id(expenseId).name("Dinner").amount(new BigDecimal("100")).build();
         createRequest = CreateExpenseRequest.builder()
                 .name("Dinner")
                 .amount(new BigDecimal("100"))
-                .groupId(groupId)
+                .groupId(tripId)
                 .paidById(userId)
                 .splitType(Expense.SplitType.EQUAL)
                 .splits(List.of(

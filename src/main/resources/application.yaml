@@ -5,11 +5,20 @@ server:
 # Tables are created once; on restart Flyway skips applied migrations, data persists (file-based H2).
 # For future changes: add V2__description.sql, V3__..., never edit V1 after it has been applied.
 spring:
-  datasource:
-    url: jdbc:h2:file:./data/tranzo_db;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+#  datasource:
+#    url: jdbc:h2:file:./data/tranzo_db;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
+#    driver-class-name: org.h2.Driver
+#    username: sa
+#    password:
+  url: ${SPRING_DATASOURCE_URL}
+  driver-class-name: tranzo-db.cpu4oaigsdj5.ap-south-1.rds.amazonaws.com
+  username: TRANZO_DB
+  password: TRANZO_DB
+  hikari:
+    maximum-pool-size: 10
+    minimum-idle: 2
+    connection-timeout: 20000
+    idle-timeout: 300000
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:

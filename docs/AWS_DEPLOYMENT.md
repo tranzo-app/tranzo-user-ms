@@ -294,3 +294,84 @@ So: push/merge to master = deploy latest; manual **Run workflow** with a **ref**
 - **EC2** runs Docker; the deploy workflow copies code and runs `docker compose up -d --build` so the image is built on the server and the app goes live.
 
 This is the only deployment doc for this project; use it as the single guide to go live.
+
+---
+
+## AWS Troubleshooting: “Unable to connect” / OTP or API not working
+
+If the frontend shows **“Unable to connect to server”** or OTP/login fails when using the **AWS** backend, check the following on AWS and in your frontend.
+
+### 1. Frontend must call the AWS API URL (not localhost)
+
+- Your backend on AWS is reached at **https://api.yourdomain.com** (or whatever CNAME you set in GoDaddy in Step 8).
+- In the **frontend** (e.g. React/Next.js env), set the API base URL to this **exact** URL, e.g.:
+  - `VITE_API_URL=https://api.yourdomain.com` or  
+  - `REACT_APP_API_URL=https://api.yourdomain.com` or  
+  - `NEXT_PUBLIC_API_URL=https://api.yourdomain.com`
+- If the frontend still points to `http://localhost:8083` or any other URL, the browser will try to reach the wrong host and you’ll get “Unable to connect to server.”  
+**Fix:** Change the frontend config, rebuild, and redeploy the frontend.
+
+### 2. CORS: backend must allow your frontend origin
+
+- The backend (tranzo-user-ms) allows only **specific origins** in `SecurityConfig.java`:
+  - `https://www.tranzo.in`, `https://tranzo.in`, `http://localhost:3000`, etc.
+- The **origin** is the URL in the browser’s address bar when the user opens your app (e.g. `https://www.tranzo.in`).
+- If your frontend is served from a **different** URL (e.g. `https://tranzo.in` vs `https://www.tranzo.in`, or a CloudFront URL, or `http://...`), the browser will block the request and you may see connection/CORS errors.
+- **Fix:** Add that **exact** origin (scheme + host + port if non-default) to `SecurityConfig.corsConfigurationSource()` and redeploy the backend.
+
+### 3. Security groups (AWS Console)
+
+- **ALB security group (tranzo-alb-sg):**  
+  Inbound must allow **HTTP 80** and **HTTPS 443** from **0.0.0.0/0**.  
+  If 443 is missing or restricted, HTTPS from the browser will fail.
+- **EC2 security group (tranzo-ec2-sg):**  
+  Inbound must allow **Custom TCP 8083** from the **ALB security group** (tranzo-alb-sg).  
+  EC2 does **not** need to allow 8083 from 0.0.0.0/0; traffic should come only from the ALB.
+- **RDS (if you use PostgreSQL on RDS):**  
+  The RDS security group must allow **inbound** on the DB port (e.g. 5432) from the **EC2 security group** (or the security group attached to the ECS task, if you use ECS).  
+  Otherwise the app cannot connect to the database and may fail on startup or on first request.
+
+### 4. Target group health check
+
+- **EC2** → **Target Groups** → **tranzo-user-ms-tg** → **Targets** tab.  
+  The target must be **Healthy**. If it is **Unhealthy**, the ALB will not forward requests and the API will appear “down.”
+- This app does **not** use Spring Boot Actuator by default. So in the target group:
+  - **Health check path:** use **`/`** (or a path that returns **2xx** without auth).  
+  - If your app returns **401** for unauthenticated `GET /`, the health check may fail (depending on “Success codes”). Set **Success codes** to include **200,401** if needed, or expose a simple **GET** endpoint that returns 200 without auth (e.g. a small health controller or Actuator) and use that path.
+
+### 5. Environment variables on the server (Docker / EC2)
+
+- The container must get the right **env vars** for the **prod** profile, for example:
+  - `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD` (for RDS/PostgreSQL),
+  - `SPRING_JWT_SECRET`,
+  - `SPRING_PROFILES_ACTIVE=prod`.
+- If any of these are wrong or missing, the app may not start or may fail at runtime.  
+  Check **docker-compose** or the deploy workflow for how these are passed; set them in the task definition or `.env` on the server if needed.
+
+### 6. Quick test from your machine (no frontend)
+
+Run (replace with your real API host):
+
+```bash
+curl -v -X POST "https://api.yourdomain.com/auth/otp/request" \
+  -H "Content-Type: application/json" \
+  -d '{"countryCode":"+91","mobileNumber":"8002610537"}'
+```
+
+- If you get **200** and a JSON body (e.g. “OTP sent successfully”), the **backend on AWS is reachable and the OTP endpoint works**. The problem is then almost certainly **frontend base URL** or **CORS origin**.
+- If you get **connection refused / timeout**, the problem is **network/AWS**: security groups, ALB listener, target group health, or DNS.
+- If you get **4xx/5xx** with a response body, the server is reachable; use the status and body to debug (e.g. CORS preflight, validation, or server error).
+
+### Summary checklist (AWS)
+
+| Check | Where | What to verify |
+|------|--------|----------------|
+| Frontend API URL | Frontend env / config | Base URL = `https://api.yourdomain.com` (your real API host). |
+| CORS | `SecurityConfig.java` | Your frontend’s origin (e.g. `https://www.tranzo.in`) is in `addAllowedOrigin(...)`. |
+| ALB inbound | ALB security group | Ports 80 and 443 from 0.0.0.0/0. |
+| EC2 inbound | EC2 security group | Port 8083 from ALB SG only. |
+| RDS inbound (if used) | RDS security group | DB port from EC2 (or ECS task) SG. |
+| Target health | Target group → Targets | Status = Healthy. |
+| Health check path | Target group | Use `/` or a path that returns 2xx (or allow 401 in success codes). |
+| Env vars | Docker / EC2 / ECS | `SPRING_DATASOURCE_*`, `SPRING_JWT_SECRET`, `SPRING_PROFILES_ACTIVE=prod`. |
+| Backend test | Terminal | `curl -X POST https://api.yourdomain.com/auth/otp/request ...` returns 200. |

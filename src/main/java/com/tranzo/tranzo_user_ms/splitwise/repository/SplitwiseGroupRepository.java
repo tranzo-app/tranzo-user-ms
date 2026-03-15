@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -17,6 +18,11 @@ import java.util.UUID;
  */
 @Repository
 public interface SplitwiseGroupRepository extends JpaRepository<SplitwiseGroup, Long> {
+
+    /**
+     * Finds the group associated with a trip (at most one per trip).
+     */
+    Optional<SplitwiseGroup> findByTripId(UUID tripId);
 
     /**
      * Finds groups created by a specific user.

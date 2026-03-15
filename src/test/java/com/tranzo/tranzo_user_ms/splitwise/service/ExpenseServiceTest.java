@@ -57,6 +57,7 @@ class ExpenseServiceTest {
 
     private UUID payerId;
     private UUID memberId;
+    private UUID tripId;
     private Long groupId;
     private UsersEntity payer;
     private Expense expense;
@@ -67,6 +68,7 @@ class ExpenseServiceTest {
     void setUp() {
         payerId = UUID.randomUUID();
         memberId = UUID.randomUUID();
+        tripId = UUID.randomUUID();
         groupId = 1L;
         payer = new UsersEntity();
         payer.setUserUuid(payerId);
@@ -76,7 +78,7 @@ class ExpenseServiceTest {
         profile.setLastName("User");
         payer.setUserProfileEntity(profile);
 
-        group = SplitwiseGroup.builder().id(groupId).tripId(UUID.randomUUID()).createdBy(payerId).build();
+        group = SplitwiseGroup.builder().id(groupId).tripId(tripId).createdBy(payerId).build();
 
         expense = Expense.builder()
                 .id(100L)
@@ -92,7 +94,7 @@ class ExpenseServiceTest {
         createRequest = CreateExpenseRequest.builder()
                 .name("Dinner")
                 .amount(new BigDecimal("100.00"))
-                .groupId(groupId)
+                .groupId(tripId)
                 .paidById(payerId)
                 .splitType(Expense.SplitType.EQUAL)
                 .splits(List.of(
@@ -108,22 +110,33 @@ class ExpenseServiceTest {
         UsersEntity member = new UsersEntity();
         member.setUserUuid(memberId);
         member.setEmail("m@test.com");
+        when(splitwiseGroupRepository.findByTripId(tripId)).thenReturn(Optional.of(group));
         when(userRepository.findById(payerId)).thenReturn(Optional.of(payer));
         when(userRepository.findById(memberId)).thenReturn(Optional.of(member));
         when(expenseRepository.save(any(Expense.class))).thenReturn(expense);
-        when(splitwiseGroupRepository.findById(groupId)).thenReturn(Optional.of(group));
 
         ExpenseResponse response = expenseService.createExpense(createRequest, payerId);
 
         assertNotNull(response);
         assertEquals(expense.getName(), response.getName());
+        verify(splitwiseGroupRepository).findByTripId(tripId);
         verify(balanceService).updateBalancesForExpense(any(Expense.class));
         verify(activityService).logExpenseCreated(eq(payerId), eq(group), eq(expense.getId()), anyString(), any(BigDecimal.class));
     }
 
     @Test
+    @DisplayName("Should throw GroupNotFoundException when no group exists for trip")
+    void createExpense_GroupNotFoundForTrip() {
+        when(splitwiseGroupRepository.findByTripId(tripId)).thenReturn(Optional.empty());
+
+        assertThrows(GroupNotFoundException.class, () -> expenseService.createExpense(createRequest, payerId));
+        verify(expenseRepository, never()).save(any());
+    }
+
+    @Test
     @DisplayName("Should throw when paid-by user not found")
     void createExpense_PaidByNotFound() {
+        when(splitwiseGroupRepository.findByTripId(tripId)).thenReturn(Optional.of(group));
         when(userRepository.findById(payerId)).thenReturn(Optional.empty());
 
         assertThrows(Exception.class, () -> expenseService.createExpense(createRequest, payerId));
@@ -135,6 +148,7 @@ class ExpenseServiceTest {
     void createExpense_InvalidSplits() {
         createRequest.getSplits().get(0).setAmount(new BigDecimal("60.00"));
         createRequest.getSplits().get(1).setAmount(new BigDecimal("50.00"));
+        when(splitwiseGroupRepository.findByTripId(tripId)).thenReturn(Optional.of(group));
         when(userRepository.findById(payerId)).thenReturn(Optional.of(payer));
 
         assertThrows(InvalidSplitException.class, () -> expenseService.createExpense(createRequest, payerId));
