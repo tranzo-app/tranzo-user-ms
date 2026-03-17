@@ -31,7 +31,6 @@ public class OtpService {
     private final OtpCacheService cacheService;
     private final SmsService smsService;
     private final EmailService emailService;
-    private final Cache<String, Integer> rateLimitCache;
 
     private static final int MAX_ATTEMPTS = 3;
     private static final int MAX_REQUESTS = 3;
