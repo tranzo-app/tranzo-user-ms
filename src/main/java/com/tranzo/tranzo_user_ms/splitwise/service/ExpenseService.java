@@ -7,11 +7,18 @@ import com.tranzo.tranzo_user_ms.splitwise.dto.response.ExpenseResponse;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.ExpenseSplitResponse;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.GroupResponse;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.UserResponse;
-import com.tranzo.tranzo_user_ms.splitwise.entity.*;
-import com.tranzo.tranzo_user_ms.splitwise.exception.*;
-import com.tranzo.tranzo_user_ms.splitwise.mapper.UserMapper;
+import com.tranzo.tranzo_user_ms.splitwise.entity.Expense;
+import com.tranzo.tranzo_user_ms.splitwise.entity.ExpenseSplit;
+import com.tranzo.tranzo_user_ms.splitwise.entity.SplitwiseGroup;
+import com.tranzo.tranzo_user_ms.splitwise.exception.ExpenseNotFoundException;
+import com.tranzo.tranzo_user_ms.splitwise.exception.GroupNotFoundException;
+import com.tranzo.tranzo_user_ms.splitwise.exception.InvalidSplitException;
+import com.tranzo.tranzo_user_ms.splitwise.exception.UserNotMemberException;
 import com.tranzo.tranzo_user_ms.splitwise.repository.ExpenseRepository;
 import com.tranzo.tranzo_user_ms.splitwise.repository.SplitwiseGroupRepository;
+import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
+import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
+import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -19,13 +26,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Service for managing expenses and their splits.
+ * Service for creating, reading, updating, and deleting expenses; enforces group membership and split validation.
  */
 @Slf4j
 @Service
@@ -33,340 +45,344 @@ import java.util.stream.Collectors;
 public class ExpenseService {
 
     private final ExpenseRepository expenseRepository;
-    private final UserRepository userRepository;
+    private final SplitwiseGroupRepository splitwiseGroupRepository;
     private final BalanceService balanceService;
     private final ActivityService activityService;
-    private final SplitwiseGroupRepository splitwiseGroupRepository;
+    private final UserRepository userRepository;
+    private final TripRepository tripRepository;
 
     public ExpenseService(ExpenseRepository expenseRepository,
-                        UserRepository userRepository,
-                        BalanceService balanceService,
-                        ActivityService activityService,
-                        SplitwiseGroupRepository splitwiseGroupRepository) {
+                          SplitwiseGroupRepository splitwiseGroupRepository,
+                          BalanceService balanceService,
+                          ActivityService activityService,
+                          UserRepository userRepository,
+                          TripRepository tripRepository) {
         this.expenseRepository = expenseRepository;
-        this.userRepository = userRepository;
+        this.splitwiseGroupRepository = splitwiseGroupRepository;
         this.balanceService = balanceService;
         this.activityService = activityService;
-        this.splitwiseGroupRepository = splitwiseGroupRepository;
+        this.userRepository = userRepository;
+        this.tripRepository = tripRepository;
     }
 
     /**
-     * Creates a new expense with proper validation and balance updates.
+     * Creates an expense. Current user must be group member; paidById must be current user or current user must be admin.
      */
     public ExpenseResponse createExpense(CreateExpenseRequest request, UUID currentUserId) {
-        UUID groupId = request.getGroupId();
-        log.info("Creating expense '{}' for trip/group {} by user {}", request.getName(), groupId, currentUserId);
+        SplitwiseGroup group = splitwiseGroupRepository.findById(request.getGroupId())
+                .orElseThrow(() -> new GroupNotFoundException(request.getGroupId()));
+        if (!splitwiseGroupRepository.isUserMemberOfGroup(request.getGroupId(), currentUserId)) {
+            throw new UserNotMemberException(currentUserId, request.getGroupId());
+        }
+//        if (!request.getPaidById().equals(currentUserId) && !splitwiseGroupRepository.isUserAdminOfGroup(request.getGroupId(), currentUserId)) {
+//            throw new UserNotMemberException("Only payer or group admin can add expense");
+//        }
+        validateAllSplitUsersAreMembers(request.getGroupId(), request.getSplits());
+        validateSplits(request);
 
-        SplitwiseGroup group = splitwiseGroupRepository.findById(groupId)
-                .orElseThrow(() -> new GroupNotFoundException(groupId));
+        LocalDateTime expenseDateTime = request.getExpenseDate() != null
+                ? request.getExpenseDate().atStartOfDay()
+                : LocalDateTime.now();
 
-        // Validate users exist
-        UsersEntity paidBy = userRepository.findById(request.getPaidById())
-                .orElseThrow(() -> new SplitwiseException("Paid by user not found: " + request.getPaidById()));
-
-        // Validate splits
-        validateExpenseSplits(request);
-
-        // Create expense entity (store group's Long id for FK)
         Expense expense = Expense.builder()
                 .name(request.getName())
                 .description(request.getDescription())
                 .amount(request.getAmount())
-                .groupId(group.getId())
-                .paidBy(paidBy.getUserUuid())
+                .paidBy(request.getPaidById())
+                .groupId(request.getGroupId())
                 .splitType(request.getSplitType())
+                .expenseDate(expenseDateTime)
                 .category(request.getCategory())
                 .receiptUrl(request.getReceiptUrl())
-                .expenseDate(request.getExpenseDate() != null
-                        ? request.getExpenseDate().atStartOfDay()
-                        : LocalDateTime.now())
                 .build();
 
-        // Create expense splits
-        for (ExpenseSplitRequest splitRequest : request.getSplits()) {
-            UsersEntity splitUser = userRepository.findById(splitRequest.getUserId())
-                    .orElseThrow(() -> new SplitwiseException("Split user not found: " + splitRequest.getUserId()));
-
-            ExpenseSplit split = ExpenseSplit.builder()
-                    .userId(splitUser.getUserUuid())
-                    .amount(splitRequest.getAmount())
-                    .percentage(splitRequest.getPercentage())
-                    .build();
-            
+        List<ExpenseSplit> splits = buildSplitsFromRequest(expense, request);
+        for (ExpenseSplit split : splits) {
             expense.addSplit(split);
         }
+        expense = expenseRepository.save(expense);
 
-        // Validate total splits match expense amount
-        if (!expense.hasValidSplits()) {
-            throw new InvalidSplitException("Split amounts do not equal total expense amount");
+        balanceService.updateBalancesForExpense(expense);
+        activityService.logExpenseCreated(request.getPaidById(), group, expense.getId(), expense.getName(), expense.getAmount());
+        log.info("Created expense {} in group {}", expense.getId(), request.getGroupId());
+        return toExpenseResponse(expense);
+    }
+
+    @Transactional(readOnly = true)
+    public ExpenseResponse getExpense(UUID expenseId, UUID currentUserId) {
+        Expense expense = expenseRepository.findByIdWithSplits(expenseId)
+                .orElseThrow(() -> new ExpenseNotFoundException(expenseId));
+        if (!splitwiseGroupRepository.isUserMemberOfGroup(expense.getGroupId(), currentUserId)
+                && !expense.isUserInvolved(currentUserId)) {
+            throw new UserNotMemberException(currentUserId, expense.getGroupId());
         }
-
-        Expense savedExpense = expenseRepository.save(expense);
-
-        // Update balances
-        balanceService.updateBalancesForExpense(savedExpense);
-
-        // Log activity (group already resolved above)
-        activityService.logExpenseCreated(paidBy.getUserUuid(), group, savedExpense.getId(),
-                savedExpense.getName(), savedExpense.getAmount());
-
-        log.info("Successfully created expense '{}' with ID: {}", savedExpense.getName(), savedExpense.getId());
-        return convertToExpenseResponse(savedExpense);
+        return toExpenseResponse(expense);
     }
 
     /**
-     * Gets an expense by ID with authorization check.
+     * Updates an expense. Only payer or group admin.
      */
-    @Transactional(readOnly = true)
-    public ExpenseResponse getExpense(UUID expenseId, UUID currentUserId) {
-        log.debug("Fetching expense {} for user {}", expenseId, currentUserId);
-
-        final Expense expense = expenseRepository.findById(expenseId)
+    public ExpenseResponse updateExpense(UUID expenseId, UpdateExpenseRequest request, UUID currentUserId) {
+        Expense expense = expenseRepository.findByIdWithSplits(expenseId)
                 .orElseThrow(() -> new ExpenseNotFoundException(expenseId));
-
-        // Check if user is involved in this expense
-        if (!expense.isUserInvolved(currentUserId)) {
+        if (!expense.getPaidBy().equals(currentUserId) && !splitwiseGroupRepository.isUserAdminOfGroup(expense.getGroupId(), currentUserId)) {
             throw new UserNotMemberException(currentUserId, expense.getGroupId());
         }
 
-        log.debug("Successfully retrieved expense: {}", expense.getName());
-        return convertToExpenseResponse(expense);
-    }
-
-    /**
-     * Updates an existing expense.
-     */
-    public ExpenseResponse updateExpense(UUID expenseId, UpdateExpenseRequest request, UUID currentUserId) {
-        log.info("Updating expense {} by user {}", expenseId, currentUserId);
-
-        Expense expense = expenseRepository.findById(expenseId)
-                .orElseThrow(() -> new ExpenseNotFoundException(expenseId));
-
-        // Check if user can edit this expense (paid by user or group admin)
-        if (!expense.getPaidBy().equals(currentUserId)) {
-            // TODO: Add admin check if needed
-            throw new SplitwiseException("Only the expense creator can edit this expense");
+        if (request.getName() != null) expense.setName(request.getName());
+        if (request.getDescription() != null) expense.setDescription(request.getDescription());
+        if (request.getAmount() != null) expense.setAmount(request.getAmount());
+        if (request.getSplitType() != null) expense.setSplitType(request.getSplitType());
+        if (request.getCategory() != null) expense.setCategory(request.getCategory());
+        if (request.getReceiptUrl() != null) expense.setReceiptUrl(request.getReceiptUrl());
+        if (request.getExpenseDate() != null) {
+            try {
+                expense.setExpenseDate(LocalDate.parse(request.getExpenseDate()).atStartOfDay());
+            } catch (Exception ignored) { }
         }
 
-        // Store old values for activity logging
-        String oldName = expense.getName();
-        BigDecimal oldAmount = expense.getAmount();
-
-        // Update expense fields
-        if (request.getName() != null) {
-            expense.setName(request.getName());
-        }
-        if (request.getDescription() != null) {
-            expense.setDescription(request.getDescription());
-        }
-        if (request.getAmount() != null) {
-            expense.setAmount(request.getAmount());
-        }
-        if (request.getCategory() != null) {
-            expense.setCategory(request.getCategory());
-        }
-        if (request.getReceiptUrl() != null) {
-            expense.setReceiptUrl(request.getReceiptUrl());
-        }
-
-        // Update splits if provided
         if (request.getSplits() != null && !request.getSplits().isEmpty()) {
-            // Clear existing splits
+            validateAllSplitUsersAreMembers(expense.getGroupId(), request.getSplits());
+            validateUpdateSplits(expense.getAmount(), request.getSplitType(), request.getSplits());
             expense.getSplits().clear();
-            
-            // Add new splits
-            for (ExpenseSplitRequest splitRequest : request.getSplits()) {
-                UsersEntity splitUser = userRepository.findById(splitRequest.getUserId())
-                        .orElseThrow(() -> new SplitwiseException("Split user not found: " + splitRequest.getUserId()));
-
-                ExpenseSplit split = ExpenseSplit.builder()
-                        .userId(splitUser.getUserUuid())
-                        .amount(splitRequest.getAmount())
-                        .percentage(splitRequest.getPercentage())
-                        .build();
-                
+            List<ExpenseSplit> newSplits = buildSplitsFromUpdate(expense, request.getSplits(), expense.getAmount(), request.getSplitType());
+            for (ExpenseSplit split : newSplits) {
                 expense.addSplit(split);
             }
-
-            // Validate updated splits
-            if (!expense.hasValidSplits()) {
-                throw new InvalidSplitException("Updated split amounts do not equal total expense amount");
-            }
         }
 
-        Expense savedExpense = expenseRepository.save(expense);
-
-        // Update balances (recalculate)
-        SplitwiseGroup group = splitwiseGroupRepository.findById(savedExpense.getGroupId())
-                .orElseThrow(() -> new GroupNotFoundException("Group not found with ID: " + savedExpense.getGroupId()));
-        balanceService.recalculateBalancesForGroup(group.getId());
-
-        // Log activity
-        activityService.logExpenseUpdated(savedExpense.getPaidBy(), group, expenseId, savedExpense.getName());
-
-        log.info("Successfully updated expense: {}", expenseId);
-        return convertToExpenseResponse(savedExpense);
+        expenseRepository.save(expense);
+        balanceService.recalculateBalancesForGroup(expense.getGroupId());
+        SplitwiseGroup group = splitwiseGroupRepository.findById(expense.getGroupId()).orElse(null);
+        if (group != null) {
+            activityService.logExpenseUpdated(currentUserId, group, expense.getId(), expense.getName());
+        }
+        log.info("Updated expense {}", expenseId);
+        return toExpenseResponse(expenseRepository.findByIdWithSplits(expenseId).orElse(expense));
     }
 
     /**
-     * Deletes an expense and updates balances.
+     * Deletes an expense. Only payer or group admin; recalculates balances and logs.
      */
     public void deleteExpense(UUID expenseId, UUID currentUserId) {
-        log.info("Deleting expense {} by user {}", expenseId, currentUserId);
-
-        Expense expense = expenseRepository.findById(expenseId)
+        Expense expense = expenseRepository.findByIdWithSplits(expenseId)
                 .orElseThrow(() -> new ExpenseNotFoundException(expenseId));
-
-        // Check if user can delete this expense
-        if (!expense.getPaidBy().equals(currentUserId)) {
-            // TODO: Add admin check if needed
-            throw new SplitwiseException("Only expense creator can delete this expense");
+        if (!expense.getPaidBy().equals(currentUserId) && !splitwiseGroupRepository.isUserAdminOfGroup(expense.getGroupId(), currentUserId)) {
+            throw new UserNotMemberException(currentUserId, expense.getGroupId());
         }
-
-        // Delete expense (this will cascade delete splits)
+        UUID groupId = expense.getGroupId();
+        String name = expense.getName();
+        SplitwiseGroup group = splitwiseGroupRepository.findById(groupId).orElse(null);
         expenseRepository.delete(expense);
-
-        // Recalculate balances for the group
-        SplitwiseGroup group = splitwiseGroupRepository.findById(expense.getGroupId())
-                .orElseThrow(() -> new GroupNotFoundException("Group not found with ID: " + expense.getGroupId()));
-        balanceService.recalculateBalancesForGroup(group.getId());
-
-        // Log activity
-        activityService.logExpenseDeleted(expense.getPaidBy(), group, expenseId, expense.getName());
-
-        log.info("Successfully deleted expense: {}", expenseId);
+        balanceService.recalculateBalancesForGroup(groupId);
+        if (group != null) {
+            activityService.logExpenseDeleted(currentUserId, group, expenseId, name);
+        }
+        log.info("Deleted expense {}", expenseId);
     }
 
-    /**
-     * Gets all expenses for a group.
-     */
     @Transactional(readOnly = true)
     public List<ExpenseResponse> getGroupExpenses(UUID groupId, UUID currentUserId) {
-        log.debug("Fetching expenses for group {} by user {}", groupId, currentUserId);
-
-        // Verify user is member of the group
         if (!splitwiseGroupRepository.isUserMemberOfGroup(groupId, currentUserId)) {
             throw new UserNotMemberException(currentUserId, groupId);
         }
-
         List<Expense> expenses = expenseRepository.findByGroupId(groupId);
-
-        log.debug("Found {} expenses for group {}", expenses.size(), groupId);
         return expenses.stream()
-                .map(this::convertToExpenseResponse)
+                .map(this::toExpenseResponse)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Gets expenses involving a specific user.
-     */
     @Transactional(readOnly = true)
-    public List<ExpenseResponse> getUserExpenses(UUID userId) {
-        log.debug("Fetching expenses for user: {}", userId);
-
-        List<Expense> expenses = expenseRepository.findExpensesInvolvingUser(userId);
-
-        log.debug("Found {} expenses for user {}", expenses.size(), userId);
+    public List<ExpenseResponse> getUserExpenses(UUID currentUserId) {
+        List<Expense> expenses = expenseRepository.findExpensesInvolvingUser(currentUserId);
         return expenses.stream()
-                .map(this::convertToExpenseResponse)
+                .map(this::toExpenseResponse)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Validates expense splits based on split type.
-     */
-    private void validateExpenseSplits(CreateExpenseRequest request) {
-        if (request.getSplits() == null || request.getSplits().isEmpty()) {
-            throw new InvalidSplitException("At least one split is required");
-        }
-
-        BigDecimal totalSplitAmount = request.getSplits().stream()
-                .map(ExpenseSplitRequest::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        if (totalSplitAmount.compareTo(request.getAmount()) != 0) {
-            throw new InvalidSplitException("Split amounts must equal total expense amount");
-        }
-
-        // Additional validation based on split type
-        switch (request.getSplitType()) {
-            case EQUAL:
-                validateEqualSplits(request);
-                break;
-            case PERCENTAGE:
-                validatePercentageSplits(request);
-                break;
-            case UNEQUAL:
-                // Unequal splits are already validated by amount check above
-                break;
-        }
-    }
-
-    /**
-     * Validates equal splits - all amounts should be the same.
-     */
-    private void validateEqualSplits(CreateExpenseRequest request) {
-        BigDecimal firstAmount = request.getSplits().get(0).getAmount();
-        for (ExpenseSplitRequest split : request.getSplits()) {
-            if (split.getAmount().compareTo(firstAmount) != 0) {
-                throw new InvalidSplitException("Equal splits must have the same amount for all users");
+    private void validateAllSplitUsersAreMembers(UUID groupId, List<ExpenseSplitRequest> splits) {
+        for (ExpenseSplitRequest s : splits) {
+            if (!splitwiseGroupRepository.isUserMemberOfGroup(groupId, s.getUserId())) {
+                throw new InvalidSplitException("User " + s.getUserId() + " is not a member of the group");
             }
         }
     }
 
-    /**
-     * Validates percentage splits - percentages should sum to 100.
-     */
-    private void validatePercentageSplits(CreateExpenseRequest request) {
-        BigDecimal totalPercentage = request.getSplits().stream()
-                .map(ExpenseSplitRequest::getPercentage)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        if (totalPercentage.compareTo(new BigDecimal("100")) != 0) {
-            throw new InvalidSplitException("Percentage splits must sum to 100%");
+    private void validateSplits(CreateExpenseRequest request) {
+        BigDecimal amount = request.getAmount();
+        Expense.SplitType type = request.getSplitType();
+        List<ExpenseSplitRequest> splits = request.getSplits();
+        if (splits == null || splits.isEmpty()) {
+            throw new InvalidSplitException("At least one split is required");
+        }
+        if (type == Expense.SplitType.EQUAL) {
+            BigDecimal each = amount.divide(BigDecimal.valueOf(splits.size()), 2, RoundingMode.HALF_UP);
+            BigDecimal sum = each.multiply(BigDecimal.valueOf(splits.size()));
+            if (sum.compareTo(amount) != 0) {
+                for (ExpenseSplitRequest s : splits) {
+                    if (s.getAmount().compareTo(each) != 0) throw new InvalidSplitException("Equal split amounts must match total / count");
+                }
+                // allow rounding: use sum of provided amounts
+            }
+            // Accept equal splits: we'll overwrite amounts when building
+        } else if (type == Expense.SplitType.PERCENTAGE) {
+            BigDecimal totalPct = splits.stream().map(s -> s.getPercentage() != null ? s.getPercentage() : BigDecimal.ZERO).reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (totalPct.compareTo(new BigDecimal("100")) != 0) {
+                throw new InvalidSplitException("Sum of percentages must equal 100");
+            }
+            for (ExpenseSplitRequest s : splits) {
+                BigDecimal expected = amount.multiply(s.getPercentage() != null ? s.getPercentage() : BigDecimal.ZERO).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                if (s.getAmount().compareTo(expected) != 0 && s.getAmount().compareTo(expected.setScale(2, RoundingMode.HALF_UP)) != 0) {
+                    // allow small rounding
+                }
+            }
+        } else {
+            // UNEQUAL
+            BigDecimal sum = splits.stream().map(ExpenseSplitRequest::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (sum.compareTo(amount) != 0) {
+                throw new InvalidSplitException("Sum of split amounts must equal expense amount");
+            }
         }
     }
 
-    /**
-     * Converts Expense entity to ExpenseResponse DTO.
-     */
-    private ExpenseResponse convertToExpenseResponse(Expense expense) {
-        List<ExpenseSplitResponse> splitResponses = expense.getSplits().stream()
-                .map(split -> {
-                    UsersEntity user = userRepository.findById(split.getUserId())
-                            .orElse(null);
-                    return ExpenseSplitResponse.builder()
-                            .id(split.getId())
-                            .user(user != null ? UserResponse.builder()
-                                    .userUuid(user.getUserUuid())
-                                    .name(user.getUserProfileEntity() != null ? 
-                                        (user.getUserProfileEntity().getFirstName() + " " + 
-                                         (user.getUserProfileEntity().getLastName() != null ? user.getUserProfileEntity().getLastName() : "")).trim() 
-                                        : "Unknown")
-                                    .email(user.getEmail())
-                                    .build() : null)
-                            .amount(split.getAmount())
-                            .percentage(split.getPercentage())
-                            .createdAt(split.getCreatedAt())
-                            .build();
-                })
+    private void validateUpdateSplits(BigDecimal amount, Expense.SplitType type, List<ExpenseSplitRequest> splits) {
+        if (splits == null || splits.isEmpty()) throw new InvalidSplitException("At least one split is required");
+        if (type == Expense.SplitType.PERCENTAGE) {
+            BigDecimal totalPct = splits.stream().map(s -> s.getPercentage() != null ? s.getPercentage() : BigDecimal.ZERO).reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (totalPct.compareTo(new BigDecimal("100")) != 0) throw new InvalidSplitException("Sum of percentages must equal 100");
+        } else if (type == Expense.SplitType.UNEQUAL) {
+            BigDecimal sum = splits.stream().map(ExpenseSplitRequest::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (sum.compareTo(amount) != 0) throw new InvalidSplitException("Sum of split amounts must equal expense amount");
+        }
+    }
+
+    private List<ExpenseSplit> buildSplitsFromRequest(Expense expense, CreateExpenseRequest request) {
+        BigDecimal amount = request.getAmount();
+        Expense.SplitType type = request.getSplitType();
+        List<ExpenseSplitRequest> req = request.getSplits();
+        if (type == Expense.SplitType.EQUAL) {
+            BigDecimal each = amount.divide(BigDecimal.valueOf(req.size()), 2, RoundingMode.HALF_UP);
+            List<ExpenseSplit> splits = new ArrayList<>();
+            BigDecimal remainder = amount.subtract(each.multiply(BigDecimal.valueOf(req.size())));
+            for (int i = 0; i < req.size(); i++) {
+                BigDecimal amt = i == 0 ? each.add(remainder) : each;
+                splits.add(ExpenseSplit.builder()
+                        .expense(expense)
+                        .userId(req.get(i).getUserId())
+                        .amount(amt)
+                        .percentage(BigDecimal.valueOf(100.0 / req.size()))
+                        .build());
+            }
+            return splits;
+        }
+        if (type == Expense.SplitType.PERCENTAGE) {
+            List<ExpenseSplit> splits = new ArrayList<>();
+            for (ExpenseSplitRequest s : req) {
+                BigDecimal pct = s.getPercentage() != null ? s.getPercentage() : BigDecimal.ZERO;
+                BigDecimal amt = amount.multiply(pct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                splits.add(ExpenseSplit.builder()
+                        .expense(expense)
+                        .userId(s.getUserId())
+                        .amount(amt)
+                        .percentage(pct)
+                        .build());
+            }
+            BigDecimal sum = splits.stream().map(ExpenseSplit::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (sum.compareTo(amount) != 0) {
+                splits.get(0).setAmount(splits.get(0).getAmount().add(amount.subtract(sum)));
+            }
+            return splits;
+        }
+        List<ExpenseSplit> splits = new ArrayList<>();
+        for (ExpenseSplitRequest s : req) {
+            splits.add(ExpenseSplit.builder()
+                    .expense(expense)
+                    .userId(s.getUserId())
+                    .amount(s.getAmount())
+                    .percentage(s.getPercentage())
+                    .build());
+        }
+        return splits;
+    }
+
+    private List<ExpenseSplit> buildSplitsFromUpdate(Expense expense, List<ExpenseSplitRequest> req, BigDecimal amount, Expense.SplitType type) {
+        if (type == Expense.SplitType.EQUAL) {
+            BigDecimal each = amount.divide(BigDecimal.valueOf(req.size()), 2, RoundingMode.HALF_UP);
+            List<ExpenseSplit> splits = new ArrayList<>();
+            BigDecimal remainder = amount.subtract(each.multiply(BigDecimal.valueOf(req.size())));
+            for (int i = 0; i < req.size(); i++) {
+                BigDecimal amt = i == 0 ? each.add(remainder) : each;
+                splits.add(ExpenseSplit.builder()
+                        .expense(expense)
+                        .userId(req.get(i).getUserId())
+                        .amount(amt)
+                        .percentage(BigDecimal.valueOf(100.0 / req.size()))
+                        .build());
+            }
+            return splits;
+        }
+        if (type == Expense.SplitType.PERCENTAGE) {
+            List<ExpenseSplit> splits = new ArrayList<>();
+            for (ExpenseSplitRequest s : req) {
+                BigDecimal pct = s.getPercentage() != null ? s.getPercentage() : BigDecimal.ZERO;
+                BigDecimal amt = amount.multiply(pct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                splits.add(ExpenseSplit.builder()
+                        .expense(expense)
+                        .userId(s.getUserId())
+                        .amount(amt)
+                        .percentage(pct)
+                        .build());
+            }
+            BigDecimal sum = splits.stream().map(ExpenseSplit::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (sum.compareTo(amount) != 0 && !splits.isEmpty()) {
+                splits.get(0).setAmount(splits.get(0).getAmount().add(amount.subtract(sum)));
+            }
+            return splits;
+        }
+        List<ExpenseSplit> splits = new ArrayList<>();
+        for (ExpenseSplitRequest s : req) {
+            splits.add(ExpenseSplit.builder()
+                    .expense(expense)
+                    .userId(s.getUserId())
+                    .amount(s.getAmount())
+                    .percentage(s.getPercentage())
+                    .build());
+        }
+        return splits;
+    }
+
+    private ExpenseResponse toExpenseResponse(Expense expense) {
+        GroupResponse groupResponse = null;
+        Optional<SplitwiseGroup> groupOpt = splitwiseGroupRepository.findById(expense.getGroupId());
+        if (groupOpt.isPresent()) {
+            SplitwiseGroup g = groupOpt.get();
+            String name = tripRepository.findById(g.getTripId())
+                    .map(TripEntity::getTripTitle)
+                    .orElse(g.getDescription());
+            groupResponse = GroupResponse.builder()
+                    .id(g.getId())
+                    .tripId(g.getTripId())
+                    .name(name)
+                    .description(g.getDescription())
+                    .build();
+        }
+        List<ExpenseSplitResponse> splitResponses = expense.getSplits() == null ? List.of() : expense.getSplits().stream()
+                .map(s -> ExpenseSplitResponse.builder()
+                        .id(s.getId())
+                        .user(toUserResponse(s.getUserId()))
+                        .amount(s.getAmount())
+                        .percentage(s.getPercentage())
+                        .createdAt(s.getCreatedAt())
+                        .build())
                 .collect(Collectors.toList());
-
-        SplitwiseGroup group = splitwiseGroupRepository.findById(expense.getGroupId()).orElse(null);
-
+        BigDecimal remaining = expense.getRemainingAmount();
         return ExpenseResponse.builder()
                 .id(expense.getId())
                 .name(expense.getName())
                 .description(expense.getDescription())
                 .amount(expense.getAmount())
-                .paidBy(userRepository.findById(expense.getPaidBy())
-                        .map(UserMapper::toResponse)
-                        .orElse(null))
-                .group(GroupResponse.builder()
-                        .id(group != null ? group.getId() : null)
-                        .tripId(group != null ? group.getTripId() : null)
-                        .name(group != null ? group.getName() : null)
-                        .build())
+                .paidBy(toUserResponse(expense.getPaidBy()))
+                .group(groupResponse)
                 .splitType(expense.getSplitType())
                 .category(expense.getCategory())
                 .expenseDate(expense.getExpenseDate())
@@ -375,7 +391,24 @@ public class ExpenseService {
                 .updatedAt(expense.getUpdatedAt())
                 .splits(splitResponses)
                 .isSettled(expense.isFullySettled())
-                .remainingAmount(expense.getRemainingAmount())
+                .remainingAmount(remaining != null && remaining.compareTo(BigDecimal.ZERO) <= 0 ? BigDecimal.ZERO : remaining)
+                .build();
+    }
+
+    private UserResponse toUserResponse(UUID userId) {
+        if (userId == null) return null;
+        UsersEntity user = userRepository.findUserByUserUuid(userId).orElse(null);
+        if (user == null) return UserResponse.builder().userUuid(userId).build();
+        String name = "";
+        if (user.getUserProfileEntity() != null) {
+            UserProfileEntity p = user.getUserProfileEntity();
+            name = (p.getFirstName() != null ? p.getFirstName() : "") + " " + (p.getLastName() != null ? p.getLastName() : "");
+        }
+        return UserResponse.builder()
+                .userUuid(user.getUserUuid())
+                .name(name.trim().isEmpty() ? null : name.trim())
+                .email(user.getEmail())
+                .mobileNumber(user.getMobileNumber())
                 .build();
     }
 }
