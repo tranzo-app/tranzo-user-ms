@@ -80,7 +80,7 @@ public class TripManagementController {
         return ResponseEntity.ok(ResponseDto.success("Trip details have been fetched successfully for the user", tripDto));
     }
 
-    @GetMapping("")
+    @GetMapping("/")
     public ResponseEntity<ResponseDto<List<TripViewDto>>> fetchAllTrips() throws AuthException {
         List<TripViewDto> tripDto = tripManagementService.fetchAllTrips();
         return ResponseEntity.ok(ResponseDto.success("All trip details have been fetched successfully", tripDto));

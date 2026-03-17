@@ -26,6 +26,7 @@ public class TripViewDto {
     private Double estimatedBudget;
     private Integer maxParticipants;
     private Boolean isFull;
+    private Boolean isTripHost;
     private String tripFullReason;
     private JoinPolicy joinPolicy;
     private VisibilityStatus visibilityStatus;
