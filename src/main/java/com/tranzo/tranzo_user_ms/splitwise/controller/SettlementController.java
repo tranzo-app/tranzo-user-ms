@@ -33,8 +33,7 @@ public class SettlementController {
      * Creates a new settlement.
      */
     @PostMapping
-    public ResponseEntity<SettlementResponse> createSettlement(
-            @Valid @RequestBody CreateSettlementRequest request) throws AuthException {
+    public ResponseEntity<SettlementResponse> createSettlement(@Valid @RequestBody CreateSettlementRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to create settlement: {} -> {} amount {}", 
                  request.getPaidById(), request.getPaidToId(), request.getAmount());
@@ -87,8 +86,7 @@ public class SettlementController {
      * Gets optimized settlement proposals for a group.
      */
     @GetMapping("/optimize/{groupId}")
-    public ResponseEntity<List<com.tranzo.tranzo_user_ms.splitwise.dto.SettlementProposal>> getOptimizedSettlements(
-            @PathVariable UUID groupId) {
+    public ResponseEntity<List<com.tranzo.tranzo_user_ms.splitwise.dto.SettlementProposal>> getOptimizedSettlements(@PathVariable UUID groupId) {
         
         log.info("Received request to optimize settlements for group: {}", groupId);
         

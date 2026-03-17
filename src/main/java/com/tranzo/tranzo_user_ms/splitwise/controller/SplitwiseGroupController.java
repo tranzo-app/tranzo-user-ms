@@ -34,8 +34,7 @@ public class SplitwiseGroupController {
      * Creates a new group.
      */
     @PostMapping
-    public ResponseEntity<GroupResponse> createGroup(
-            @Valid @RequestBody CreateGroupRequest request) throws AuthException {
+    public ResponseEntity<GroupResponse> createGroup(@Valid @RequestBody CreateGroupRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to create group: {}", request.getName());
         GroupResponse response = groupService.createGroup(request, userId);
@@ -62,9 +61,7 @@ public class SplitwiseGroupController {
      * Updates a group.
      */
     @PutMapping("/{groupId}")
-    public ResponseEntity<GroupResponse> updateGroup(
-            @PathVariable UUID groupId,
-            @Valid @RequestBody CreateGroupRequest request) throws AuthException {
+    public ResponseEntity<GroupResponse> updateGroup(@PathVariable UUID groupId, @Valid @RequestBody CreateGroupRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to update group: {}", groupId);
         GroupResponse response = groupService.updateGroup(groupId, request, userId);
@@ -77,8 +74,7 @@ public class SplitwiseGroupController {
      * Deletes a group.
      */
     @DeleteMapping("/{groupId}")
-    public ResponseEntity<Void> deleteGroup(
-            @PathVariable UUID groupId) throws AuthException {
+    public ResponseEntity<Void> deleteGroup(@PathVariable UUID groupId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to delete group: {}", groupId);
         groupService.deleteGroup(groupId, userId);
@@ -104,9 +100,7 @@ public class SplitwiseGroupController {
      * Adds members to a group.
      */
     @PostMapping("/{groupId}/members")
-    public ResponseEntity<GroupResponse> addMembers(
-            @PathVariable UUID groupId,
-            @Valid @RequestBody AddGroupMemberRequest request) throws AuthException {
+    public ResponseEntity<GroupResponse> addMembers(@PathVariable UUID groupId, @Valid @RequestBody AddGroupMemberRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to add {} members to group: {}", 
                  request.getMemberIds().size(), groupId);
@@ -120,9 +114,7 @@ public class SplitwiseGroupController {
      * Removes a member from a group.
      */
     @DeleteMapping("/{groupId}/members/{memberId}")
-    public ResponseEntity<GroupResponse> removeMember(
-            @PathVariable UUID groupId,
-            @PathVariable UUID memberId) throws AuthException {
+    public ResponseEntity<GroupResponse> removeMember(@PathVariable UUID groupId, @PathVariable UUID memberId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to remove member {} from group: {}", memberId, groupId);
         GroupResponse response = groupService.removeMember(groupId, memberId, userId);

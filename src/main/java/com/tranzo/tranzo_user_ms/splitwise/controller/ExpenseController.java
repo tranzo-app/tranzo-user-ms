@@ -34,8 +34,7 @@ public class ExpenseController {
      * Creates a new expense.
      */
     @PostMapping
-    public ResponseEntity<ExpenseResponse> createExpense(
-            @Valid @RequestBody CreateExpenseRequest request) throws AuthException {
+    public ResponseEntity<ExpenseResponse> createExpense(@Valid @RequestBody CreateExpenseRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to create expense: {}", request.getName());
         ExpenseResponse response = expenseService.createExpense(request, userId);
@@ -48,8 +47,7 @@ public class ExpenseController {
      * Gets an expense by ID.
      */
     @GetMapping("/{expenseId}")
-    public ResponseEntity<ExpenseResponse> getExpense(
-            @PathVariable UUID expenseId) throws AuthException {
+    public ResponseEntity<ExpenseResponse> getExpense(@PathVariable UUID expenseId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.debug("Received request to get expense: {}", expenseId);
         ExpenseResponse response = expenseService.getExpense(expenseId, userId);
@@ -62,9 +60,7 @@ public class ExpenseController {
      * Updates an existing expense.
      */
     @PutMapping("/{expenseId}")
-    public ResponseEntity<ExpenseResponse> updateExpense(
-            @PathVariable UUID expenseId,
-            @Valid @RequestBody UpdateExpenseRequest request) throws AuthException {
+    public ResponseEntity<ExpenseResponse> updateExpense(@PathVariable UUID expenseId, @Valid @RequestBody UpdateExpenseRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to update expense: {}", expenseId);
         ExpenseResponse response = expenseService.updateExpense(expenseId, request, userId);
@@ -77,8 +73,7 @@ public class ExpenseController {
      * Deletes an expense.
      */
     @DeleteMapping("/{expenseId}")
-    public ResponseEntity<Void> deleteExpense(
-            @PathVariable UUID expenseId) throws AuthException {
+    public ResponseEntity<Void> deleteExpense(@PathVariable UUID expenseId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to delete expense: {}", expenseId);
         expenseService.deleteExpense(expenseId, userId);
@@ -91,8 +86,7 @@ public class ExpenseController {
      * Gets all expenses for a group.
      */
     @GetMapping("/group/{groupId}")
-    public ResponseEntity<List<ExpenseResponse>> getGroupExpenses(
-            @PathVariable UUID groupId) throws AuthException {
+    public ResponseEntity<List<ExpenseResponse>> getGroupExpenses(@PathVariable UUID groupId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.debug("Received request to get expenses for group: {}", groupId);
         List<ExpenseResponse> response = expenseService.getGroupExpenses(groupId, userId);

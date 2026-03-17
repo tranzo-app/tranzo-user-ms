@@ -1,9 +1,6 @@
 package com.tranzo.tranzo_user_ms.splitwise.repository;
 
 import com.tranzo.tranzo_user_ms.splitwise.entity.SplitwiseGroup;
-import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,7 +27,6 @@ public interface SplitwiseGroupRepository extends JpaRepository<SplitwiseGroup, 
     @Query("SELECT g FROM SplitwiseGroup g JOIN g.members m WHERE m.userId = :userId")
     List<SplitwiseGroup> findByUserId(@Param("userId") UUID userId);
 
-
     /**
      * Checks if a user is a member of a specific group.
      */
@@ -43,6 +39,9 @@ public interface SplitwiseGroupRepository extends JpaRepository<SplitwiseGroup, 
     @Query("SELECT COUNT(g) > 0 FROM SplitwiseGroup g JOIN g.members m WHERE g.id = :groupId AND m.userId = :userId AND m.role = 'ADMIN'")
     boolean isUserAdminOfGroup(@Param("groupId") UUID groupId, @Param("userId") UUID userId);
 
-
-
+    /**
+     * Gets the member count for a specific group.
+     */
+    @Query("SELECT COUNT(m) FROM SplitwiseGroup g JOIN g.members m WHERE g.id = :groupId")
+    long getMemberCount(@Param("groupId") UUID groupId);
 }

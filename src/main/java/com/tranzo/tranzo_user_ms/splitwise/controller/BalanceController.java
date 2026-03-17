@@ -39,15 +39,13 @@ public class BalanceController {
         log.debug("Retrieved balances for {} users in group {}", response.size(), groupId);
         return ResponseEntity.ok(response);
     }
-
     /**
      * Gets balance summary for a specific user in a group.
      */
-    @GetMapping("/group/{groupId}/user/{userId}")
-    public ResponseEntity<BalanceResponse> getUserBalanceInGroup(
-            @PathVariable UUID groupId,
-            @PathVariable UUID userId) {
-        
+    @GetMapping("/group/{groupId}/user")
+    public ResponseEntity<BalanceResponse> getUserBalanceInGroup(@PathVariable UUID groupId) throws AuthException {
+
+        UUID userId = SecurityUtils.getCurrentUserUuid();
         log.debug("Received request to get balance for user {} in group: {}", userId, groupId);
         
         BalanceResponse response = balanceService.getUserBalanceInGroup(groupId, userId);
@@ -61,8 +59,7 @@ public class BalanceController {
      * Gets balance for the current user in a group.
      */
     @GetMapping("/group/{groupId}/my-balance")
-    public ResponseEntity<BalanceResponse> getMyBalanceInGroup(
-            @PathVariable UUID groupId) throws AuthException {
+    public ResponseEntity<BalanceResponse> getMyBalanceInGroup(@PathVariable UUID groupId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.debug("Received request to get balance for current user in group: {}", groupId);
         BalanceResponse response = balanceService.getUserBalanceInGroup(groupId, userId);

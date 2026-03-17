@@ -4,7 +4,10 @@ import com.tranzo.tranzo_user_ms.splitwise.dto.response.ActivityResponse;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.GroupResponse;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.UserResponse;
 import com.tranzo.tranzo_user_ms.splitwise.entity.Activity;
+import com.tranzo.tranzo_user_ms.splitwise.exception.UserNotMemberException;
 import com.tranzo.tranzo_user_ms.splitwise.service.ActivityService;
+import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
+import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
@@ -31,20 +34,24 @@ public class ActivityController {
 
     private final ActivityService activityService;
     private final UserRepository userRepository;
+    private final TripRepository tripRepository;
 
     /**
-     * Gets activities for a specific group.
+     * Gets activities for a specific group. Caller must be a group member.
      */
     @GetMapping("/group/{groupId}")
-    public ResponseEntity<List<ActivityResponse>> getGroupActivities(
-            @PathVariable UUID groupId,
-            @RequestParam(defaultValue = "10") int limit,
-            @RequestParam(defaultValue = "0") int offset) {
-        
+    public ResponseEntity<List<ActivityResponse>> getGroupActivities(@PathVariable UUID groupId, @RequestParam(defaultValue = "10") int limit, @RequestParam(defaultValue = "0") int offset) throws AuthException {
+
+        UUID currentUserId = SecurityUtils.getCurrentUserUuid();
         log.debug("Received request to get activities for group: {} with limit {} and offset {}", 
                  groupId, limit, offset);
-        
-        List<Activity> activities = activityService.getGroupActivities(groupId, limit, offset);
+
+        List<Activity> activities;
+        try {
+            activities = activityService.getGroupActivities(groupId, currentUserId, limit, offset);
+        } catch (UserNotMemberException e) {
+            return ResponseEntity.status(403).build();
+        }
         List<ActivityResponse> response = activities.stream()
                 .map(this::convertToActivityResponse)
                 .collect(Collectors.toList());
@@ -59,18 +66,12 @@ public class ActivityController {
     @GetMapping("/my-activities")
     public ResponseEntity<List<ActivityResponse>> getUserActivities(
             @RequestParam(defaultValue = "10") int limit,
-            @RequestParam(defaultValue = "0") int offset) {
-        
+            @RequestParam(defaultValue = "0") int offset) throws AuthException {
+
+        UUID currentUserId = SecurityUtils.getCurrentUserUuid();
         log.debug("Received request to get activities for current user with limit {} and offset {}", 
                  limit, offset);
-        
-        UUID currentUserId;
-        try {
-            currentUserId = SecurityUtils.getCurrentUserUuid();
-        } catch (AuthException e) {
-            log.error("Authentication error: {}", e.getMessage());
-            return ResponseEntity.status(401).build();
-        }
+
         List<Activity> activities = activityService.getUserActivities(currentUserId, limit, offset);
         List<ActivityResponse> response = activities.stream()
                 .map(this::convertToActivityResponse)
@@ -84,12 +85,20 @@ public class ActivityController {
      * Converts Activity entity to ActivityResponse DTO.
      */
     private ActivityResponse convertToActivityResponse(Activity activity) {
+        String groupName = null;
+        if (activity.getGroup() != null && activity.getGroup().getTripId() != null) {
+            groupName = tripRepository.findById(activity.getGroup().getTripId())
+                    .map(TripEntity::getTripTitle)
+                    .orElse(activity.getGroup().getDescription());
+        } else if (activity.getGroup() != null) {
+            groupName = activity.getGroup().getDescription();
+        }
         return ActivityResponse.builder()
                 .id(activity.getId())
                 .group(activity.getGroup() != null ? 
                         GroupResponse.builder()
                                 .id(activity.getGroup().getId())
-                                .name(activity.getGroup().getName())
+                                .name(groupName)
                                 .build() : null)
                 .user(getUserResponse(activity.getUserId()))
                 .activityType(activity.getActivityType())
