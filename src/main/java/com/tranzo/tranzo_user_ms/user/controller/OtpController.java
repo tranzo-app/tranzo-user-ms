@@ -21,14 +21,14 @@ public class OtpController {
     private final OtpService otpService;
 
     @PostMapping("/request")
-    public ResponseEntity<ResponseDto<Void>> requestOtp(@Valid @RequestBody RequestOtpDto requestOtpDto)
+    public ResponseEntity<ResponseDto<Void>> requestOtp(@Valid @RequestBody RequestOtpDto requestOtpDto) throws Exception
     {
         otpService.sendOtp(requestOtpDto);
         return ResponseEntity.ok(ResponseDto.success(200, "OTP sent successfully", null));
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<ResponseDto<VerifyOtpResponseDto>> verifyOtp(@Valid @RequestBody VerifyOtpDto verifyOtpDto, HttpServletResponse httpServletResponse)
+    public ResponseEntity<ResponseDto<VerifyOtpResponseDto>> verifyOtp(@Valid @RequestBody VerifyOtpDto verifyOtpDto, HttpServletResponse httpServletResponse) throws Exception
     {
         VerifyOtpResponseDto response = otpService.verifyOtp(verifyOtpDto, httpServletResponse);
         return ResponseEntity.ok(ResponseDto.success(200, "OTP has been verified successfully", response));

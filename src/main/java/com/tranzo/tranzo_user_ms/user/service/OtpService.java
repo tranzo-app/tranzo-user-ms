@@ -27,6 +27,7 @@ public class OtpService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final SessionService sessionService;
+    private final Cache<String, Integer> rateLimitCache;
     private final OtpCacheService cacheService;
     private final SmsService smsService;
     private final EmailService emailService;
@@ -72,6 +73,8 @@ public class OtpService {
                 new OtpData(otp, hash, 0, System.currentTimeMillis())
         );
         log.info("OTP for {} is {}", identifier, otp);
+        // Sending SMS via AWS SNS
+//        smsService.sendOtp(identifier, otp);
         // Sending SMS via AWS SNS
         if (requestOtpDto.getEmailId() != null)
         {
