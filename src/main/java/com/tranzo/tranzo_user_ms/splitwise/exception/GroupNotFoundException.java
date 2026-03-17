@@ -7,12 +7,8 @@ import java.util.UUID;
  */
 public class GroupNotFoundException extends SplitwiseException {
 
-    public GroupNotFoundException(Long groupId) {
+    public GroupNotFoundException(UUID groupId) {
         super("Group not found with ID: " + groupId);
-    }
-
-    public GroupNotFoundException(UUID tripId) {
-        super("Group not found for trip: " + tripId);
     }
 
     public GroupNotFoundException(String message) {

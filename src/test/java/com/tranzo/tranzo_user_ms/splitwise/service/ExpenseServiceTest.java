@@ -58,7 +58,7 @@ class ExpenseServiceTest {
     private UUID payerId;
     private UUID memberId;
     private UUID tripId;
-    private Long groupId;
+    private UUID groupId;
     private UsersEntity payer;
     private Expense expense;
     private SplitwiseGroup group;
@@ -69,7 +69,7 @@ class ExpenseServiceTest {
         payerId = UUID.randomUUID();
         memberId = UUID.randomUUID();
         tripId = UUID.randomUUID();
-        groupId = 1L;
+        groupId = UUID.randomUUID();
         payer = new UsersEntity();
         payer.setUserUuid(payerId);
         payer.setEmail("payer@test.com");
@@ -80,8 +80,9 @@ class ExpenseServiceTest {
 
         group = SplitwiseGroup.builder().id(groupId).tripId(tripId).createdBy(payerId).build();
 
+        UUID expenseId = UUID.randomUUID();
         expense = Expense.builder()
-                .id(100L)
+                .id(expenseId)
                 .name("Dinner")
                 .amount(new BigDecimal("100.00"))
                 .paidBy(payerId)
@@ -157,31 +158,33 @@ class ExpenseServiceTest {
     @Test
     @DisplayName("Should get expense when user involved")
     void getExpense_Success() {
-        when(expenseRepository.findById(100L)).thenReturn(Optional.of(expense));
+        UUID expenseId = expense.getId();
+        when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(expense));
         when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(payer));
         when(splitwiseGroupRepository.findById(groupId)).thenReturn(Optional.of(group));
 
-        ExpenseResponse response = expenseService.getExpense(100L, payerId);
+        ExpenseResponse response = expenseService.getExpense(expenseId, payerId);
 
         assertNotNull(response);
-        assertEquals(100L, response.getId());
+        assertEquals(expenseId, response.getId());
     }
 
     @Test
     @DisplayName("Should throw ExpenseNotFoundException when expense not found")
     void getExpense_NotFound() {
-        when(expenseRepository.findById(999L)).thenReturn(Optional.empty());
+        UUID missingId = UUID.randomUUID();
+        when(expenseRepository.findById(missingId)).thenReturn(Optional.empty());
 
-        assertThrows(ExpenseNotFoundException.class, () -> expenseService.getExpense(999L, payerId));
+        assertThrows(ExpenseNotFoundException.class, () -> expenseService.getExpense(missingId, payerId));
     }
 
     @Test
     @DisplayName("Should throw UserNotMemberException when user not involved")
     void getExpense_UserNotInvolved() {
         UUID otherId = UUID.randomUUID();
-        when(expenseRepository.findById(100L)).thenReturn(Optional.of(expense));
+        when(expenseRepository.findById(expense.getId())).thenReturn(Optional.of(expense));
 
-        assertThrows(UserNotMemberException.class, () -> expenseService.getExpense(100L, otherId));
+        assertThrows(UserNotMemberException.class, () -> expenseService.getExpense(expense.getId(), otherId));
     }
 
     @Test
@@ -191,30 +194,30 @@ class ExpenseServiceTest {
                 .name("Updated Dinner")
                 .amount(new BigDecimal("120.00"))
                 .build();
-        when(expenseRepository.findById(100L)).thenReturn(Optional.of(expense));
+        when(expenseRepository.findById(expense.getId())).thenReturn(Optional.of(expense));
         when(expenseRepository.save(any(Expense.class))).thenReturn(expense);
         when(splitwiseGroupRepository.findById(groupId)).thenReturn(Optional.of(group));
         when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(payer));
 
-        ExpenseResponse response = expenseService.updateExpense(100L, updateRequest, payerId);
+        ExpenseResponse response = expenseService.updateExpense(expense.getId(), updateRequest, payerId);
 
         assertNotNull(response);
         verify(balanceService).recalculateBalancesForGroup(groupId);
-        verify(activityService).logExpenseUpdated(eq(payerId), eq(group), eq(100L), anyString());
+        verify(activityService).logExpenseUpdated(eq(payerId), eq(group), eq(expense.getId()), anyString());
     }
 
     @Test
     @DisplayName("Should delete expense when user is payer")
     void deleteExpense_Success() {
-        when(expenseRepository.findById(100L)).thenReturn(Optional.of(expense));
+        when(expenseRepository.findById(expense.getId())).thenReturn(Optional.of(expense));
         when(splitwiseGroupRepository.findById(groupId)).thenReturn(Optional.of(group));
         doNothing().when(expenseRepository).delete(any(Expense.class));
 
-        expenseService.deleteExpense(100L, payerId);
+        expenseService.deleteExpense(expense.getId(), payerId);
 
         verify(expenseRepository).delete(expense);
         verify(balanceService).recalculateBalancesForGroup(groupId);
-        verify(activityService).logExpenseDeleted(eq(payerId), eq(group), eq(100L), anyString());
+        verify(activityService).logExpenseDeleted(eq(payerId), eq(group), eq(expense.getId()), anyString());
     }
 
     @Test

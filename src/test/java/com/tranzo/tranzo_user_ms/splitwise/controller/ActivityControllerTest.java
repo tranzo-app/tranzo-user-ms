@@ -39,18 +39,18 @@ class ActivityControllerTest {
     @InjectMocks
     private ActivityController controller;
 
-    private Long groupId;
+    private UUID groupId;
     private UUID userId;
     private Activity activity;
     private List<Activity> activityList;
 
     @BeforeEach
     void setUp() {
-        groupId = 1L;
+        groupId = UUID.randomUUID();
         userId = UUID.randomUUID();
         SplitwiseGroup group = SplitwiseGroup.builder().id(groupId).tripId(UUID.randomUUID()).createdBy(userId).build();
         activity = Activity.builder()
-                .id(1L)
+                .id(UUID.randomUUID())
                 .group(group)
                 .userId(userId)
                 .activityType(Activity.ActivityType.EXPENSE_ADDED)

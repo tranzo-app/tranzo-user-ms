@@ -94,7 +94,7 @@ public class SettlementService {
      * Gets a settlement by ID.
      */
     @Transactional(readOnly = true)
-    public SettlementResponse getSettlement(Long settlementId) {
+    public SettlementResponse getSettlement(UUID settlementId) {
         log.debug("Fetching settlement: {}", settlementId);
 
         Settlement settlement = settlementRepository.findById(settlementId)
@@ -108,7 +108,7 @@ public class SettlementService {
      * Gets all settlements for a group.
      */
     @Transactional(readOnly = true)
-    public List<SettlementResponse> getGroupSettlements(Long groupId) {
+    public List<SettlementResponse> getGroupSettlements(UUID groupId) {
         log.debug("Fetching settlements for group: {}", groupId);
 
         List<Settlement> settlements = settlementRepository.findByGroupId(groupId);
@@ -138,7 +138,7 @@ public class SettlementService {
      * Gets optimized settlement proposals for a group.
      */
     @Transactional(readOnly = true)
-    public List<SettlementProposal> getOptimizedSettlements(Long groupId) {
+    public List<SettlementProposal> getOptimizedSettlements(UUID groupId) {
         log.info("Calculating optimized settlements for group: {}", groupId);
 
         List<SettlementProposal> proposals = balanceService.getOptimizedSettlements(groupId);
@@ -159,7 +159,7 @@ public class SettlementService {
     /**
      * Updates the status of a settlement.
      */
-    public SettlementResponse updateSettlementStatus(Long settlementId, String newStatus, UUID updatedBy) {
+    public SettlementResponse updateSettlementStatus(UUID settlementId, String newStatus, UUID updatedBy) {
         log.info("Updating settlement status: {} -> {} by user {}", settlementId, newStatus, updatedBy);
 
         Settlement settlement = settlementRepository.findById(settlementId)
@@ -175,7 +175,7 @@ public class SettlementService {
     /**
      * Deletes a settlement by ID and reverses balance updates.
      */
-    public void deleteSettlement(Long settlementId, UUID deletedBy) {
+    public void deleteSettlement(UUID settlementId, UUID deletedBy) {
         log.info("Deleting settlement: {} by user {}", settlementId, deletedBy);
 
         Settlement settlement = settlementRepository.findById(settlementId)

@@ -57,7 +57,7 @@ class BalanceServiceTest {
     @InjectMocks
     private BalanceService balanceService;
 
-    private Long groupId;
+    private UUID groupId;
     private UUID userA;
     private UUID userB;
     private SplitwiseGroup group;
@@ -65,7 +65,7 @@ class BalanceServiceTest {
 
     @BeforeEach
     void setUp() {
-        groupId = 1L;
+        groupId = UUID.randomUUID();
         userA = UUID.randomUUID();
         userB = UUID.randomUUID();
         group = SplitwiseGroup.builder().id(groupId).tripId(UUID.randomUUID()).createdBy(userA).build();
@@ -114,7 +114,7 @@ class BalanceServiceTest {
     @DisplayName("Should update balances for expense")
     void updateBalancesForExpense_Success() {
         Expense expense = Expense.builder()
-                .id(1L)
+                .id(UUID.randomUUID())
                 .amount(new BigDecimal("100"))
                 .paidBy(userA)
                 .groupId(groupId)
@@ -134,13 +134,13 @@ class BalanceServiceTest {
     @Test
     @DisplayName("Should recalculate balances for group")
     void recalculateBalancesForGroup_Success() {
-        Expense expense = Expense.builder().id(1L).amount(new BigDecimal("100")).paidBy(userA).groupId(groupId).build();
+        Expense expense = Expense.builder().id(UUID.randomUUID()).amount(new BigDecimal("100")).paidBy(userA).groupId(groupId).build();
         expense.addSplit(com.tranzo.tranzo_user_ms.splitwise.entity.ExpenseSplit.builder().userId(userA).amount(new BigDecimal("50")).build());
         expense.addSplit(com.tranzo.tranzo_user_ms.splitwise.entity.ExpenseSplit.builder().userId(userB).amount(new BigDecimal("50")).build());
 
         doNothing().when(balanceRepository).deleteByGroupId(groupId);
         when(expenseRepository.findByGroupId(groupId)).thenReturn(List.of(expense));
-        when(balanceRepository.findByGroupIdAndOwedByAndOwedTo(anyLong(), any(UUID.class), any(UUID.class))).thenReturn(Optional.empty());
+        when(balanceRepository.findByGroupIdAndOwedByAndOwedTo(any(UUID.class), any(UUID.class), any(UUID.class))).thenReturn(Optional.empty());
         when(splitwiseGroupRepository.findById(groupId)).thenReturn(Optional.of(group));
 
         balanceService.recalculateBalancesForGroup(groupId);
@@ -169,7 +169,7 @@ class BalanceServiceTest {
     @DisplayName("Should update balances for settlement")
     void updateBalancesForSettlement_Success() {
         Settlement settlement = Settlement.builder()
-                .id(1L)
+                .id(UUID.randomUUID())
                 .group(group)
                 .paidBy(userA)
                 .paidTo(userB)

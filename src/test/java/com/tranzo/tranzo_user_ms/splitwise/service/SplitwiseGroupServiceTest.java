@@ -45,6 +45,7 @@ class SplitwiseGroupServiceTest {
 
     private UUID creatorId;
     private UUID memberId;
+    private UUID groupId;
     private UsersEntity creator;
     private SplitwiseGroup group;
     private CreateGroupRequest createRequest;
@@ -54,6 +55,7 @@ class SplitwiseGroupServiceTest {
     void setUp() {
         creatorId = UUID.randomUUID();
         memberId = UUID.randomUUID();
+        groupId = UUID.randomUUID();
         creator = new UsersEntity();
         creator.setUserUuid(creatorId);
         creator.setEmail("creator@test.com");
@@ -65,7 +67,7 @@ class SplitwiseGroupServiceTest {
         creator.setUserProfileEntity(profile);
 
         group = SplitwiseGroup.builder()
-                .id(1L)
+                .id(groupId)
                 .tripId(UUID.randomUUID())
                 .description("Test group")
                 .createdBy(creatorId)
@@ -118,29 +120,30 @@ class SplitwiseGroupServiceTest {
     @Test
     @DisplayName("Should get group when user is member")
     void getGroup_Success() {
-        when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
+        when(groupRepository.findById(groupId)).thenReturn(Optional.of(group));
 
-        GroupResponse response = groupService.getGroup(1L, creatorId);
+        GroupResponse response = groupService.getGroup(groupId, creatorId);
 
         assertNotNull(response);
-        assertEquals(1L, response.getId());
+        assertEquals(groupId, response.getId());
     }
 
     @Test
     @DisplayName("Should throw GroupNotFoundException when group not found")
     void getGroup_NotFound() {
-        when(groupRepository.findById(999L)).thenReturn(Optional.empty());
+        UUID missingId = UUID.randomUUID();
+        when(groupRepository.findById(missingId)).thenReturn(Optional.empty());
 
-        assertThrows(GroupNotFoundException.class, () -> groupService.getGroup(999L, creatorId));
+        assertThrows(GroupNotFoundException.class, () -> groupService.getGroup(missingId, creatorId));
     }
 
     @Test
     @DisplayName("Should throw UserNotMemberException when user not member")
     void getGroup_UserNotMember() {
         UUID nonMemberId = UUID.randomUUID();
-        when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
+        when(groupRepository.findById(groupId)).thenReturn(Optional.of(group));
 
-        assertThrows(UserNotMemberException.class, () -> groupService.getGroup(1L, nonMemberId));
+        assertThrows(UserNotMemberException.class, () -> groupService.getGroup(groupId, nonMemberId));
     }
 
     @Test
@@ -148,12 +151,12 @@ class SplitwiseGroupServiceTest {
     void addMembers_Success() {
         UsersEntity newMember = new UsersEntity();
         newMember.setUserUuid(memberId);
-        when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
-        when(groupRepository.isUserAdminOfGroup(1L, creatorId)).thenReturn(true);
+        when(groupRepository.findById(groupId)).thenReturn(Optional.of(group));
+        when(groupRepository.isUserAdminOfGroup(groupId, creatorId)).thenReturn(true);
         when(userRepository.findById(memberId)).thenReturn(Optional.of(newMember));
         when(groupRepository.save(any(SplitwiseGroup.class))).thenReturn(group);
 
-        GroupResponse response = groupService.addMembers(1L, addMemberRequest, creatorId);
+        GroupResponse response = groupService.addMembers(groupId, addMemberRequest, creatorId);
 
         assertNotNull(response);
         verify(activityService).logMemberAdded(eq(memberId), eq(group), eq(creatorId));
@@ -164,12 +167,12 @@ class SplitwiseGroupServiceTest {
     void removeMember_Success() {
         GroupMember toRemove = GroupMember.builder().group(group).userId(memberId).role(GroupMember.MemberRole.MEMBER).build();
         group.addMember(toRemove);
-        when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
-        when(groupRepository.isUserAdminOfGroup(1L, creatorId)).thenReturn(true);
+        when(groupRepository.findById(groupId)).thenReturn(Optional.of(group));
+        when(groupRepository.isUserAdminOfGroup(groupId, creatorId)).thenReturn(true);
         when(userRepository.findById(memberId)).thenReturn(Optional.of(new UsersEntity()));
         when(groupRepository.save(any(SplitwiseGroup.class))).thenReturn(group);
 
-        GroupResponse response = groupService.removeMember(1L, memberId, creatorId);
+        GroupResponse response = groupService.removeMember(groupId, memberId, creatorId);
 
         assertNotNull(response);
         verify(activityService).logMemberRemoved(eq(memberId), eq(group), eq(creatorId));
@@ -184,17 +187,17 @@ class SplitwiseGroupServiceTest {
 
         assertNotNull(list);
         assertEquals(1, list.size());
-        assertEquals(1L, list.get(0).getId());
+        assertEquals(groupId, list.get(0).getId());
     }
 
     @Test
     @DisplayName("Should update group when user is admin")
     void updateGroup_Success() {
-        when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
-        when(groupRepository.isUserAdminOfGroup(1L, creatorId)).thenReturn(true);
+        when(groupRepository.findById(groupId)).thenReturn(Optional.of(group));
+        when(groupRepository.isUserAdminOfGroup(groupId, creatorId)).thenReturn(true);
         when(groupRepository.save(any(SplitwiseGroup.class))).thenReturn(group);
 
-        GroupResponse response = groupService.updateGroup(1L, createRequest, creatorId);
+        GroupResponse response = groupService.updateGroup(groupId, createRequest, creatorId);
 
         assertNotNull(response);
         verify(activityService).logGroupUpdated(eq(group), eq(creatorId));
@@ -203,11 +206,11 @@ class SplitwiseGroupServiceTest {
     @Test
     @DisplayName("Should delete group when user is admin")
     void deleteGroup_Success() {
-        when(groupRepository.findById(1L)).thenReturn(Optional.of(group));
-        when(groupRepository.isUserAdminOfGroup(1L, creatorId)).thenReturn(true);
+        when(groupRepository.findById(groupId)).thenReturn(Optional.of(group));
+        when(groupRepository.isUserAdminOfGroup(groupId, creatorId)).thenReturn(true);
         doNothing().when(groupRepository).delete(any(SplitwiseGroup.class));
 
-        groupService.deleteGroup(1L, creatorId);
+        groupService.deleteGroup(groupId, creatorId);
 
         verify(groupRepository).delete(group);
         verify(activityService).logGroupDeleted(eq(group), eq(creatorId));

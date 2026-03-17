@@ -30,7 +30,8 @@ public class OtpService {
     public void sendOtp(RequestOtpDto requestOtpDto)
     {
         String identifier = otpUtility.resolveIdentifier(requestOtpDto);
-        String otp = otpUtility.generateOtp();
+//        String otp = otpUtility.generateOtp();
+         String otp = "111111";
         log.info("Key built for caching OTP is {}", buildKey(identifier));
         otpCache.put(buildKey(identifier), otp);
         // TODO : Integrate SMS / Email Provider

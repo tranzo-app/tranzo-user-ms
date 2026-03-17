@@ -37,7 +37,7 @@ class ActivityServiceTest {
     private ActivityService activityService;
 
     private UUID userId;
-    private Long groupId;
+    private UUID groupId;
     private SplitwiseGroup group;
     private UsersEntity user;
     private Activity activity;
@@ -45,7 +45,7 @@ class ActivityServiceTest {
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
-        groupId = 1L;
+        groupId = UUID.randomUUID();
         group = SplitwiseGroup.builder().id(groupId).tripId(UUID.randomUUID()).createdBy(userId).build();
         user = new UsersEntity();
         user.setUserUuid(userId);
@@ -55,7 +55,7 @@ class ActivityServiceTest {
         profile.setLastName("User");
         user.setUserProfileEntity(profile);
         activity = Activity.builder()
-                .id(1L)
+                .id(UUID.randomUUID())
                 .group(group)
                 .userId(userId)
                 .activityType(Activity.ActivityType.EXPENSE_ADDED)

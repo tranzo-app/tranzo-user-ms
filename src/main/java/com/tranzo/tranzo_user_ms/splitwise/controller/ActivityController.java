@@ -37,7 +37,7 @@ public class ActivityController {
      */
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<ActivityResponse>> getGroupActivities(
-            @PathVariable Long groupId,
+            @PathVariable UUID groupId,
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(defaultValue = "0") int offset) {
         

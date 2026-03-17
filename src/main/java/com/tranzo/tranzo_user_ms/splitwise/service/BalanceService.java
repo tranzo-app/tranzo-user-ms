@@ -56,7 +56,7 @@ public class BalanceService {
      * Gets balance summary for all users in a group.
      */
     @Transactional(readOnly = true)
-    public List<BalanceResponse> getGroupBalances(Long groupId) {
+    public List<BalanceResponse> getGroupBalances(UUID groupId) {
         log.debug("Calculating balances for group: {}", groupId);
 
         List<Object[]> balanceData = balanceRepository.getBalanceSummaryForGroup(groupId);
@@ -73,7 +73,7 @@ public class BalanceService {
      * Gets balance summary for a specific user in a group.
      */
     @Transactional(readOnly = true)
-    public BalanceResponse getUserBalanceInGroup(Long groupId, UUID userId) {
+    public BalanceResponse getUserBalanceInGroup(UUID groupId, UUID userId) {
         log.debug("Calculating balance for user {} in group: {}", userId, groupId);
 
         BigDecimal totalOwed = balanceRepository.getTotalOwedByUserInGroup(groupId, userId);
@@ -137,7 +137,7 @@ public class BalanceService {
     /**
      * Recalculates all balances for a group from scratch.
      */
-    public void recalculateBalancesForGroup(Long groupId) {
+    public void recalculateBalancesForGroup(UUID groupId) {
         log.info("Recalculating all balances for group: {}", groupId);
 
         // Delete existing balances
@@ -158,7 +158,7 @@ public class BalanceService {
      * Gets optimized settlement proposals for a group.
      */
     @Transactional(readOnly = true)
-    public List<SettlementProposal> getOptimizedSettlements(Long groupId) {
+    public List<SettlementProposal> getOptimizedSettlements(UUID groupId) {
         log.info("Calculating optimized settlements for group: {}", groupId);
 
         // Get current net balances for all users
@@ -219,7 +219,7 @@ public class BalanceService {
     /**
      * Calculates net balances for all users in a group.
      */
-    private Map<UUID, BigDecimal> calculateNetBalancesForGroup(Long groupId) {
+    private Map<UUID, BigDecimal> calculateNetBalancesForGroup(UUID groupId) {
         Map<UUID, BigDecimal> netBalances = new HashMap<>();
 
         List<Object[]> balanceData = balanceRepository.getBalanceSummaryForGroup(groupId);
@@ -235,7 +235,7 @@ public class BalanceService {
     /**
      * Updates or creates a balance record between two users.
      */
-    private void updateOrCreateBalance(UUID fromUserId, UUID toUserId, Long groupId, BigDecimal amount) {
+    private void updateOrCreateBalance(UUID fromUserId, UUID toUserId, UUID groupId, BigDecimal amount) {
         log.debug("Updating balance: {} -> {} amount {} in group {}", fromUserId, toUserId, amount, groupId);
         
         // Find existing balance
@@ -340,7 +340,7 @@ public class BalanceService {
      * Validates that a settlement amount is valid for the given users.
      * Settlement is "fromUserId pays toUserId"; so fromUserId must owe toUserId at least the amount.
      */
-    public void validateSettlementAmount(Long groupId, UUID fromUserId, UUID toUserId, BigDecimal amount) {
+    public void validateSettlementAmount(UUID groupId, UUID fromUserId, UUID toUserId, BigDecimal amount) {
         log.debug("Validating settlement amount: {} from user {} to user {} in group {}", 
                  amount, fromUserId, toUserId, groupId);
 

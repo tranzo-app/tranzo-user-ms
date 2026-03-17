@@ -38,8 +38,8 @@ class ExpenseControllerTest {
 
     private UUID userId;
     private UUID tripId;
-    private Long groupId;
-    private Long expenseId;
+    private UUID groupId;
+    private UUID expenseId;
     private ExpenseResponse expenseResponse;
     private CreateExpenseRequest createRequest;
     private UpdateExpenseRequest updateRequest;
@@ -48,8 +48,8 @@ class ExpenseControllerTest {
     void setUp() {
         userId = UUID.randomUUID();
         tripId = UUID.randomUUID();
-        groupId = 1L;
-        expenseId = 100L;
+        groupId = UUID.randomUUID();
+        expenseId = UUID.randomUUID();
         expenseResponse = ExpenseResponse.builder().id(expenseId).name("Dinner").amount(new BigDecimal("100")).build();
         createRequest = CreateExpenseRequest.builder()
                 .name("Dinner")

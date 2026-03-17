@@ -18,22 +18,22 @@ import java.util.UUID;
  * Repository interface for Expense entity operations.
  */
 @Repository
-public interface ExpenseRepository extends JpaRepository<Expense, Long> {
+public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
 
     /**
      * Finds expenses for a specific group.
      */
-    List<Expense> findByGroupId(Long groupId);
+    List<Expense> findByGroupId(UUID groupId);
 
     /**
      * Finds expenses for a specific group with pagination.
      */
-    Page<Expense> findByGroupId(Long groupId, Pageable pageable);
+    Page<Expense> findByGroupId(UUID groupId, Pageable pageable);
 
     /**
      * Finds expenses by group ID and paid by user.
      */
-    List<Expense> findByGroupIdAndPaidBy(Long groupId, UUID paidBy);
+    List<Expense> findByGroupIdAndPaidBy(UUID groupId, UUID paidBy);
 
     /**
      * Finds expenses paid by a specific user.
@@ -71,7 +71,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
      * Finds expenses for a group within a date range.
      */
     @Query("SELECT e FROM Expense e WHERE e.groupId = :groupId AND e.expenseDate BETWEEN :startDate AND :endDate")
-    List<Expense> findByGroupIdAndExpenseDateBetween(@Param("groupId") Long groupId,
+    List<Expense> findByGroupIdAndExpenseDateBetween(@Param("groupId") UUID groupId,
                                                    @Param("startDate") LocalDateTime startDate,
                                                    @Param("endDate") LocalDateTime endDate);
 
@@ -105,21 +105,21 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
      * Gets total expense amount for a group.
      */
     @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e WHERE e.groupId = :groupId")
-    BigDecimal getTotalExpenseAmountForGroup(@Param("groupId") Long groupId);
+    BigDecimal getTotalExpenseAmountForGroup(@Param("groupId") UUID groupId);
 
     /**
      * Gets total expense amount for a user in a group.
      */
     @Query("SELECT COALESCE(SUM(e.amount), 0) FROM Expense e " +
            "WHERE e.groupId = :groupId AND e.paidBy = :userId")
-    BigDecimal getTotalPaidByUserInGroup(@Param("groupId") Long groupId, @Param("userId") UUID userId);
+    BigDecimal getTotalPaidByUserInGroup(@Param("groupId") UUID groupId, @Param("userId") UUID userId);
 
     /**
      * Gets total expense share for a user in a group.
      */
     @Query("SELECT COALESCE(SUM(s.amount), 0) FROM ExpenseSplit s " +
            "WHERE s.expense.groupId = :groupId AND s.userId = :userId")
-    BigDecimal getTotalShareForUserInGroup(@Param("groupId") Long groupId, @Param("userId") UUID userId);
+    BigDecimal getTotalShareForUserInGroup(@Param("groupId") UUID groupId, @Param("userId") UUID userId);
 
     /**
      * Finds expenses with amount greater than a threshold.
@@ -141,7 +141,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
            "COALESCE(MAX(e.amount), 0) as maxAmount, " +
            "COALESCE(MIN(e.amount), 0) as minAmount " +
            "FROM Expense e WHERE e.groupId = :groupId")
-    Object[] getExpenseStatisticsForGroup(@Param("groupId") Long groupId);
+    Object[] getExpenseStatisticsForGroup(@Param("groupId") UUID groupId);
 
     /**
      * Gets monthly expense totals for a group.
@@ -154,7 +154,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
            "WHERE e.groupId = :groupId " +
            "GROUP BY YEAR(e.expenseDate), MONTH(e.expenseDate) " +
            "ORDER BY year DESC, month DESC")
-    List<Object[]> getMonthlyExpenseTotalsForGroup(@Param("groupId") Long groupId);
+    List<Object[]> getMonthlyExpenseTotalsForGroup(@Param("groupId") UUID groupId);
 
     /**
      * Gets category-wise expense totals for a group.
@@ -163,7 +163,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
            "FROM Expense e WHERE e.groupId = :groupId " +
            "GROUP BY e.category " +
            "ORDER BY total DESC")
-    List<Object[]> getCategoryExpenseTotalsForGroup(@Param("groupId") Long groupId);
+    List<Object[]> getCategoryExpenseTotalsForGroup(@Param("groupId") UUID groupId);
 
     /**
      * Finds expenses that are not fully settled.
@@ -182,7 +182,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
            "WHERE se.expense.groupId = :groupId " +
            "GROUP BY se.expense.id " +
            "HAVING SUM(se.amount) >= e.amount)")
-    List<Expense> findUnsettledExpensesForGroup(@Param("groupId") Long groupId);
+    List<Expense> findUnsettledExpensesForGroup(@Param("groupId") UUID groupId);
 
     /**
      * Searches expenses by multiple criteria.
@@ -193,7 +193,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
            "(:category IS NULL OR e.category = :category) AND " +
            "(:splitType IS NULL OR e.splitType = :splitType) AND " +
            "(:name IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', :name, '%')))")
-    Page<Expense> searchExpenses(@Param("groupId") Long groupId,
+    Page<Expense> searchExpenses(@Param("groupId") UUID groupId,
                                  @Param("paidById") UUID paidById,
                                  @Param("category") String category,
                                  @Param("splitType") SplitType splitType,
@@ -204,13 +204,13 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
      * Gets top expenses by amount for a group.
      */
     @Query("SELECT e FROM Expense e WHERE e.groupId = :groupId ORDER BY e.amount DESC")
-    Page<Expense> findTopExpensesByAmountForGroup(@Param("groupId") Long groupId, Pageable pageable);
+    Page<Expense> findTopExpensesByAmountForGroup(@Param("groupId") UUID groupId, Pageable pageable);
 
     /**
      * Gets recent expenses for a group.
      */
     @Query("SELECT e FROM Expense e WHERE e.groupId = :groupId ORDER BY e.createdAt DESC")
-    Page<Expense> findRecentExpensesForGroup(@Param("groupId") Long groupId, Pageable pageable);
+    Page<Expense> findRecentExpensesForGroup(@Param("groupId") UUID groupId, Pageable pageable);
 
     /**
      * Finds expenses where a specific user is involved in splits.
@@ -222,5 +222,5 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
      * Finds an expense by ID with its splits eagerly loaded.
      */
     @Query("SELECT e FROM Expense e LEFT JOIN FETCH e.splits WHERE e.id = :id")
-    java.util.Optional<Expense> findByIdWithSplits(@Param("id") Long id);
+    java.util.Optional<Expense> findByIdWithSplits(@Param("id") UUID id);
 }

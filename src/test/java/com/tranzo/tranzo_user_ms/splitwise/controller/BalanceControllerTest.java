@@ -32,13 +32,13 @@ class BalanceControllerTest {
     @InjectMocks
     private BalanceController controller;
 
-    private Long groupId;
+    private UUID groupId;
     private UUID userId;
     private BalanceResponse balanceResponse;
 
     @BeforeEach
     void setUp() {
-        groupId = 1L;
+        groupId = UUID.randomUUID();
         userId = UUID.randomUUID();
         balanceResponse = BalanceResponse.builder()
                 .netBalance(new BigDecimal("-50"))

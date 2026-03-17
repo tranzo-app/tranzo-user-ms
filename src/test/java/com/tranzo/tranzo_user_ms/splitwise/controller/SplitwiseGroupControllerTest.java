@@ -34,7 +34,7 @@ class SplitwiseGroupControllerTest {
     private SplitwiseGroupController controller;
 
     private UUID userId;
-    private Long groupId;
+    private UUID groupId;
     private GroupResponse groupResponse;
     private CreateGroupRequest createRequest;
     private AddGroupMemberRequest addMemberRequest;
@@ -42,7 +42,7 @@ class SplitwiseGroupControllerTest {
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
-        groupId = 1L;
+        groupId = UUID.randomUUID();
         groupResponse = GroupResponse.builder().id(groupId).name("Test").description("Desc").members(List.of()).build();
         createRequest = CreateGroupRequest.builder().name("Test").description("Desc").memberIds(List.of(userId)).build();
         addMemberRequest = AddGroupMemberRequest.builder().memberIds(List.of(userId)).build();

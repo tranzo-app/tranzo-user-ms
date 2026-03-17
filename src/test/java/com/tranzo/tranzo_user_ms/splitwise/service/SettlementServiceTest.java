@@ -49,7 +49,8 @@ class SettlementServiceTest {
     @InjectMocks
     private SettlementService settlementService;
 
-    private Long groupId;
+    private UUID groupId;
+    private UUID settlementId;
     private UUID payerId;
     private UUID payeeId;
     private UUID currentUserId;
@@ -59,13 +60,14 @@ class SettlementServiceTest {
 
     @BeforeEach
     void setUp() {
-        groupId = 1L;
+        groupId = UUID.randomUUID();
+        settlementId = UUID.randomUUID();
         payerId = UUID.randomUUID();
         payeeId = UUID.randomUUID();
         currentUserId = UUID.randomUUID();
         group = SplitwiseGroup.builder().id(groupId).tripId(UUID.randomUUID()).createdBy(currentUserId).build();
         settlement = Settlement.builder()
-                .id(10L)
+                .id(settlementId)
                 .group(group)
                 .paidBy(payerId)
                 .paidTo(payeeId)
@@ -97,7 +99,7 @@ class SettlementServiceTest {
     @Test
     @DisplayName("Should throw when group not found on create")
     void createSettlement_GroupNotFound() {
-        doNothing().when(balanceService).validateSettlementAmount(anyLong(), any(), any(), any());
+        doNothing().when(balanceService).validateSettlementAmount(any(UUID.class), any(), any(), any());
         when(splitwiseGroupRepository.findById(groupId)).thenReturn(Optional.empty());
 
         assertThrows(GroupNotFoundException.class, () -> settlementService.createSettlement(createRequest, currentUserId));
@@ -107,20 +109,21 @@ class SettlementServiceTest {
     @Test
     @DisplayName("Should get settlement by id")
     void getSettlement_Success() {
-        when(settlementRepository.findById(10L)).thenReturn(Optional.of(settlement));
+        when(settlementRepository.findById(settlementId)).thenReturn(Optional.of(settlement));
 
-        SettlementResponse response = settlementService.getSettlement(10L);
+        SettlementResponse response = settlementService.getSettlement(settlementId);
 
         assertNotNull(response);
-        assertEquals(10L, response.getId());
+        assertEquals(settlementId, response.getId());
     }
 
     @Test
     @DisplayName("Should throw SettlementNotFoundException when not found")
     void getSettlement_NotFound() {
-        when(settlementRepository.findById(999L)).thenReturn(Optional.empty());
+        UUID missingId = UUID.randomUUID();
+        when(settlementRepository.findById(missingId)).thenReturn(Optional.empty());
 
-        assertThrows(SettlementNotFoundException.class, () -> settlementService.getSettlement(999L));
+        assertThrows(SettlementNotFoundException.class, () -> settlementService.getSettlement(missingId));
     }
 
     @Test
@@ -160,11 +163,11 @@ class SettlementServiceTest {
     @Test
     @DisplayName("Should update settlement status")
     void updateSettlementStatus_Success() {
-        when(settlementRepository.findById(10L)).thenReturn(Optional.of(settlement));
+        when(settlementRepository.findById(settlementId)).thenReturn(Optional.of(settlement));
         when(settlementRepository.save(any(Settlement.class))).thenReturn(settlement);
         settlement.setStatus("COMPLETED");
 
-        SettlementResponse response = settlementService.updateSettlementStatus(10L, "COMPLETED", currentUserId);
+        SettlementResponse response = settlementService.updateSettlementStatus(settlementId, "COMPLETED", currentUserId);
 
         assertNotNull(response);
         verify(settlementRepository).save(any(Settlement.class));
@@ -173,14 +176,14 @@ class SettlementServiceTest {
     @Test
     @DisplayName("Should delete settlement and reverse balances")
     void deleteSettlement_Success() {
-        when(settlementRepository.findById(10L)).thenReturn(Optional.of(settlement));
+        when(settlementRepository.findById(settlementId)).thenReturn(Optional.of(settlement));
         doNothing().when(balanceService).reverseBalancesForSettlement(settlement);
         doNothing().when(settlementRepository).delete(any(Settlement.class));
 
-        settlementService.deleteSettlement(10L, currentUserId);
+        settlementService.deleteSettlement(settlementId, currentUserId);
 
         verify(balanceService).reverseBalancesForSettlement(settlement);
         verify(settlementRepository).delete(settlement);
-        verify(activityService).logSettlementDeleted(eq(currentUserId), eq(group), eq(10L), any(BigDecimal.class));
+        verify(activityService).logSettlementDeleted(eq(currentUserId), eq(group), eq(settlementId), any(BigDecimal.class));
     }
 }

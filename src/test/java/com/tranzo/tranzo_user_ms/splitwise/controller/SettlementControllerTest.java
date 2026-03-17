@@ -35,8 +35,8 @@ class SettlementControllerTest {
     private SettlementController controller;
 
     private UUID userId;
-    private Long groupId;
-    private Long settlementId;
+    private UUID groupId;
+    private UUID settlementId;
     private SettlementResponse settlementResponse;
     private CreateSettlementRequest createRequest;
     private SettlementProposal proposal;
@@ -44,8 +44,8 @@ class SettlementControllerTest {
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
-        groupId = 1L;
-        settlementId = 10L;
+        groupId = UUID.randomUUID();
+        settlementId = UUID.randomUUID();
         settlementResponse = SettlementResponse.builder().id(settlementId).amount(new BigDecimal("50")).build();
         createRequest = CreateSettlementRequest.builder()
                 .groupId(groupId)

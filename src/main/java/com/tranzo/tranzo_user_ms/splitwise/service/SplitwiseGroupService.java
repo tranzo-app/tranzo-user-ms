@@ -176,7 +176,7 @@ public class SplitwiseGroupService {
      * Gets a group by ID with authorization check.
      */
     @Transactional(readOnly = true)
-    public GroupResponse getGroup(Long groupId, UUID currentUserId) {
+    public GroupResponse getGroup(UUID groupId, UUID currentUserId) {
         log.debug("Fetching group {} for user {}", groupId, currentUserId);
 
         SplitwiseGroup group = groupRepository.findById(groupId)
@@ -194,7 +194,7 @@ public class SplitwiseGroupService {
     /**
      * Adds members to an existing group.
      */
-    public GroupResponse addMembers(Long groupId, AddGroupMemberRequest request, UUID currentUserId) {
+    public GroupResponse addMembers(UUID groupId, AddGroupMemberRequest request, UUID currentUserId) {
         log.info("Adding {} members to group {} by user {}", 
                  request.getMemberIds().size(), groupId, currentUserId);
 
@@ -237,7 +237,7 @@ public class SplitwiseGroupService {
     /**
      * Removes a member from a group.
      */
-    public GroupResponse removeMember(Long groupId, UUID memberId, UUID currentUserId) {
+    public GroupResponse removeMember(UUID groupId, UUID memberId, UUID currentUserId) {
         log.info("Removing member {} from group {} by user {}", memberId, groupId, currentUserId);
 
         SplitwiseGroup group = groupRepository.findById(groupId)
@@ -291,7 +291,7 @@ public class SplitwiseGroupService {
     /**
      * Updates group details.
      */
-    public GroupResponse updateGroup(Long groupId, CreateGroupRequest request, UUID currentUserId) {
+    public GroupResponse updateGroup(UUID groupId, CreateGroupRequest request, UUID currentUserId) {
         log.info("Updating group {} by user {}", groupId, currentUserId);
 
         SplitwiseGroup group = groupRepository.findById(groupId)
@@ -315,7 +315,7 @@ public class SplitwiseGroupService {
     /**
      * Deletes a group.
      */
-    public void deleteGroup(Long groupId, UUID currentUserId) {
+    public void deleteGroup(UUID groupId, UUID currentUserId) {
         log.info("Deleting group {} by user {}", groupId, currentUserId);
 
         SplitwiseGroup group = groupRepository.findById(groupId)
@@ -335,7 +335,7 @@ public class SplitwiseGroupService {
     /**
      * Validates that the user is an admin of the group.
      */
-    private void validateUserIsGroupAdmin(Long groupId, UUID userId) {
+    private void validateUserIsGroupAdmin(UUID groupId, UUID userId) {
         boolean isAdmin = groupRepository.isUserAdminOfGroup(groupId, userId);
         if (!isAdmin) {
             throw new SplitwiseException("User " + userId + " is not an admin of group " + groupId);

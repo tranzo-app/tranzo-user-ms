@@ -38,7 +38,7 @@ public class ActivityService {
                 .userId(user.getUserUuid())
                 .activityType(Activity.ActivityType.GROUP_CREATED)
                 .description(String.format("Created group '%s'", group.getName()))
-                .relatedId(group != null ? group.getId().toString() : null) // Store group ID as string
+                .relatedId(group != null ? group.getId() : null) // Store group ID as string
                 .relatedType("GROUP")
                 .build();
         
@@ -54,7 +54,7 @@ public class ActivityService {
                 .userId(currentUserId)
                 .activityType(Activity.ActivityType.GROUP_UPDATED)
                 .description("Updated group details")
-                .relatedId(group != null ? group.getId().toString() : null) // Store group ID as string
+                .relatedId(group != null ? group.getId() : null) // Store group ID as string
                 .relatedType("GROUP")
                 .build();
         
@@ -70,7 +70,7 @@ public class ActivityService {
                 .userId(currentUserId)
                 .activityType(Activity.ActivityType.GROUP_DELETED)
                 .description(String.format("Deleted group '%s'", group.getName()))
-                .relatedId(group != null ? group.getId().toString() : null) // Store group ID as string
+                .relatedId(group != null ? group.getId() : null) // Store group ID as string
                 .relatedType("GROUP")
                 .build();
         
@@ -87,7 +87,7 @@ public class ActivityService {
                 .userId(addedByUserId)
                 .activityType(Activity.ActivityType.MEMBER_ADDED)
                 .description(String.format("Added %s to group", memberName))
-                .relatedId(member != null ? member.toString() : null) // Store member UUID as string
+                .relatedId(member != null ? member: null) // Store member UUID as string
                 .relatedType("USER")
                 .build();
         
@@ -104,7 +104,7 @@ public class ActivityService {
                 .userId(removedByUserId)
                 .activityType(Activity.ActivityType.MEMBER_REMOVED)
                 .description(String.format("Removed %s from group", memberName))
-                .relatedId(member != null ? member.toString() : null) // Store member UUID as string
+                .relatedId(member != null ? member : null) // Store member UUID as string
                 .relatedType("USER")
                 .build();
         
@@ -114,13 +114,13 @@ public class ActivityService {
     /**
      * Logs expense creation activity.
      */
-    public void logExpenseCreated(UUID user, SplitwiseGroup group, Long expenseId, String expenseName, BigDecimal amount) {
+    public void logExpenseCreated(UUID user, SplitwiseGroup group, UUID expenseId, String expenseName, BigDecimal amount) {
         Activity activity = Activity.builder()
                 .group(group)
                 .userId(user)
                 .activityType(Activity.ActivityType.EXPENSE_ADDED)
                 .description(String.format("Added expense '%s' for ₹%.2f", expenseName, amount))
-                .relatedId(expenseId != null ? expenseId.toString() : null) // Store expense ID as string
+                .relatedId(expenseId != null ? expenseId : null) // Store expense ID as string
                 .relatedType("EXPENSE")
                 .build();
         
@@ -130,13 +130,13 @@ public class ActivityService {
     /**
      * Logs expense update activity.
      */
-    public void logExpenseUpdated(UUID user, SplitwiseGroup group, Long expenseId, String expenseName) {
+    public void logExpenseUpdated(UUID user, SplitwiseGroup group, UUID expenseId, String expenseName) {
         Activity activity = Activity.builder()
                 .group(group)
                 .userId(user)
                 .activityType(Activity.ActivityType.EXPENSE_UPDATED)
                 .description(String.format("Updated expense '%s'", expenseName))
-                .relatedId(expenseId != null ? expenseId.toString() : null) // Store expense ID as string
+                .relatedId(expenseId != null ? expenseId: null) // Store expense ID as string
                 .relatedType("EXPENSE")
                 .build();
         
@@ -146,13 +146,13 @@ public class ActivityService {
     /**
      * Logs expense deletion activity.
      */
-    public void logExpenseDeleted(UUID user, SplitwiseGroup group, Long expenseId, String expenseName) {
+    public void logExpenseDeleted(UUID user, SplitwiseGroup group, UUID expenseId, String expenseName) {
         Activity activity = Activity.builder()
                 .group(group)
                 .userId(user)
                 .activityType(Activity.ActivityType.EXPENSE_DELETED)
                 .description(String.format("Deleted expense '%s'", expenseName))
-                .relatedId(expenseId != null ? expenseId.toString() : null) // Store expense ID as string
+                .relatedId(expenseId != null ? expenseId : null) // Store expense ID as string
                 .relatedType("EXPENSE")
                 .build();
         
@@ -162,13 +162,13 @@ public class ActivityService {
     /**
      * Logs settlement creation activity.
      */
-    public void logSettlementCreated(UUID user, SplitwiseGroup group, Long settlementId, BigDecimal amount) {
+    public void logSettlementCreated(UUID user, SplitwiseGroup group, UUID settlementId, BigDecimal amount) {
         Activity activity = Activity.builder()
                 .group(group)
                 .userId(user)
                 .activityType(Activity.ActivityType.SETTLEMENT_CREATED)
                 .description(String.format("Created settlement for ₹%.2f", amount))
-                .relatedId(settlementId != null ? settlementId.toString() : null) // Store settlement ID as string
+                .relatedId(settlementId != null ? settlementId : null) // Store settlement ID as string
                 .relatedType("SETTLEMENT")
                 .build();
         
@@ -178,13 +178,13 @@ public class ActivityService {
     /**
      * Logs settlement deletion activity.
      */
-    public void logSettlementDeleted(UUID user, SplitwiseGroup group, Long settlementId, BigDecimal amount) {
+    public void logSettlementDeleted(UUID user, SplitwiseGroup group, UUID settlementId, BigDecimal amount) {
         Activity activity = Activity.builder()
                 .group(group)
                 .userId(user)
                 .activityType(Activity.ActivityType.SETTLEMENT_DELETED)
                 .description(String.format("Deleted settlement for ₹%.2f", amount))
-                .relatedId(settlementId != null ? settlementId.toString() : null) // Store settlement ID as string
+                .relatedId(settlementId != null ? settlementId : null) // Store settlement ID as string
                 .relatedType("SETTLEMENT")
                 .build();
         
@@ -200,7 +200,7 @@ public class ActivityService {
                 .userId(user)
                 .activityType(Activity.ActivityType.BALANCE_UPDATED)
                 .description(description)
-                .relatedId(group != null ? group.getId().toString() : null) // Store group ID as string
+                .relatedId(group != null ? group.getId(): null) // Store group ID as string
                 .relatedType("GROUP")
                 .build();
         
@@ -211,7 +211,7 @@ public class ActivityService {
      * Gets activities for a specific group.
      */
     @Transactional(readOnly = true)
-    public List<Activity> getGroupActivities(Long groupId) {
+    public List<Activity> getGroupActivities(UUID groupId) {
         log.debug("Fetching activities for group: {}", groupId);
         return activityRepository.findByGroupIdOrderByCreatedAtDesc(groupId);
     }
@@ -229,7 +229,7 @@ public class ActivityService {
      * Gets activities for a group with pagination.
      */
     @Transactional(readOnly = true)
-    public List<Activity> getGroupActivities(Long groupId, int limit, int offset) {
+    public List<Activity> getGroupActivities(UUID groupId, int limit, int offset) {
         log.debug("Fetching activities for group: {} with limit {} and offset {}", groupId, limit, offset);
         return activityRepository.findByGroupIdOrderByCreatedAtDesc(groupId, limit, offset);
     }

@@ -31,28 +31,30 @@ class SplitwiseExceptionsTest {
     @Test
     @DisplayName("GroupNotFoundException")
     void groupNotFoundException() {
-        GroupNotFoundException e = new GroupNotFoundException(999L);
+        UUID groupId = UUID.fromString("00000000-0000-0000-0000-000000000999");
+        GroupNotFoundException e = new GroupNotFoundException(groupId);
         assertNotNull(e.getMessage());
-        assertTrue(e.getMessage().contains("999"));
+        assertTrue(e.getMessage().contains("00000000-0000-0000-0000-000000000999"));
     }
 
     @Test
     @DisplayName("ExpenseNotFoundException")
     void expenseNotFoundException() {
-        ExpenseNotFoundException e = new ExpenseNotFoundException(100L);
+        UUID expenseId = UUID.fromString("00000000-0000-0000-0000-000000000100");
+        ExpenseNotFoundException e = new ExpenseNotFoundException(expenseId);
         assertNotNull(e.getMessage());
-        assertTrue(e.getMessage().contains("100"));
+        assertTrue(e.getMessage().contains("00000000-0000-0000-0000-000000000100"));
     }
 
     @Test
     @DisplayName("UserNotMemberException")
     void userNotMemberException() {
         UUID userId = UUID.randomUUID();
-        Long groupId = 1L;
+        UUID groupId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UserNotMemberException e = new UserNotMemberException(userId, groupId);
         assertNotNull(e.getMessage());
         assertTrue(e.getMessage().contains(userId.toString()));
-        assertTrue(e.getMessage().contains("1"));
+        assertTrue(e.getMessage().contains("00000000-0000-0000-0000-000000000001"));
     }
 
     @Test

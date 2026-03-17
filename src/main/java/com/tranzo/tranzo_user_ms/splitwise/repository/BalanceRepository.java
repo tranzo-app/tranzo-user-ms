@@ -16,13 +16,13 @@ import java.util.UUID;
  * Repository interface for Balance entity operations.
  */
 @Repository
-public interface BalanceRepository extends JpaRepository<Balance, Long> {
+public interface BalanceRepository extends JpaRepository<Balance, UUID> {
 
     /**
      * Finds balances for a specific group.
      */
     @Query("SELECT b FROM Balance b WHERE b.group.id = :groupId")
-    List<Balance> findByGroupId(@Param("groupId") Long groupId);
+    List<Balance> findByGroupId(@Param("groupId") UUID groupId);
 
     /**
      * Finds balances where a specific user owes money.
@@ -38,28 +38,28 @@ public interface BalanceRepository extends JpaRepository<Balance, Long> {
      * Finds balances between two specific users in a group.
      */
     @Query("SELECT b FROM Balance b WHERE b.group.id = :groupId AND b.owedBy = :owedBy AND b.owedTo = :owedTo")
-    Optional<Balance> findByGroupIdAndOwedByAndOwedTo(@Param("groupId") Long groupId, @Param("owedBy") UUID owedBy, @Param("owedTo") UUID owedTo);
+    Optional<Balance> findByGroupIdAndOwedByAndOwedTo(@Param("groupId") UUID groupId, @Param("owedBy") UUID owedBy, @Param("owedTo") UUID owedTo);
 
     /**
      * Finds all balances involving a specific user in a group.
      */
     @Query("SELECT b FROM Balance b WHERE b.group.id = :groupId AND " +
            "(b.owedBy = :userId OR b.owedTo = :userId)")
-    List<Balance> findBalancesForUserInGroup(@Param("groupId") Long groupId, @Param("userId") UUID userId);
+    List<Balance> findBalancesForUserInGroup(@Param("groupId") UUID groupId, @Param("userId") UUID userId);
 
     /**
      * Gets total amount owed by a user in a group.
      */
     @Query("SELECT COALESCE(SUM(b.amount), 0) FROM Balance b " +
            "WHERE b.group.id = :groupId AND b.owedBy = :userId")
-    BigDecimal getTotalOwedByUserInGroup(@Param("groupId") Long groupId, @Param("userId") UUID userId);
+    BigDecimal getTotalOwedByUserInGroup(@Param("groupId") UUID groupId, @Param("userId") UUID userId);
 
     /**
      * Gets total amount owed to a user in a group.
      */
     @Query("SELECT COALESCE(SUM(b.amount), 0) FROM Balance b " +
            "WHERE b.group.id = :groupId AND b.owedTo = :userId")
-    BigDecimal getTotalOwedToUserInGroup(@Param("groupId") Long groupId, @Param("userId") UUID userId);
+    BigDecimal getTotalOwedToUserInGroup(@Param("groupId") UUID groupId, @Param("userId") UUID userId);
 
     /**
      * Gets net balance for a user in a group (owed to - owed by).
@@ -67,7 +67,7 @@ public interface BalanceRepository extends JpaRepository<Balance, Long> {
     @Query("SELECT " +
            "COALESCE((SELECT SUM(b.amount) FROM Balance b WHERE b.group.id = :groupId AND b.owedTo = :userId), 0) - " +
            "COALESCE((SELECT SUM(b.amount) FROM Balance b WHERE b.group.id = :groupId AND b.owedBy = :userId), 0)")
-    BigDecimal getNetBalanceForUserInGroup(@Param("groupId") Long groupId, @Param("userId") UUID userId);
+    BigDecimal getNetBalanceForUserInGroup(@Param("groupId") UUID groupId, @Param("userId") UUID userId);
 
     /**
      * Finds balances with amount greater than a threshold.
@@ -83,7 +83,7 @@ public interface BalanceRepository extends JpaRepository<Balance, Long> {
      * Gets all user pairs with balances in a group.
      */
     @Query("SELECT DISTINCT b.owedBy, b.owedTo FROM Balance b WHERE b.group.id = :groupId")
-    List<Object[]> findUserPairsWithBalancesInGroup(@Param("groupId") Long groupId);
+    List<Object[]> findUserPairsWithBalancesInGroup(@Param("groupId") UUID groupId);
 
     /**
      * Gets balance summary for all users in a group.
@@ -103,7 +103,7 @@ public interface BalanceRepository extends JpaRepository<Balance, Long> {
            "WHERE gm.group.id = :groupId " +
            "GROUP BY gm.userId " +
            "ORDER BY netBalance DESC")
-    List<Object[]> getBalanceSummaryForGroup(@Param("groupId") Long groupId);
+    List<Object[]> getBalanceSummaryForGroup(@Param("groupId") UUID groupId);
 
     /**
      * Finds balances that need settlement (amount > 0).
@@ -118,7 +118,7 @@ public interface BalanceRepository extends JpaRepository<Balance, Long> {
            "FROM Balance b WHERE b.group.id = :groupId " +
            "GROUP BY b.owedBy " +
            "ORDER BY totalOwed DESC")
-    List<Object[]> getTopDebtorsInGroup(@Param("groupId") Long groupId);
+    List<Object[]> getTopDebtorsInGroup(@Param("groupId") UUID groupId);
 
     /**
      * Gets top creditors in a group (users who are owed the most).
@@ -127,45 +127,45 @@ public interface BalanceRepository extends JpaRepository<Balance, Long> {
            "FROM Balance b WHERE b.group.id = :groupId " +
            "GROUP BY b.owedTo " +
            "ORDER BY totalOwed DESC")
-    List<Object[]> getTopCreditorsInGroup(@Param("groupId") Long groupId);
+    List<Object[]> getTopCreditorsInGroup(@Param("groupId") UUID groupId);
 
     /**
      * Checks if there are any balances for a group.
      */
     @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Balance b WHERE b.group.id = :groupId")
-    boolean existsByGroupId(@Param("groupId") Long groupId);
+    boolean existsByGroupId(@Param("groupId") UUID groupId);
 
     /**
      * Checks if there are any balances between two users in a group.
      */
     @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Balance b WHERE b.group.id = :groupId AND b.owedBy = :owedBy AND b.owedTo = :owedTo")
-    boolean existsByGroupIdAndOwedByAndOwedTo(@Param("groupId") Long groupId, @Param("owedBy") UUID owedBy, @Param("owedTo") UUID owedTo);
+    boolean existsByGroupIdAndOwedByAndOwedTo(@Param("groupId") UUID groupId, @Param("owedBy") UUID owedBy, @Param("owedTo") UUID owedTo);
 
     /**
      * Deletes all balances for a group.
      */
     @Modifying
     @Query("DELETE FROM Balance b WHERE b.group.id = :groupId")
-    void deleteByGroupId(@Param("groupId") Long groupId);
+    void deleteByGroupId(@Param("groupId") UUID groupId);
 
     /**
      * Deletes balances between two users in a group.
      */
     @Modifying
     @Query("DELETE FROM Balance b WHERE b.group.id = :groupId AND b.owedBy = :owedBy AND b.owedTo = :owedTo")
-    void deleteByGroupIdAndOwedByAndOwedTo(@Param("groupId") Long groupId, @Param("owedBy") UUID owedBy, @Param("owedTo") UUID owedTo);
+    void deleteByGroupIdAndOwedByAndOwedTo(@Param("groupId") UUID groupId, @Param("owedBy") UUID owedBy, @Param("owedTo") UUID owedTo);
 
     /**
      * Gets balance count for a group.
      */
     @Query("SELECT COUNT(b) FROM Balance b WHERE b.group.id = :groupId")
-    long getBalanceCountForGroup(@Param("groupId") Long groupId);
+    long getBalanceCountForGroup(@Param("groupId") UUID groupId);
 
     /**
      * Gets total balance amount for a group.
      */
     @Query("SELECT COALESCE(SUM(b.amount), 0) FROM Balance b WHERE b.group.id = :groupId")
-    BigDecimal getTotalBalanceAmountForGroup(@Param("groupId") Long groupId);
+    BigDecimal getTotalBalanceAmountForGroup(@Param("groupId") UUID groupId);
 
     /**
      * Finds stale balances (balances that haven't been updated recently).

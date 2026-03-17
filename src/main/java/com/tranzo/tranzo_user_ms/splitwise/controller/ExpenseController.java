@@ -49,7 +49,7 @@ public class ExpenseController {
      */
     @GetMapping("/{expenseId}")
     public ResponseEntity<ExpenseResponse> getExpense(
-            @PathVariable Long expenseId) throws AuthException {
+            @PathVariable UUID expenseId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.debug("Received request to get expense: {}", expenseId);
         ExpenseResponse response = expenseService.getExpense(expenseId, userId);
@@ -63,7 +63,7 @@ public class ExpenseController {
      */
     @PutMapping("/{expenseId}")
     public ResponseEntity<ExpenseResponse> updateExpense(
-            @PathVariable Long expenseId,
+            @PathVariable UUID expenseId,
             @Valid @RequestBody UpdateExpenseRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to update expense: {}", expenseId);
@@ -78,7 +78,7 @@ public class ExpenseController {
      */
     @DeleteMapping("/{expenseId}")
     public ResponseEntity<Void> deleteExpense(
-            @PathVariable Long expenseId) throws AuthException {
+            @PathVariable UUID expenseId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to delete expense: {}", expenseId);
         expenseService.deleteExpense(expenseId, userId);
@@ -92,7 +92,7 @@ public class ExpenseController {
      */
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<ExpenseResponse>> getGroupExpenses(
-            @PathVariable Long groupId) throws AuthException {
+            @PathVariable UUID groupId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.debug("Received request to get expenses for group: {}", groupId);
         List<ExpenseResponse> response = expenseService.getGroupExpenses(groupId, userId);

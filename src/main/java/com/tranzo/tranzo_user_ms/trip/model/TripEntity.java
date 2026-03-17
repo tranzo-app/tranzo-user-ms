@@ -95,7 +95,7 @@ public class TripEntity {
 
     /** Set when trip is published and Splitwise group is created (event-based). */
     @Column(name = "splitwise_group_id")
-    private Long splitwiseGroupId;
+    private UUID splitwiseGroupId;
 
     @OneToOne(
             mappedBy = "trip",
