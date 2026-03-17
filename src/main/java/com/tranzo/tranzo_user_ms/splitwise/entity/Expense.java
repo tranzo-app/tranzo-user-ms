@@ -31,8 +31,8 @@ import java.util.UUID;
 public class Expense {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @NotBlank(message = "Expense name is required")
     @Size(max = 200, message = "Expense name must not exceed 200 characters")
@@ -51,7 +51,7 @@ public class Expense {
     private UUID paidBy;
 
     @Column(name = "group_id", nullable = false)
-    private Long groupId;
+    private UUID groupId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "split_type", nullable = false)
@@ -105,7 +105,7 @@ public class Expense {
         return paidBy;
     }
 
-    public Long getGroupId() {
+    public UUID getGroupId() {
         return groupId;
     }
 

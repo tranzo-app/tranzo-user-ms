@@ -32,8 +32,7 @@ public class SplitwiseGroupController {
      * Creates a new group.
      */
     @PostMapping
-    public ResponseEntity<GroupResponse> createGroup(
-            @Valid @RequestBody CreateGroupRequest request) throws AuthException {
+    public ResponseEntity<GroupResponse> createGroup(@Valid @RequestBody CreateGroupRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to create group: {}", request.getName());
         GroupResponse response = groupService.createGroup(request, userId);
@@ -46,7 +45,7 @@ public class SplitwiseGroupController {
      * Gets a group by ID.
      */
     @GetMapping("/{groupId}")
-    public ResponseEntity<GroupResponse> getGroup(@PathVariable Long groupId) throws AuthException {
+    public ResponseEntity<GroupResponse> getGroup(@PathVariable UUID groupId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.debug("Received request to get group: {}", groupId);
         
@@ -60,9 +59,7 @@ public class SplitwiseGroupController {
      * Updates a group.
      */
     @PutMapping("/{groupId}")
-    public ResponseEntity<GroupResponse> updateGroup(
-            @PathVariable Long groupId,
-            @Valid @RequestBody CreateGroupRequest request) throws AuthException {
+    public ResponseEntity<GroupResponse> updateGroup(@PathVariable UUID groupId, @Valid @RequestBody CreateGroupRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to update group: {}", groupId);
         GroupResponse response = groupService.updateGroup(groupId, request, userId);
@@ -75,8 +72,7 @@ public class SplitwiseGroupController {
      * Deletes a group.
      */
     @DeleteMapping("/{groupId}")
-    public ResponseEntity<Void> deleteGroup(
-            @PathVariable Long groupId) throws AuthException {
+    public ResponseEntity<Void> deleteGroup(@PathVariable UUID groupId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to delete group: {}", groupId);
         groupService.deleteGroup(groupId, userId);
@@ -102,9 +98,7 @@ public class SplitwiseGroupController {
      * Adds members to a group.
      */
     @PostMapping("/{groupId}/members")
-    public ResponseEntity<GroupResponse> addMembers(
-            @PathVariable Long groupId,
-            @Valid @RequestBody AddGroupMemberRequest request) throws AuthException {
+    public ResponseEntity<GroupResponse> addMembers(@PathVariable UUID groupId, @Valid @RequestBody AddGroupMemberRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to add {} members to group: {}", 
                  request.getMemberIds().size(), groupId);
@@ -118,9 +112,7 @@ public class SplitwiseGroupController {
      * Removes a member from a group.
      */
     @DeleteMapping("/{groupId}/members/{memberId}")
-    public ResponseEntity<GroupResponse> removeMember(
-            @PathVariable Long groupId,
-            @PathVariable UUID memberId) throws AuthException {
+    public ResponseEntity<GroupResponse> removeMember(@PathVariable UUID groupId, @PathVariable UUID memberId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to remove member {} from group: {}", memberId, groupId);
         GroupResponse response = groupService.removeMember(groupId, memberId, userId);
@@ -133,7 +125,7 @@ public class SplitwiseGroupController {
      * Gets all members of a group.
      */
     @GetMapping("/{groupId}/members")
-    public ResponseEntity<GroupResponse> getGroupMembers(@PathVariable Long groupId) throws AuthException {
+    public ResponseEntity<GroupResponse> getGroupMembers(@PathVariable UUID groupId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.debug("Received request to get members for group: {}", groupId);
         

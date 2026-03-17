@@ -54,8 +54,11 @@ public class ExpenseService {
      * Creates a new expense with proper validation and balance updates.
      */
     public ExpenseResponse createExpense(CreateExpenseRequest request, UUID currentUserId) {
-        log.info("Creating expense '{}' for group {} by user {}", 
-                 request.getName(), request.getGroupId(), currentUserId);
+        UUID groupId = request.getGroupId();
+        log.info("Creating expense '{}' for trip/group {} by user {}", request.getName(), groupId, currentUserId);
+
+        SplitwiseGroup group = splitwiseGroupRepository.findById(groupId)
+                .orElseThrow(() -> new GroupNotFoundException(groupId));
 
         // Validate users exist
         UsersEntity paidBy = userRepository.findById(request.getPaidById())
@@ -64,18 +67,19 @@ public class ExpenseService {
         // Validate splits
         validateExpenseSplits(request);
 
-        // Create expense entity
+        // Create expense entity (store group's Long id for FK)
         Expense expense = Expense.builder()
                 .name(request.getName())
                 .description(request.getDescription())
                 .amount(request.getAmount())
-                .groupId(request.getGroupId())
+                .groupId(group.getId())
                 .paidBy(paidBy.getUserUuid())
                 .splitType(request.getSplitType())
                 .category(request.getCategory())
                 .receiptUrl(request.getReceiptUrl())
-                .expenseDate(request.getExpenseDate() != null ? 
-                    LocalDateTime.parse(request.getExpenseDate()) : LocalDateTime.now())
+                .expenseDate(request.getExpenseDate() != null
+                        ? request.getExpenseDate().atStartOfDay()
+                        : LocalDateTime.now())
                 .build();
 
         // Create expense splits
@@ -102,11 +106,9 @@ public class ExpenseService {
         // Update balances
         balanceService.updateBalancesForExpense(savedExpense);
 
-        // Log activity
-        SplitwiseGroup group = splitwiseGroupRepository.findById(savedExpense.getGroupId())
-                .orElseThrow(() -> new GroupNotFoundException("Group not found with ID: " + savedExpense.getGroupId()));
-        activityService.logExpenseCreated(paidBy.getUserUuid(), group, savedExpense.getId(), 
-                                    savedExpense.getName(), savedExpense.getAmount());
+        // Log activity (group already resolved above)
+        activityService.logExpenseCreated(paidBy.getUserUuid(), group, savedExpense.getId(),
+                savedExpense.getName(), savedExpense.getAmount());
 
         log.info("Successfully created expense '{}' with ID: {}", savedExpense.getName(), savedExpense.getId());
         return convertToExpenseResponse(savedExpense);
@@ -116,7 +118,7 @@ public class ExpenseService {
      * Gets an expense by ID with authorization check.
      */
     @Transactional(readOnly = true)
-    public ExpenseResponse getExpense(Long expenseId, UUID currentUserId) {
+    public ExpenseResponse getExpense(UUID expenseId, UUID currentUserId) {
         log.debug("Fetching expense {} for user {}", expenseId, currentUserId);
 
         final Expense expense = expenseRepository.findById(expenseId)
@@ -134,7 +136,7 @@ public class ExpenseService {
     /**
      * Updates an existing expense.
      */
-    public ExpenseResponse updateExpense(Long expenseId, UpdateExpenseRequest request, UUID currentUserId) {
+    public ExpenseResponse updateExpense(UUID expenseId, UpdateExpenseRequest request, UUID currentUserId) {
         log.info("Updating expense {} by user {}", expenseId, currentUserId);
 
         Expense expense = expenseRepository.findById(expenseId)
@@ -209,7 +211,7 @@ public class ExpenseService {
     /**
      * Deletes an expense and updates balances.
      */
-    public void deleteExpense(Long expenseId, UUID currentUserId) {
+    public void deleteExpense(UUID expenseId, UUID currentUserId) {
         log.info("Deleting expense {} by user {}", expenseId, currentUserId);
 
         Expense expense = expenseRepository.findById(expenseId)
@@ -239,7 +241,7 @@ public class ExpenseService {
      * Gets all expenses for a group.
      */
     @Transactional(readOnly = true)
-    public List<ExpenseResponse> getGroupExpenses(Long groupId, UUID currentUserId) {
+    public List<ExpenseResponse> getGroupExpenses(UUID groupId, UUID currentUserId) {
         log.debug("Fetching expenses for group {} by user {}", groupId, currentUserId);
 
         // Verify user is member of the group

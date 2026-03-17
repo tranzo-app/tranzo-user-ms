@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -99,10 +100,83 @@ public class SplitwiseGroupService {
     }
 
     /**
+     * Creates a Splitwise group for a published trip. Called when a trip is published.
+     * The host is added as the only member (ADMIN). Trip members are added when they join the trip.
+     */
+    public GroupResponse createGroupForTrip(UUID tripId, String tripTitle, UUID hostUserId) {
+        log.info("Creating Splitwise group for trip {} (title: '{}'), host: {}", tripId, tripTitle, hostUserId);
+
+        Optional<SplitwiseGroup> existing = groupRepository.findByTripId(tripId);
+        if (existing.isPresent()) {
+            log.warn("Splitwise group already exists for trip {}", tripId);
+            return convertToGroupResponse(existing.get());
+        }
+
+        UsersEntity host = userRepository.findById(hostUserId)
+                .orElseThrow(() -> new SplitwiseException("Host user not found: " + hostUserId));
+
+        SplitwiseGroup group = SplitwiseGroup.builder()
+                .tripId(tripId)
+                .description(tripTitle != null ? tripTitle : "Trip " + tripId)
+                .createdBy(hostUserId)
+                .build();
+
+        GroupMember hostMember = GroupMember.builder()
+                .group(group)
+                .userId(hostUserId)
+                .role(GroupMember.MemberRole.ADMIN)
+                .joinedAt(java.time.LocalDateTime.now())
+                .build();
+        group.addMember(hostMember);
+
+        group = groupRepository.save(group);
+        activityService.logGroupCreated(host, group);
+
+        log.info("Created Splitwise group {} for trip {}, host {} as admin", group.getId(), tripId, hostUserId);
+        return convertToGroupResponse(group);
+    }
+
+    /**
+     * Adds a user to the Splitwise group linked to the given trip. Called when a user joins the trip.
+     * No admin check; used by system when trip membership changes.
+     */
+    public void addMemberToGroupByTripId(UUID tripId, UUID userId) {
+        log.info("Adding user {} to Splitwise group for trip {}", userId, tripId);
+
+        SplitwiseGroup group = groupRepository.findByTripId(tripId)
+                .orElseThrow(() -> new SplitwiseException("No Splitwise group found for trip: " + tripId));
+
+        if (group.isMember(userId)) {
+            log.debug("User {} already in group for trip {}", userId, tripId);
+            return;
+        }
+
+        userRepository.findById(userId)
+                .orElseThrow(() -> new SplitwiseException("User not found: " + userId));
+
+        GroupMember member = GroupMember.builder()
+                .group(group)
+                .userId(userId)
+                .role(GroupMember.MemberRole.MEMBER)
+                .joinedAt(java.time.LocalDateTime.now())
+                .build();
+        group.addMember(member);
+        groupRepository.save(group);
+
+        UUID addedBy = group.getAdminMembers().stream()
+                .findFirst()
+                .map(GroupMember::getUserId)
+                .orElse(null);
+        activityService.logMemberAdded(userId, group, addedBy);
+
+        log.info("Added user {} to Splitwise group {} for trip {}", userId, group.getId(), tripId);
+    }
+
+    /**
      * Gets a group by ID with authorization check.
      */
     @Transactional(readOnly = true)
-    public GroupResponse getGroup(Long groupId, UUID currentUserId) {
+    public GroupResponse getGroup(UUID groupId, UUID currentUserId) {
         log.debug("Fetching group {} for user {}", groupId, currentUserId);
 
         SplitwiseGroup group = groupRepository.findById(groupId)
@@ -120,7 +194,7 @@ public class SplitwiseGroupService {
     /**
      * Adds members to an existing group.
      */
-    public GroupResponse addMembers(Long groupId, AddGroupMemberRequest request, UUID currentUserId) {
+    public GroupResponse addMembers(UUID groupId, AddGroupMemberRequest request, UUID currentUserId) {
         log.info("Adding {} members to group {} by user {}", 
                  request.getMemberIds().size(), groupId, currentUserId);
 
@@ -163,7 +237,7 @@ public class SplitwiseGroupService {
     /**
      * Removes a member from a group.
      */
-    public GroupResponse removeMember(Long groupId, UUID memberId, UUID currentUserId) {
+    public GroupResponse removeMember(UUID groupId, UUID memberId, UUID currentUserId) {
         log.info("Removing member {} from group {} by user {}", memberId, groupId, currentUserId);
 
         SplitwiseGroup group = groupRepository.findById(groupId)
@@ -217,7 +291,7 @@ public class SplitwiseGroupService {
     /**
      * Updates group details.
      */
-    public GroupResponse updateGroup(Long groupId, CreateGroupRequest request, UUID currentUserId) {
+    public GroupResponse updateGroup(UUID groupId, CreateGroupRequest request, UUID currentUserId) {
         log.info("Updating group {} by user {}", groupId, currentUserId);
 
         SplitwiseGroup group = groupRepository.findById(groupId)
@@ -241,7 +315,7 @@ public class SplitwiseGroupService {
     /**
      * Deletes a group.
      */
-    public void deleteGroup(Long groupId, UUID currentUserId) {
+    public void deleteGroup(UUID groupId, UUID currentUserId) {
         log.info("Deleting group {} by user {}", groupId, currentUserId);
 
         SplitwiseGroup group = groupRepository.findById(groupId)
@@ -261,7 +335,7 @@ public class SplitwiseGroupService {
     /**
      * Validates that the user is an admin of the group.
      */
-    private void validateUserIsGroupAdmin(Long groupId, UUID userId) {
+    private void validateUserIsGroupAdmin(UUID groupId, UUID userId) {
         boolean isAdmin = groupRepository.isUserAdminOfGroup(groupId, userId);
         if (!isAdmin) {
             throw new SplitwiseException("User " + userId + " is not an admin of group " + groupId);

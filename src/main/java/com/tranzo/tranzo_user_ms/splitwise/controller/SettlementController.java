@@ -33,8 +33,7 @@ public class SettlementController {
      * Creates a new settlement.
      */
     @PostMapping
-    public ResponseEntity<SettlementResponse> createSettlement(
-            @Valid @RequestBody CreateSettlementRequest request) throws AuthException {
+    public ResponseEntity<SettlementResponse> createSettlement(@Valid @RequestBody CreateSettlementRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Received request to create settlement: {} -> {} amount {}", 
                  request.getPaidById(), request.getPaidToId(), request.getAmount());
@@ -48,7 +47,7 @@ public class SettlementController {
      * Gets a settlement by ID.
      */
     @GetMapping("/{settlementId}")
-    public ResponseEntity<SettlementResponse> getSettlement(@PathVariable Long settlementId) {
+    public ResponseEntity<SettlementResponse> getSettlement(@PathVariable UUID settlementId) {
         log.debug("Received request to get settlement: {}", settlementId);
         
         SettlementResponse response = settlementService.getSettlement(settlementId);
@@ -61,7 +60,7 @@ public class SettlementController {
      * Gets all settlements for a group.
      */
     @GetMapping("/group/{groupId}")
-    public ResponseEntity<List<SettlementResponse>> getGroupSettlements(@PathVariable Long groupId) {
+    public ResponseEntity<List<SettlementResponse>> getGroupSettlements(@PathVariable UUID groupId) {
         log.debug("Received request to get settlements for group: {}", groupId);
         
         List<SettlementResponse> response = settlementService.getGroupSettlements(groupId);
@@ -87,8 +86,7 @@ public class SettlementController {
      * Gets optimized settlement proposals for a group.
      */
     @GetMapping("/optimize/{groupId}")
-    public ResponseEntity<List<com.tranzo.tranzo_user_ms.splitwise.dto.SettlementProposal>> getOptimizedSettlements(
-            @PathVariable Long groupId) {
+    public ResponseEntity<List<com.tranzo.tranzo_user_ms.splitwise.dto.SettlementProposal>> getOptimizedSettlements(@PathVariable UUID groupId) {
         
         log.info("Received request to optimize settlements for group: {}", groupId);
         

@@ -31,7 +31,7 @@ public class BalanceController {
      * Gets balance summary for all users in a group.
      */
     @GetMapping("/group/{groupId}")
-    public ResponseEntity<List<BalanceResponse>> getGroupBalances(@PathVariable Long groupId) {
+    public ResponseEntity<List<BalanceResponse>> getGroupBalances(@PathVariable UUID groupId) {
         log.debug("Received request to get balances for group: {}", groupId);
         
         List<BalanceResponse> response = balanceService.getGroupBalances(groupId);
@@ -39,15 +39,13 @@ public class BalanceController {
         log.debug("Retrieved balances for {} users in group {}", response.size(), groupId);
         return ResponseEntity.ok(response);
     }
-
     /**
      * Gets balance summary for a specific user in a group.
      */
-    @GetMapping("/group/{groupId}/user/{userId}")
-    public ResponseEntity<BalanceResponse> getUserBalanceInGroup(
-            @PathVariable Long groupId,
-            @PathVariable UUID userId) {
-        
+    @GetMapping("/group/{groupId}/user")
+    public ResponseEntity<BalanceResponse> getUserBalanceInGroup(@PathVariable UUID groupId) throws AuthException {
+
+        UUID userId = SecurityUtils.getCurrentUserUuid();
         log.debug("Received request to get balance for user {} in group: {}", userId, groupId);
         
         BalanceResponse response = balanceService.getUserBalanceInGroup(groupId, userId);
@@ -61,8 +59,7 @@ public class BalanceController {
      * Gets balance for the current user in a group.
      */
     @GetMapping("/group/{groupId}/my-balance")
-    public ResponseEntity<BalanceResponse> getMyBalanceInGroup(
-            @PathVariable Long groupId) throws AuthException {
+    public ResponseEntity<BalanceResponse> getMyBalanceInGroup(@PathVariable UUID groupId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.debug("Received request to get balance for current user in group: {}", groupId);
         BalanceResponse response = balanceService.getUserBalanceInGroup(groupId, userId);

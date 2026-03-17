@@ -188,6 +188,44 @@ public class TripManagementService {
         return mapTripEntityToDto(trip);
     }
 
+    public TripMembersListResponseDto getTripMembers(UUID tripId, UUID userId) {
+        TripEntity trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+        boolean isTripHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(tripId, userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+        if (trip.getTripStatus() == TripStatus.CANCELLED && !isTripHost) {
+            throw new ForbiddenException("Cancelled trip is not accessible for anyone except the host of the trip");
+        }
+        if (trip.getVisibilityStatus() == VisibilityStatus.PRIVATE) {
+            tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE)
+                    .orElseThrow(() -> new ForbiddenException("User is not allowed to view this private trip as the user is not the member of the trip"));
+        }
+        List<TripMemberEntity> activeMembers = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE);
+        UUID hostUserId = activeMembers.stream()
+                .filter(m -> m.getRole() == TripMemberRole.HOST)
+                .map(TripMemberEntity::getUserId)
+                .findFirst()
+                .orElse(null);
+        List<UUID> coHostUserIds = activeMembers.stream()
+                .filter(m -> m.getRole() == TripMemberRole.CO_HOST)
+                .map(TripMemberEntity::getUserId)
+                .toList();
+        List<TripMemberResponseDto> memberDtos = activeMembers.stream()
+                .map(m -> TripMemberResponseDto.builder()
+                        .membershipId(m.getMembershipId())
+                        .userId(m.getUserId())
+                        .role(m.getRole())
+                        .joinedAt(m.getJoinedAt())
+                        .build())
+                .toList();
+        return TripMembersListResponseDto.builder()
+                .tripId(tripId)
+                .hostUserId(hostUserId)
+                .coHostUserIds(coHostUserIds)
+                .members(memberDtos)
+                .totalJoined(activeMembers.size())
+                .build();
+    }
+
     public List<TripViewDto> getMutualCompletedTrips(UUID currentUserId, UUID otherUserId) {
         if (currentUserId.equals(otherUserId)) {
             return List.of();

@@ -93,6 +93,10 @@ public class TripEntity {
     @Column(name = "conversation_id")
     private UUID conversationID;
 
+    /** Set when trip is published and Splitwise group is created (event-based). */
+    @Column(name = "splitwise_group_id")
+    private UUID splitwiseGroupId;
+
     @OneToOne(
             mappedBy = "trip",
             cascade = CascadeType.ALL,
