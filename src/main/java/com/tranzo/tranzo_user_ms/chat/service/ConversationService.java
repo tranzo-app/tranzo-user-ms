@@ -11,6 +11,7 @@ import com.tranzo.tranzo_user_ms.commons.exception.BadRequestException;
 import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
 import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,9 +22,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Service for querying and retrieving conversation data.
+ * Handles fetching user conversations and message history with pagination.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class ConversationService {
 
     private static final int DEFAULT_LIMIT = 30;
@@ -34,49 +40,106 @@ public class ConversationService {
     private final MessageRepository messageRepository;
     private final UserProfileClient userProfileClient;
 
+    /**
+     * Retrieves all conversations for the current user.
+     *
+     * @param currentUserId the user ID
+     * @return list of ChatListItemDto with conversation details
+     */
     public List<ChatListItemDto> getMyConversations(UUID currentUserId) {
+        log.debug("Fetching conversations for user {}", currentUserId);
+
         List<ChatListItemDto> conversations = conversationRepository.findChatListForUser(currentUserId);
+        log.info("Retrieved {} conversations for user {}", conversations.size(), currentUserId);
+
         return conversations;
     }
 
-    public List<MessageResponseDto> fetchMessages( UUID conversationId, UUID currentUserId, LocalDateTime before, Integer limit){
+    /**
+     * Fetches messages from a conversation with pagination support.
+     * Messages can be fetched before a specific timestamp for pagination.
+     * Automatically marks the conversation as read for the user.
+     *
+     * @param conversationId the conversation ID
+     * @param currentUserId  the user fetching messages
+     * @param before         optional timestamp to fetch messages before (for pagination)
+     * @param limit          optional limit on number of messages (default: 30, max: 100)
+     * @return list of MessageResponseDto with message details
+     * @throws ConversationNotFoundException if conversation not found or user is not participant
+     * @throws BadRequestException if limit is invalid
+     */
+    public List<MessageResponseDto> fetchMessages(UUID conversationId, UUID currentUserId, LocalDateTime before, Integer limit) {
+        log.debug("Fetching messages for conversation {} by user {} with limit {} before {}", 
+                  conversationId, currentUserId, limit, before);
+
         conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+                .orElseThrow(() -> {
+                    log.error("Conversation not found with ID: {}", conversationId);
+                    return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
+                });
 
-        var participant = conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, currentUserId)
-                .orElseThrow(() -> new ConversationNotFoundException("User is not a participant of the conversation"));
+        var participant = conversationParticipantRepository
+                .findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, currentUserId)
+                .orElseThrow(() -> {
+                    log.error("User {} is not a participant in conversation {}", currentUserId, conversationId);
+                    return new ConversationNotFoundException("USER_NOT_PARTICIPANT");
+                });
 
+        // Validate and set page size
         int pageSize = DEFAULT_LIMIT;
-
         if (limit != null) {
             if (limit <= 0 || limit > MAX_LIMIT) {
+                log.warn("Invalid limit {} requested for conversation {}", limit, conversationId);
                 throw new BadRequestException("Limit must be between 1 and " + MAX_LIMIT);
             }
             pageSize = limit;
         }
+
         Pageable pageable = PageRequest.of(0, pageSize);
 
+        // Fetch messages with optional timestamp filtering
         List<MessageEntity> messages = (before == null)
                 ? messageRepository.findMessages(conversationId, pageable)
                 : messageRepository.findMessagesBefore(conversationId, before, pageable);
 
+        // Mark conversation as read
         participant.markAsRead();
         conversationParticipantRepository.save(participant);
-        return messages.stream()
-                .map(message -> {
-                            Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(message.getSenderId()));
-                            return new MessageResponseDto(
-                                    message.getMessageId(),
-                                    conversationId,
-                                    message.getSenderId(),
-                                    namesByUserId.get(message.getSenderId()).getFirstName(),
-                                    namesByUserId.get(message.getSenderId()).getMiddleName(),
-                                    namesByUserId.get(message.getSenderId()).getLastName(),
-                                    message.getContent(),
-                                    message.getCreatedAt()
-                            );
-                }
-                )
+        log.debug("Conversation {} marked as read for user {}", conversationId, currentUserId);
+
+        // Convert messages to DTOs with sender information
+        List<MessageResponseDto> messageResponseDtos = messages.stream()
+                .map(message -> convertToMessageResponseDto(message, conversationId))
                 .toList();
+
+        log.info("Retrieved {} messages for conversation {} for user {}", messageResponseDtos.size(), conversationId, currentUserId);
+        return messageResponseDtos;
+    }
+
+    /**
+     * Converts a MessageEntity to MessageResponseDto with sender's profile information.
+     *
+     * @param message        the message entity
+     * @param conversationId the conversation ID
+     * @return MessageResponseDto with enriched sender details
+     */
+    private MessageResponseDto convertToMessageResponseDto(MessageEntity message, UUID conversationId) {
+        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(message.getSenderId()));
+        UserNameDto senderName = namesByUserId.get(message.getSenderId());
+
+        String firstName = senderName != null ? senderName.getFirstName() : "Unknown";
+        String middleName = senderName != null ? senderName.getMiddleName() : null;
+        String lastName = senderName != null ? senderName.getLastName() : null;
+
+        return new MessageResponseDto(
+                message.getMessageId(),
+                conversationId,
+                message.getSenderId(),
+                firstName,
+                middleName,
+                lastName,
+                message.getContent(),
+                message.getCreatedAt()
+        );
     }
 }
