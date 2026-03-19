@@ -52,4 +52,7 @@ public class TripQueryEntity {
 
     @Column(name = "answered_at")
     private LocalDateTime answeredAt;
+
+    @Column(name = "answered_by")
+    private UUID answeredBy;
 }

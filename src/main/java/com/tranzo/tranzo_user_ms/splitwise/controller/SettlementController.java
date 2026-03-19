@@ -1,6 +1,7 @@
 package com.tranzo.tranzo_user_ms.splitwise.controller;
 
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
+import com.tranzo.tranzo_user_ms.splitwise.dto.SettlementProposal;
 import com.tranzo.tranzo_user_ms.splitwise.dto.request.CreateSettlementRequest;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.SettlementResponse;
 import com.tranzo.tranzo_user_ms.splitwise.service.SettlementService;
@@ -38,7 +39,6 @@ public class SettlementController {
         log.info("Received request to create settlement: {} -> {} amount {}", 
                  request.getPaidById(), request.getPaidToId(), request.getAmount());
         SettlementResponse response = settlementService.createSettlement(request, userId);
-        
         log.info("Successfully created settlement with ID: {}", response.getId());
         return ResponseEntity.ok(response);
     }
@@ -49,9 +49,7 @@ public class SettlementController {
     @GetMapping("/{settlementId}")
     public ResponseEntity<SettlementResponse> getSettlement(@PathVariable UUID settlementId) {
         log.debug("Received request to get settlement: {}", settlementId);
-        
         SettlementResponse response = settlementService.getSettlement(settlementId);
-        
         log.debug("Successfully retrieved settlement: {}", response.getId());
         return ResponseEntity.ok(response);
     }
@@ -77,7 +75,6 @@ public class SettlementController {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.debug("Received request to get settlements for current user");
         List<SettlementResponse> response = settlementService.getUserSettlements(userId);
-        
         log.debug("Retrieved {} settlements for user: {}", response.size(), userId);
         return ResponseEntity.ok(response);
     }
@@ -86,12 +83,11 @@ public class SettlementController {
      * Gets optimized settlement proposals for a group.
      */
     @GetMapping("/optimize/{groupId}")
-    public ResponseEntity<List<com.tranzo.tranzo_user_ms.splitwise.dto.SettlementProposal>> getOptimizedSettlements(@PathVariable UUID groupId) {
+    public ResponseEntity<List<SettlementProposal>> getOptimizedSettlements(@PathVariable UUID groupId) {
         
         log.info("Received request to optimize settlements for group: {}", groupId);
         
-        List<com.tranzo.tranzo_user_ms.splitwise.dto.SettlementProposal> response = 
-                settlementService.getOptimizedSettlements(groupId);
+        List<SettlementProposal> response = settlementService.getOptimizedSettlements(groupId);
         
         log.info("Generated {} optimized settlement proposals for group {}", response.size(), groupId);
         return ResponseEntity.ok(response);

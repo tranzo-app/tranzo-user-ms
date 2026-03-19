@@ -25,10 +25,13 @@ public class TripViewDto {
     private LocalDate tripEndDate;
     private Double estimatedBudget;
     private Integer maxParticipants;
+    /** Active joined count (host + co-hosts + members); kept in sync on join/leave. */
+    private Integer currentParticipants;
     private Boolean isFull;
     private String tripFullReason;
     private JoinPolicy joinPolicy;
     private VisibilityStatus visibilityStatus;
+    private UUID splitWiseGroupId;
     private TripPolicyViewDto tripPolicy;
     private TripMetaDataViewDto tripMetaData;
     private Set<TripTagViewDto> tripTags = new HashSet<>();

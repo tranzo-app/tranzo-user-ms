@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Slf4j
+@CrossOrigin
 @RestController
 public class UserController {
     private final UserService userService;
