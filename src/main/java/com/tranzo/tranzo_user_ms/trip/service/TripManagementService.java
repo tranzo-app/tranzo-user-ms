@@ -518,6 +518,7 @@ public class TripManagementService {
                 .isFull(trip.getIsFull())
                 .splitWiseGroupId(trip.getSplitwiseGroupId())
                 .isTripHost(isTripHost)
+                .tripStatus(trip.getTripStatus())
                 .tripFullReason(trip.getTripFullReason())
                 .joinPolicy(trip.getJoinPolicy())
                 .visibilityStatus(trip.getVisibilityStatus())

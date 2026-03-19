@@ -4,7 +4,6 @@ import com.tranzo.tranzo_user_ms.chat.dto.ChatMessageRequest;
 import com.tranzo.tranzo_user_ms.chat.dto.SendMessageRequestDto;
 import com.tranzo.tranzo_user_ms.chat.dto.SendMessageResponseDto;
 import com.tranzo.tranzo_user_ms.chat.service.CreateAndManageConversationService;
-import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
 import jakarta.security.auth.message.AuthException;
 import lombok.RequiredArgsConstructor;
 

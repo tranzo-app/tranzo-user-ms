@@ -1,6 +1,10 @@
 package com.tranzo.tranzo_user_ms.splitwise.service;
 
 import com.tranzo.tranzo_user_ms.splitwise.dto.SettlementProposal;
+import com.tranzo.tranzo_user_ms.trip.model.TripJoinRequestEntity;
+import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
+import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -13,6 +17,11 @@ import java.util.*;
  */
 @Service
 public class SettlementOptimizationService {
+    private final UserProfileClient userProfileClient;
+
+    public SettlementOptimizationService(UserProfileClient userProfileClient) {
+        this.userProfileClient = userProfileClient;
+    }
 
     /**
      * Given net balance per user (negative = owes money, positive = is owed),
@@ -50,7 +59,9 @@ public class SettlementOptimizationService {
             if (pay.compareTo(BigDecimal.ZERO) <= 0) {
                 continue;
             }
-            result.add(new SettlementProposal(debtor.getKey(), creditor.getKey(), pay));
+            List<UUID> requestorUserIds = List.of(debtor.getKey(), creditor.getKey());
+            Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(requestorUserIds);
+            result.add(new SettlementProposal(namesByUserId.get(debtor.getKey()).getFirstName(), namesByUserId.get(creditor.getKey()).getFirstName(), pay));
 
             BigDecimal remainingDebt = debtor.getValue().subtract(pay).setScale(2, RoundingMode.HALF_UP);
             if (remainingDebt.compareTo(BigDecimal.ZERO) > 0) {

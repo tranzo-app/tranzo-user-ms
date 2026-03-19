@@ -8,6 +8,8 @@ import com.tranzo.tranzo_user_ms.chat.repository.ConversationParticipantReposito
 import com.tranzo.tranzo_user_ms.chat.repository.ConversationRepository;
 import com.tranzo.tranzo_user_ms.chat.repository.MessageRepository;
 import com.tranzo.tranzo_user_ms.commons.exception.BadRequestException;
+import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
+import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -29,6 +32,7 @@ public class ConversationService {
     private final ConversationRepository conversationRepository;
     private final ConversationParticipantRepository conversationParticipantRepository;
     private final MessageRepository messageRepository;
+    private final UserProfileClient userProfileClient;
 
     public List<ChatListItemDto> getMyConversations(UUID currentUserId) {
         List<ChatListItemDto> conversations = conversationRepository.findChatListForUser(currentUserId);
@@ -58,16 +62,20 @@ public class ConversationService {
 
         participant.markAsRead();
         conversationParticipantRepository.save(participant);
-
         return messages.stream()
-                .map(message ->
-                        new MessageResponseDto(
-                                message.getMessageId(),
-                                conversationId,
-                                message.getSenderId(),
-                                message.getContent(),
-                                message.getCreatedAt()
-                        )
+                .map(message -> {
+                            Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(message.getSenderId()));
+                            return new MessageResponseDto(
+                                    message.getMessageId(),
+                                    conversationId,
+                                    message.getSenderId(),
+                                    namesByUserId.get(message.getSenderId()).getFirstName(),
+                                    namesByUserId.get(message.getSenderId()).getMiddleName(),
+                                    namesByUserId.get(message.getSenderId()).getLastName(),
+                                    message.getContent(),
+                                    message.getCreatedAt()
+                            );
+                }
                 )
                 .toList();
     }

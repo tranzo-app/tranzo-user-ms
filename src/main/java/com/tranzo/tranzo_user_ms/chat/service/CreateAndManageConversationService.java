@@ -7,6 +7,8 @@ import com.tranzo.tranzo_user_ms.chat.exception.ConversationNotFoundException;
 import com.tranzo.tranzo_user_ms.chat.model.*;
 import com.tranzo.tranzo_user_ms.chat.repository.*;
 import com.tranzo.tranzo_user_ms.commons.exception.ForbiddenException;
+import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
+import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,6 +32,7 @@ public class CreateAndManageConversationService {
     private final MessageRepository messageRepository;
     private final ConversationMuteRepository muteRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final UserProfileClient userProfileClient;
 
     public CreateConversationResponseDto createOneToOneConversation(UUID userId, CreateConversationRequestDto request) {
         UUID otherUserId = request.getOtherUserId();
@@ -118,10 +122,14 @@ public class CreateAndManageConversationService {
                         content
                 )
         );
+        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(senderId));
         SendMessageResponseDto response = new SendMessageResponseDto(
                 message.getMessageId(),
                 conversationId,
                 senderId,
+                namesByUserId.get(senderId).getFirstName(),
+                namesByUserId.get(senderId).getMiddleName(),
+                namesByUserId.get(senderId).getLastName(),
                 content,
                 message.getCreatedAt()
         );
