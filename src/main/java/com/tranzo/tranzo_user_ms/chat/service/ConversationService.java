@@ -52,12 +52,9 @@ public class ConversationService {
         }
         Pageable pageable = PageRequest.of(0, pageSize);
 
-        List<MessageEntity> messages =
-                messageRepository.findMessages(
-                        conversationId,
-                        before,
-                        pageable
-                );
+        List<MessageEntity> messages = (before == null)
+                ? messageRepository.findMessages(conversationId, pageable)
+                : messageRepository.findMessagesBefore(conversationId, before, pageable);
 
         participant.markAsRead();
         conversationParticipantRepository.save(participant);

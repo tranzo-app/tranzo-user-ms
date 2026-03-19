@@ -575,6 +575,7 @@ public class TripManagementService {
                         .answer(null)
                         .askedBy(userID)
                         .trip(trip)
+                        .visibility(TripQueryVisibility.HOST_AND_CO_HOSTS)
                         .build();
 
                 tripQueryRepository.save(tripQueryEntity);

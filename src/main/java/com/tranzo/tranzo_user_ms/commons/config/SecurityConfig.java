@@ -61,6 +61,9 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
         config.addAllowedOrigin("http://localhost:3000");
+        config.addAllowedOrigin("http://192.168.0.105:3000");
+        config.addAllowedOrigin("https://www.tranzo.in");
+        config.addAllowedOrigin("https://tranzo.in");
         config.setAllowedHeaders(List.of("*"));
 
         config.setAllowedMethods(List.of(

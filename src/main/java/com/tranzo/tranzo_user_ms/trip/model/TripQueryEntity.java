@@ -30,7 +30,7 @@ public class TripQueryEntity {
     private UUID queryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "trip_id", nullable = false, insertable = false, updatable = false)
+    @JoinColumn(name = "trip_id", nullable = false)
     private TripEntity trip;
 
     @Column(name = "asked_by", nullable = false)

@@ -14,14 +14,28 @@ import java.util.UUID;
 
 @Repository
 public interface MessageRepository extends JpaRepository<MessageEntity, UUID> {
+
+    /** Fetch latest messages (first page). No cursor; avoids NULL parameter binding issues on PostgreSQL. */
     @Query("""
         SELECT m
         FROM MessageEntity m
         WHERE m.conversation.conversationId = :conversationId
-          AND (:before IS NULL OR m.createdAt < :before)
         ORDER BY m.createdAt DESC
     """)
     List<MessageEntity> findMessages(
+            @Param("conversationId") UUID conversationId,
+            Pageable pageable
+    );
+
+    /** Fetch messages before a given timestamp (pagination). */
+    @Query("""
+        SELECT m
+        FROM MessageEntity m
+        WHERE m.conversation.conversationId = :conversationId
+          AND m.createdAt < :before
+        ORDER BY m.createdAt DESC
+    """)
+    List<MessageEntity> findMessagesBefore(
             @Param("conversationId") UUID conversationId,
             @Param("before") LocalDateTime before,
             Pageable pageable
