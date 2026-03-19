@@ -1,5 +1,7 @@
 package com.tranzo.tranzo_user_ms.splitwise.exception;
 
+import com.tranzo.tranzo_user_ms.splitwise.enums.SplitwiseErrorCode;
+
 import java.util.UUID;
 
 /**
@@ -8,10 +10,10 @@ import java.util.UUID;
 public class UserNotMemberException extends SplitwiseException {
 
     public UserNotMemberException(UUID userId, UUID groupId) {
-        super(String.format("User %s is not a member of group %s", userId.toString(), groupId));
+        super(SplitwiseErrorCode.USER_NOT_MEMBER, 403, String.format("User %s is not a member of group %s", userId.toString(), groupId));
     }
 
     public UserNotMemberException(String message) {
-        super(message);
+        super(SplitwiseErrorCode.USER_NOT_MEMBER, 403, message);
     }
 }

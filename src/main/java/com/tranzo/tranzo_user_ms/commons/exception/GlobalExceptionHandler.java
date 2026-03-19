@@ -5,6 +5,10 @@ import com.tranzo.tranzo_user_ms.chat.enums.ChatErrorCode;
 import com.tranzo.tranzo_user_ms.commons.dto.ErrorDetailsDto;
 import com.tranzo.tranzo_user_ms.commons.utility.ExceptionResponseUtil;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
+import com.tranzo.tranzo_user_ms.notification.enums.NotificationErrorCode;
+import com.tranzo.tranzo_user_ms.notification.exception.NotificationException;
+import com.tranzo.tranzo_user_ms.splitwise.enums.SplitwiseErrorCode;
+import com.tranzo.tranzo_user_ms.splitwise.exception.SplitwiseException;
 import com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode;
 import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +59,50 @@ public class GlobalExceptionHandler {
                 .body(ResponseDto.failure(
                         ex.getStatusCode(),
                         "Chat operation failed",
+                        errorDetails
+                ));
+    }
+
+    /**
+     * Handle SplitwiseException - splitwise-specific exceptions with error codes
+     */
+    @ExceptionHandler(SplitwiseException.class)
+    public ResponseEntity<ResponseDto<ErrorDetailsDto>> handleSplitwiseException(
+            SplitwiseException ex) {
+        log.warn("SplitwiseException caught: {}", ex.getErrorCode());
+
+        ErrorDetailsDto errorDetails = ErrorDetailsDto.builder()
+                .errorCode(ex.getErrorCode().getCode())
+                .message(resolveMessage(ex.getErrorCode()))
+                .build();
+
+        return ResponseEntity
+                .status(ex.getStatusCode())
+                .body(ResponseDto.failure(
+                        ex.getStatusCode(),
+                        "Splitwise operation failed",
+                        errorDetails
+                ));
+    }
+
+    /**
+     * Handle NotificationException - notification-specific exceptions with error codes
+     */
+    @ExceptionHandler(NotificationException.class)
+    public ResponseEntity<ResponseDto<ErrorDetailsDto>> handleNotificationException(
+            NotificationException ex) {
+        log.warn("NotificationException caught: {}", ex.getErrorCode());
+
+        ErrorDetailsDto errorDetails = ErrorDetailsDto.builder()
+                .errorCode(ex.getErrorCode().getCode())
+                .message(resolveMessage(ex.getErrorCode()))
+                .build();
+
+        return ResponseEntity
+                .status(ex.getStatusCode())
+                .body(ResponseDto.failure(
+                        ex.getStatusCode(),
+                        "Notification operation failed",
                         errorDetails
                 ));
     }
@@ -184,6 +232,30 @@ public class GlobalExceptionHandler {
             case SELF_CONVERSATION -> "Cannot create conversation with yourself";
             case INVALID_LIMIT -> "Invalid limit parameter";
             case INVALID_CONVERSATION_TYPE -> "Invalid conversation type";
+        };
+    }
+
+    /**
+     * Resolve user-friendly message for SplitwiseErrorCode
+     */
+    private String resolveMessage(SplitwiseErrorCode errorCode) {
+        return switch (errorCode) {
+            case GROUP_NOT_FOUND -> "Group not found";
+            case EXPENSE_NOT_FOUND -> "Expense not found";
+            case EXPENSE_SPLIT_INVALID -> "Expense split configuration is invalid";
+            case SETTLEMENT_NOT_FOUND -> "Settlement not found";
+            case USER_NOT_MEMBER -> "User is not a member of this group";
+            case INSUFFICIENT_BALANCE -> "Insufficient balance";
+        };
+    }
+
+    /**
+     * Resolve user-friendly message for NotificationErrorCode
+     */
+    private String resolveMessage(NotificationErrorCode errorCode) {
+        return switch (errorCode) {
+            case NOTIFICATION_NOT_FOUND -> "Notification not found";
+            case NOTIFICATION_ACCESS_DENIED -> "Access denied to this notification";
         };
     }
 
