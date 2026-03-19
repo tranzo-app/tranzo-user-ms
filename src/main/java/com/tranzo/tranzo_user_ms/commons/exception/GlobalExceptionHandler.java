@@ -1,9 +1,5 @@
 package com.tranzo.tranzo_user_ms.commons.exception;
 
-import com.tranzo.tranzo_user_ms.chat.exception.ConversationNotFoundException;
-import com.tranzo.tranzo_user_ms.chat.exception.ConversationMutedException;
-import com.tranzo.tranzo_user_ms.chat.exception.InvalidMessageException;
-import com.tranzo.tranzo_user_ms.chat.exception.UserLeftConversationException;
 import com.tranzo.tranzo_user_ms.chat.exception.ChatException;
 import com.tranzo.tranzo_user_ms.chat.enums.ChatErrorCode;
 import com.tranzo.tranzo_user_ms.commons.dto.ErrorDetailsDto;
@@ -107,82 +103,6 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle ConversationNotFoundException - chat-specific exception
-     */
-    @ExceptionHandler(ConversationNotFoundException.class)
-    public ResponseEntity<ResponseDto<Void>> handleConversationNotFoundException(
-            ConversationNotFoundException ex) {
-        log.warn("ConversationNotFoundException caught: {}", ex.getMessage());
-
-        return ResponseEntity.status(404).body(
-                ResponseDto.error(404, ex.getMessage())
-        );
-    }
-
-
-    /**
-     * Handle ConversationMutedException - chat-specific exception
-     */
-    @ExceptionHandler(ConversationMutedException.class)
-    public ResponseEntity<ResponseDto<Void>> handleConversationMutedException(
-            ConversationMutedException ex) {
-        log.warn("ConversationMutedException caught: {}", ex.getMessage());
-
-        return ResponseEntity.status(403).body(
-                ResponseDto.error(403, ex.getMessage())
-        );
-    }
-
-    /**
-     * Handle InvalidMessageException - chat-specific exception
-     */
-    @ExceptionHandler(InvalidMessageException.class)
-    public ResponseEntity<ResponseDto<Void>> handleInvalidMessageException(
-            InvalidMessageException ex) {
-        log.warn("InvalidMessageException caught: {}", ex.getMessage());
-
-        return ResponseEntity.status(400).body(
-                ResponseDto.error(400, ex.getMessage())
-        );
-    }
-
-    /**
-     * Handle UserLeftConversationException - chat-specific exception
-     */
-    @ExceptionHandler(UserLeftConversationException.class)
-    public ResponseEntity<ResponseDto<Void>> handleUserLeftConversationException(
-            UserLeftConversationException ex) {
-        log.warn("UserLeftConversationException caught: {}", ex.getMessage());
-
-        return ResponseEntity.status(410).body(
-                ResponseDto.error(410, ex.getMessage())
-        );
-    }
-
-    /**
-     * Resolve user-friendly message for ChatErrorCode
-     */
-    private String resolveMessage(ChatErrorCode errorCode) {
-        return switch (errorCode) {
-            case CONVERSATION_NOT_FOUND -> "Conversation not found";
-            case RECIPIENT_NOT_FOUND -> "Recipient user not found";
-            case TRIP_NOT_FOUND -> "Trip not found";
-            case INVALID_MESSAGE -> "Invalid message content";
-            case MESSAGE_TOO_LONG -> "Message exceeds maximum length";
-            case MESSAGE_EMPTY -> "Message cannot be empty";
-            case USER_NOT_IN_CONVERSATION -> "User is not a participant in this conversation";
-            case USER_LEFT_CONVERSATION -> "User has left this conversation";
-            case USER_BLOCKED -> "User is blocked from this conversation";
-            case USER_MUTED -> "User is muted in this conversation";
-            case BLOCK_NOT_ALLOWED -> "Blocking is not allowed for this conversation type";
-            case UNBLOCK_NOT_ALLOWED -> "Unblocking is not allowed for this conversation type";
-            case SELF_CONVERSATION -> "Cannot create conversation with yourself";
-            case INVALID_LIMIT -> "Invalid limit specified";
-            case INVALID_CONVERSATION_TYPE -> "Invalid conversation type for this operation";
-        };
-    }
-
-    /**
      * Handle TripPublishException - trip publishing validation errors
      */
     @ExceptionHandler(TripPublishException.class)
@@ -241,6 +161,29 @@ public class GlobalExceptionHandler {
             case TRIP_ALREADY_PUBLISHED -> "Trip is already published";
             case TRIP_NOT_FOUND -> "Trip not found";
             case TRIP_NOT_PUBLISHED -> "Trip not published";
+        };
+    }
+
+    /**
+     * Resolve user-friendly message for ChatErrorCode
+     */
+    private String resolveMessage(ChatErrorCode errorCode) {
+        return switch (errorCode) {
+            case CONVERSATION_NOT_FOUND -> "Conversation not found";
+            case RECIPIENT_NOT_FOUND -> "Recipient not found";
+            case TRIP_NOT_FOUND -> "Trip not found";
+            case INVALID_MESSAGE -> "Invalid message format";
+            case MESSAGE_TOO_LONG -> "Message exceeds maximum length";
+            case MESSAGE_EMPTY -> "Message cannot be empty";
+            case USER_NOT_IN_CONVERSATION -> "User is not a participant in this conversation";
+            case USER_LEFT_CONVERSATION -> "User has left this conversation";
+            case USER_BLOCKED -> "User is blocked from this conversation";
+            case USER_MUTED -> "User is muted in this conversation";
+            case BLOCK_NOT_ALLOWED -> "Blocking operation not allowed";
+            case UNBLOCK_NOT_ALLOWED -> "Unblocking operation not allowed";
+            case SELF_CONVERSATION -> "Cannot create conversation with yourself";
+            case INVALID_LIMIT -> "Invalid limit parameter";
+            case INVALID_CONVERSATION_TYPE -> "Invalid conversation type";
         };
     }
 

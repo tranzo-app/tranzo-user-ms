@@ -2,6 +2,7 @@ package com.tranzo.tranzo_user_ms.chat.service;
 
 import com.tranzo.tranzo_user_ms.chat.dto.ChatListItemDto;
 import com.tranzo.tranzo_user_ms.chat.dto.MessageResponseDto;
+import com.tranzo.tranzo_user_ms.chat.enums.ChatErrorCode;
 import com.tranzo.tranzo_user_ms.chat.exception.ConversationNotFoundException;
 import com.tranzo.tranzo_user_ms.chat.model.MessageEntity;
 import com.tranzo.tranzo_user_ms.chat.repository.ConversationParticipantRepository;
@@ -75,14 +76,14 @@ public class ConversationService {
         conversationRepository.findById(conversationId)
                 .orElseThrow(() -> {
                     log.error("Conversation not found with ID: {}", conversationId);
-                    return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
+                    return new ConversationNotFoundException(ChatErrorCode.CONVERSATION_NOT_FOUND, "Conversation not found");
                 });
 
         var participant = conversationParticipantRepository
                 .findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, currentUserId)
                 .orElseThrow(() -> {
                     log.error("User {} is not a participant in conversation {}", currentUserId, conversationId);
-                    return new ConversationNotFoundException("USER_NOT_PARTICIPANT");
+                    return new ConversationNotFoundException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
                 });
 
         // Validate and set page size
