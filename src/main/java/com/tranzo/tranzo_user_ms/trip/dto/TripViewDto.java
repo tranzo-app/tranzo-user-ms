@@ -28,6 +28,7 @@ public class TripViewDto {
     /** Active joined count (host + co-hosts + members); kept in sync on join/leave. */
     private Integer currentParticipants;
     private Boolean isFull;
+    private Boolean isTripHost;
     private String tripFullReason;
     private JoinPolicy joinPolicy;
     private VisibilityStatus visibilityStatus;

@@ -191,7 +191,7 @@ public class TripManagementService {
             tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE)
                     .orElseThrow(() -> new ForbiddenException("User is not allowed to view this private trip as the user is not the member of the trip"));
         }
-        return mapTripEntityToDto(trip);
+        return mapTripEntityToDto(trip, isTripHost);
     }
 
     public TripMembersListResponseDto getTripMembers(UUID tripId, UUID userId) {
@@ -247,7 +247,10 @@ public class TripManagementService {
         List<TripEntity> trips = tripRepository.findMutualCompletedTrips(
                 currentUserId, otherUserId, TripStatus.COMPLETED);
         return trips.stream()
-                .map(this::mapTripEntityToDto)
+                .map(trip -> {
+                    boolean isTripHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(trip.getTripId(), currentUserId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+                    return mapTripEntityToDto(trip, isTripHost);
+                })
                 .toList();
     }
 
@@ -256,7 +259,10 @@ public class TripManagementService {
         List<TripStatus> statuses = List.of(TripStatus.PUBLISHED, TripStatus.ONGOING, TripStatus.COMPLETED);
         List<TripEntity> trips = tripMemberRepository.findTripsByUserIdAndStatusIn(userId, statuses);
         return trips.stream()
-                .map(this::mapTripEntityToDto)
+                .map(trip -> {
+                    boolean isTripHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+                    return mapTripEntityToDto(trip, isTripHost);
+                })
                 .toList();
     }
 
@@ -264,7 +270,9 @@ public class TripManagementService {
     {
         List<TripEntity> trips = tripRepository.findAllTrips(TripStatus.COMPLETED);
         return trips.stream()
-                .map(this::mapTripEntityToDto)
+                .map(trip -> {
+                    return mapTripEntityToDto(trip, null);
+                })
                 .toList();
     }
 
@@ -493,7 +501,7 @@ public class TripManagementService {
         trip.getTripItineraries().addAll(updatedTripItineraries);
     }
 
-    private TripViewDto mapTripEntityToDto(TripEntity trip)
+    private TripViewDto mapTripEntityToDto(TripEntity trip, Boolean isTripHost)
     {
         int activeMemberCount = tripMemberRepository.countByTrip_TripIdAndStatus(
                 trip.getTripId(), TripMemberStatus.ACTIVE);
@@ -509,6 +517,7 @@ public class TripManagementService {
                 .currentParticipants(activeMemberCount)
                 .isFull(trip.getIsFull())
                 .splitWiseGroupId(trip.getSplitwiseGroupId())
+                .isTripHost(isTripHost)
                 .tripFullReason(trip.getTripFullReason())
                 .joinPolicy(trip.getJoinPolicy())
                 .visibilityStatus(trip.getVisibilityStatus())
@@ -798,7 +807,9 @@ public class TripManagementService {
         }
         Pageable pageable = PageableBuilder.build(request);
         Page<TripEntity> trips = tripRepository.findAll(spec, pageable);
-        return trips.map(this::mapTripEntityToDto);
+        return trips.map(trip -> {
+            return mapTripEntityToDto(trip, null);
+        });
     }
 
     private Specification<TripEntity> buildGlobalSearch(

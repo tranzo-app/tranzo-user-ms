@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: 8080
 
 # Schema: Flyway runs first (V1__create_all_tables.sql), then Hibernate validates.
 # Tables are created once; on restart Flyway skips applied migrations, data persists (file-based H2).
@@ -64,6 +64,14 @@ app:
 #   notification:
 #     draft-reminder-cron: "0 0 9 * * ?"
 #     upcoming-cron: "0 0 8 * * ?"
+
+aws:
+  region: ap-south-1
+  access-key:
+  secret-key:
+
+ses:
+  from-email: support@tranzo.in
 
 logging:
   level:

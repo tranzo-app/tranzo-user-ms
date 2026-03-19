@@ -15,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.MessageDigest;
+import java.util.Base64;
 import java.util.Optional;
 
 @Service
@@ -25,41 +27,90 @@ public class OtpService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final SessionService sessionService;
-    private final Cache<String, String> otpCache;
+    private final Cache<String, Integer> rateLimitCache;
+    private final OtpCacheService cacheService;
+    private final SmsService smsService;
+    private final EmailService emailService;
 
-    public void sendOtp(RequestOtpDto requestOtpDto)
-    {
+    private static final int MAX_ATTEMPTS = 3;
+    private static final int MAX_REQUESTS = 3;
+
+    public void sendOtp(RequestOtpDto requestOtpDto) throws Exception {
         String identifier = otpUtility.resolveIdentifier(requestOtpDto);
-//        String otp = otpUtility.generateOtp();
-         String otp = "111111";
-        log.info("Key built for caching OTP is {}", buildKey(identifier));
-        otpCache.put(buildKey(identifier), otp);
-        // TODO : Integrate SMS / Email Provider
-//        emailService.sendOtp(requestOtpDto.getEmailId(), otp);
+        String otpRateLimitKey = buildKeyForRateLimiting(identifier);
+
+        // Rate Limit logic
+        Integer count = rateLimitCache.getIfPresent(otpRateLimitKey);
+        if (count != null && count >= MAX_REQUESTS) {
+            throw new OtpException("Too many OTP requests. Try later.");
+        }
+        rateLimitCache.put(otpRateLimitKey, count == null ? 1 : count + 1);
+
+        String otpKey = buildKey(identifier);
+        OtpData existing = cacheService.get(otpKey);
+
+        // TODO
+        // OTP reuse trick
+        long now = System.currentTimeMillis();
+        if (existing != null) {
+            long sentAt = existing.getSentAt(); // store sent timestamp in OtpData
+            if (now - sentAt < 30_000) { // 30 seconds in milliseconds
+                throw new OtpException("Please wait before requesting a new OTP.");
+            } else {
+                // resend same OTP
+                String otpHash = existing.getOtpHash();
+//                smsService.sendOtp(identifier, existing.getPlainOtp()); // need to store plain OTP temporarily
+                existing.setSentAt(now);
+                cacheService.put(identifier, existing);
+                return;
+            }
+        }
+        String otp = otpUtility.generateOtp();
+        String hash = hashOtp(otp);
+        cacheService.put(
+                otpKey,
+                new OtpData(otp, hash, 0, System.currentTimeMillis())
+        );
         log.info("OTP for {} is {}", identifier, otp);
+        // Sending SMS via AWS SNS
+//        smsService.sendOtp(identifier, otp);
+        // Sending SMS via AWS SNS
+        if (requestOtpDto.getEmailId() != null)
+        {
+            emailService.sendOtpEmail(identifier, otp);
+        }
+        else
+        {
+            smsService.sendOtp(identifier, otp);
+        }
     }
 
-    public VerifyOtpResponseDto verifyOtp(VerifyOtpDto verifyOtpDto, HttpServletResponse response)
-    {
+    public VerifyOtpResponseDto verifyOtp(VerifyOtpDto verifyOtpDto, HttpServletResponse response) throws Exception {
         String identifier = otpUtility.resolveIdentifier(verifyOtpDto);
         String key = buildKey(identifier);
         log.info("Key for fetching OTP is {}", key);
-        String cachedOtp = otpCache.getIfPresent(key);
+        OtpData cachedOtp = (OtpData) cacheService.get(key);
         if (cachedOtp == null) {
             throw new OtpException("OTP expired or not found");
         }
-        log.info("Cached OTP for {} from map is {}", identifier, cachedOtp);
-        if (!verifyOtpDto.getOtp().equals(cachedOtp))
+        if (cachedOtp.getAttempts() >= MAX_ATTEMPTS)
         {
+            throw new OtpException("Maximum number of attempts");
+        }
+        String hash = hashOtp(verifyOtpDto.getOtp());
+        if (!hash.equals(cachedOtp.getOtpHash()))
+        {
+            cachedOtp.setAttempts(cachedOtp.getAttempts() + 1);
+            cacheService.put(key, cachedOtp);
             throw new OtpException("Invalid OTP");
         }
+        cacheService.remove(key);
         Optional<UsersEntity> user = findUserByIdentifier(verifyOtpDto);
         boolean userExists = user.isPresent();
         if (!userExists)
         {
             createNewUser(verifyOtpDto);
             String registrationToken = jwtService.generateRegistrationToken(identifier);
-            otpCache.invalidate(buildKey(identifier));
             return VerifyOtpResponseDto.builder()
                     .userExists(userExists)
                     .registrationToken(registrationToken)
@@ -73,7 +124,6 @@ public class OtpService {
                     .registrationToken(registrationToken)
                     .build();
         }
-        otpCache.invalidate(buildKey(identifier));
         SessionRequestDto sessionRequestDto = SessionRequestDto.builder().mobileNumber(verifyOtpDto.getMobileNumber()).emailId(verifyOtpDto.getEmailId()).build();
         com.tranzo.tranzo_user_ms.user.dto.SessionResponseDto sessionResponseDto = sessionService.createSession(sessionRequestDto, response);
         return VerifyOtpResponseDto.builder()
@@ -86,11 +136,22 @@ public class OtpService {
         return "OTP:" + identifier;
     }
 
+    private String buildKeyForRateLimiting(String identifier)
+    {
+        return "OTPRL:" + identifier;
+    }
+
     private Optional<UsersEntity> findUserByIdentifier(VerifyOtpDto dto) {
         if (dto.getEmailId() != null && !dto.getEmailId().isBlank()) {
             return userRepository.findByEmail(dto.getEmailId().toLowerCase());
         }
         return userRepository.findByMobileNumber(dto.getMobileNumber());
+    }
+
+    private String hashOtp(String otp) throws Exception {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        byte[] hash = md.digest(otp.getBytes());
+        return Base64.getEncoder().encodeToString(hash);
     }
 
     @Transactional
