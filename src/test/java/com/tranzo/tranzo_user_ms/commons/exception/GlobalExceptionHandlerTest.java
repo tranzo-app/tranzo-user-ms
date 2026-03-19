@@ -1,8 +1,8 @@
 package com.tranzo.tranzo_user_ms.commons.exception;
 
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
-import com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode;
-import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
+import com.tranzo.tranzo_user_ms.trip.enums.TripErrorCode;
+import com.tranzo.tranzo_user_ms.trip.exception.TripException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,11 +44,11 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("Should handle TripPublishException and return error details")
-    void handleTripPublishException() {
-        TripPublishException ex = new TripPublishException(TripPublishErrorCode.TITLE_MISSING);
+    @DisplayName("Should handle TripException and return error details")
+    void handleTripException() {
+        TripException ex = new TripException(TripErrorCode.TITLE_MISSING, 400);
         ResponseEntity<ResponseDto<com.tranzo.tranzo_user_ms.commons.dto.ErrorDetailsDto>> res =
-                handler.handleTripPublishException(ex);
+                handler.handleTripException(ex);
 
         assertEquals(HttpStatus.BAD_REQUEST, res.getStatusCode());
         assertNotNull(res.getBody());

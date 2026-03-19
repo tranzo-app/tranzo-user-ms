@@ -9,8 +9,8 @@ import com.tranzo.tranzo_user_ms.notification.enums.NotificationErrorCode;
 import com.tranzo.tranzo_user_ms.notification.exception.NotificationException;
 import com.tranzo.tranzo_user_ms.splitwise.enums.SplitwiseErrorCode;
 import com.tranzo.tranzo_user_ms.splitwise.exception.SplitwiseException;
-import com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode;
-import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
+import com.tranzo.tranzo_user_ms.trip.enums.TripErrorCode;
+import com.tranzo.tranzo_user_ms.trip.exception.TripException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -108,6 +108,28 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handle TripException - trip-specific exceptions with error codes
+     */
+    @ExceptionHandler(TripException.class)
+    public ResponseEntity<ResponseDto<ErrorDetailsDto>> handleTripException(
+            TripException ex) {
+        log.warn("TripException caught: {}", ex.getErrorCode());
+
+        ErrorDetailsDto errorDetails = ErrorDetailsDto.builder()
+                .errorCode(ex.getErrorCode().getCode())
+                .message(resolveMessage(ex.getErrorCode()))
+                .build();
+
+        return ResponseEntity
+                .status(ex.getStatusCode())
+                .body(ResponseDto.failure(
+                        ex.getStatusCode(),
+                        "Trip operation failed",
+                        errorDetails
+                ));
+    }
+
+    /**
      * Handle MethodArgumentNotValidException - validation errors
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -151,25 +173,55 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Handle TripPublishException - trip publishing validation errors
+     * Handle BadRequestException - bad request errors
      */
-    @ExceptionHandler(TripPublishException.class)
-    public ResponseEntity<ResponseDto<ErrorDetailsDto>> handleTripPublishException(
-            TripPublishException ex) {
-        log.warn("TripPublishException caught: {}", ex.getErrorCode());
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ResponseDto<Void>> handleBadRequestException(BadRequestException ex) {
+        log.warn("BadRequestException caught: {}", ex.getMessage());
+        return ExceptionResponseUtil.build(
+                ex.getMessage(),
+                400,
+                null
+        );
+    }
 
-        ErrorDetailsDto errorDetails = ErrorDetailsDto.builder()
-                .errorCode(ex.getErrorCode().name())
-                .message(resolveMessage(ex.getErrorCode()))
-                .build();
+    /**
+     * Handle ConflictException - conflict errors
+     */
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ResponseDto<Void>> handleConflictException(ConflictException ex) {
+        log.warn("ConflictException caught: {}", ex.getMessage());
+        return ExceptionResponseUtil.build(
+                ex.getMessage(),
+                409,
+                null
+        );
+    }
 
-        return ResponseEntity
-                .badRequest()
-                .body(ResponseDto.failure(
-                        400,
-                        "Trip publish validation failed",
-                        errorDetails
-                ));
+    /**
+     * Handle ForbiddenException - forbidden access errors
+     */
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ResponseDto<Void>> handleForbiddenException(ForbiddenException ex) {
+        log.warn("ForbiddenException caught: {}", ex.getMessage());
+        return ExceptionResponseUtil.build(
+                ex.getMessage(),
+                403,
+                null
+        );
+    }
+
+    /**
+     * Handle EntityNotFoundException - entity not found errors
+     */
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ResponseDto<Void>> handleEntityNotFoundException(EntityNotFoundException ex) {
+        log.warn("EntityNotFoundException caught: {}", ex.getMessage());
+        return ExceptionResponseUtil.build(
+                ex.getMessage(),
+                404,
+                null
+        );
     }
 
     /**
@@ -185,31 +237,6 @@ public class GlobalExceptionHandler {
                 500,
                 null
         );
-    }
-
-    /**
-     * Resolve user-friendly message for TripPublishErrorCode
-     */
-    private String resolveMessage(TripPublishErrorCode errorCode) {
-        return switch (errorCode) {
-            case TITLE_MISSING -> "Trip title is required for publishing";
-            case DESCRIPTION_MISSING -> "Trip description is required for publishing";
-            case DESTINATION_MISSING -> "Trip destination is required for publishing";
-            case START_DATE_MISSING -> "Trip start date is required";
-            case END_DATE_MISSING -> "Trip end date is required";
-            case INVALID_DATE_RANGE -> "Trip end date cannot be before start date";
-            case ESTIMATED_BUDGET_MISSING -> "Estimated budget is required";
-            case INVALID_ESTIMATED_BUDGET -> "Estimated budget must be positive";
-            case MAX_PARTICIPANTS_MISSING -> "Max participants is required";
-            case INVALID_MAX_PARTICIPANTS -> "Max participants must be greater than zero";
-            case JOIN_POLICY_MISSING -> "Join policy is required";
-            case VISIBILITY_STATUS_MISSING -> "Visibility status is required";
-            case TRIP_POLICY_MISSING -> "Trip policy is required";
-            case ITINERARY_MISSING -> "At least one itinerary is required";
-            case TRIP_ALREADY_PUBLISHED -> "Trip is already published";
-            case TRIP_NOT_FOUND -> "Trip not found";
-            case TRIP_NOT_PUBLISHED -> "Trip not published";
-        };
     }
 
     /**
@@ -258,5 +285,74 @@ public class GlobalExceptionHandler {
             case NOTIFICATION_ACCESS_DENIED -> "Access denied to this notification";
         };
     }
+
+    /**
+     * Resolve user-friendly message for TripErrorCode
+     */
+    private String resolveMessage(TripErrorCode errorCode) {
+        return switch (errorCode) {
+            // Trip existence and access errors
+            case TRIP_NOT_FOUND -> "Trip not found";
+            case TRIP_ACCESS_DENIED -> "Access denied to this trip";
+
+            // Trip status errors
+            case INVALID_TRIP_STATUS_TRANSITION -> "Invalid trip status transition";
+            case TRIP_ALREADY_CANCELLED -> "Trip is already cancelled";
+            case TRIP_NOT_PUBLISHED -> "Trip is not published";
+            case TRIP_ALREADY_PUBLISHED -> "Trip is already published";
+
+            // Trip validation errors
+            case TITLE_MISSING -> "Trip title is required";
+            case DESCRIPTION_MISSING -> "Trip description is required";
+            case DESTINATION_MISSING -> "Trip destination is required";
+            case START_DATE_MISSING -> "Trip start date is required";
+            case END_DATE_MISSING -> "Trip end date is required";
+            case INVALID_DATE_RANGE -> "Trip end date cannot be before start date";
+            case ESTIMATED_BUDGET_MISSING -> "Estimated budget is required";
+            case INVALID_ESTIMATED_BUDGET -> "Estimated budget must be positive";
+            case MAX_PARTICIPANTS_MISSING -> "Max participants is required";
+            case INVALID_MAX_PARTICIPANTS -> "Max participants must be greater than zero";
+            case JOIN_POLICY_MISSING -> "Join policy is required";
+            case ITINERARY_MISSING -> "At least one itinerary is required";
+
+            // Trip capacity and membership errors
+            case TRIP_FULL -> "Trip is already full";
+            case TRIP_ALREADY_MARKED_FULL -> "Trip is already marked as full";
+            case USER_NOT_TRIP_MEMBER -> "User is not a member of this trip";
+            case USER_ALREADY_TRIP_MEMBER -> "User is already a member of this trip";
+            case HOST_CANNOT_LEAVE_TRIP -> "Host cannot leave their own trip";
+            case PARTICIPANT_NOT_FOUND -> "Participant not found";
+
+            // Trip member role errors
+            case INVALID_ROLE_CHANGE -> "Invalid role change operation";
+            case USER_ALREADY_CO_HOST -> "User is already a co-host";
+            case ONLY_MEMBER_CAN_BE_PROMOTED -> "Only members can be promoted to co-host";
+            case HOST_CANNOT_BE_CO_HOST -> "Host cannot be made co-host";
+
+            // Trip join request errors
+            case JOIN_REQUEST_NOT_FOUND -> "Join request not found";
+            case JOIN_REQUEST_NOT_PENDING -> "Join request is not pending";
+            case JOIN_REQUEST_ALREADY_EXISTS -> "Join request already exists";
+            case HOST_CANNOT_CREATE_JOIN_REQUEST -> "Trip host cannot create join request";
+            case TRIP_NOT_JOINABLE -> "Trip is not joinable";
+            case INVALID_JOIN_REQUEST_CANCEL -> "Cannot cancel this join request";
+
+            // Trip Q&A errors
+            case QUESTION_EMPTY -> "Question cannot be empty";
+            case QNA_ALREADY_ANSWERED -> "Q&A has already been answered";
+            case QNA_NOT_FOUND -> "Q&A not found";
+            case INVALID_QNA_STATUS -> "Invalid Q&A status for this operation";
+
+            // Trip reporting errors
+            case TRIP_ALREADY_REPORTED -> "Trip has already been reported";
+            case REPORT_REASON_EMPTY -> "Report reason cannot be empty";
+            case REPORT_NOT_FOUND -> "Report not found";
+
+            // Trip broadcast errors
+            case TRIP_NOT_BROADCASTABLE -> "Trip cannot be broadcasted";
+        };
+    }
+
+   
 
 }

@@ -1,14 +1,10 @@
 package com.tranzo.tranzo_user_ms.trip.service;
 
-import com.tranzo.tranzo_user_ms.commons.exception.BadRequestException;
-import com.tranzo.tranzo_user_ms.commons.exception.ConflictException;
-import com.tranzo.tranzo_user_ms.commons.exception.EntityNotFoundException;
-import com.tranzo.tranzo_user_ms.commons.exception.ForbiddenException;
 import com.tranzo.tranzo_user_ms.trip.dto.RemoveParticipantRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestResponseDto;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
-import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
+import com.tranzo.tranzo_user_ms.trip.exception.*;
 import com.tranzo.tranzo_user_ms.trip.events.TripEventPublisher;
 import com.tranzo.tranzo_user_ms.trip.events.TripPublishedEventPayloadDto;
 import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
@@ -33,9 +29,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode.TRIP_NOT_FOUND;
-import static com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode.TRIP_NOT_PUBLISHED;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -52,22 +45,22 @@ public class TripJoinRequestService {
     {
         // Trip validation
         TripEntity trip = tripRepository.findByIdForUpdate(tripId)
-                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+                .orElseThrow(() -> new TripNotFoundException());
         if (trip.getTripStatus() != TripStatus.PUBLISHED)
         {
-            throw new TripPublishException(TRIP_NOT_PUBLISHED);
+            throw new TripValidationException(TripErrorCode.TRIP_NOT_PUBLISHED);
         }
         if (trip.getVisibilityStatus() != VisibilityStatus.PUBLIC) {
-            throw new BadRequestException("Trip is not joinable");
+            throw new TripValidationException(TripErrorCode.TRIP_NOT_JOINABLE);
         }
 
         // Trip member validation
         Optional<TripMemberEntity> existingTripMember = tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE);
         if (existingTripMember.isPresent()) {
             if (existingTripMember.get().getRole() == TripMemberRole.HOST) {
-                throw new BadRequestException("Trip host cannot create join request");
+                throw new TripJoinRequestException(TripErrorCode.HOST_CANNOT_CREATE_JOIN_REQUEST);
             }
-            throw new ConflictException("User is already a member of the trip");
+            throw new TripJoinRequestException(TripErrorCode.USER_ALREADY_TRIP_MEMBER);
         }
 
         // Active join request check
@@ -82,7 +75,7 @@ public class TripJoinRequestService {
                         ACTIVE_JOIN_REQUEST_STATUSES
                 );
         if (activeRequestExists) {
-            throw new ConflictException("Join request already exists");
+            throw new TripJoinRequestException(TripErrorCode.JOIN_REQUEST_ALREADY_EXISTS);
         }
 
         // Create join request status
@@ -94,7 +87,7 @@ public class TripJoinRequestService {
         // Capacity check (before persistence)
         if (status == JoinRequestStatus.AUTO_APPROVED &&
                 trip.getCurrentParticipants() >= trip.getMaxParticipants()) {
-            throw new BadRequestException("Trip is already full");
+            throw new TripValidationException(TripErrorCode.TRIP_FULL);
         }
 
         // Create join request
@@ -182,26 +175,26 @@ public class TripJoinRequestService {
     public TripJoinRequestResponseDto approveJoinRequest(UUID joinRequestId, UUID userId)
     {
         TripJoinRequestEntity joinRequest = tripJoinRequestRepository.findById(joinRequestId)
-                .orElseThrow(() -> new EntityNotFoundException("Join request not found"));
+                .orElseThrow(() -> new TripJoinRequestException(TripErrorCode.JOIN_REQUEST_NOT_FOUND));
         if (joinRequest.getStatus() != JoinRequestStatus.PENDING)
         {
-            throw new ConflictException("Join request is not pending");
+            throw new TripJoinRequestException(TripErrorCode.JOIN_REQUEST_NOT_PENDING);
         }
         TripEntity trip = tripRepository.findByIdForUpdate(joinRequest.getTrip().getTripId())
-                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+                .orElseThrow(() -> new TripNotFoundException());
         boolean isHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
         if (!isHost)
         {
-            throw new ForbiddenException("Only host can approve join requests");
+            throw new TripAccessDeniedException("Only host can approve join requests");
         }
         if (trip.getCurrentParticipants() >= trip.getMaxParticipants())
         {
-            throw new ConflictException("Trip is already full");
+            throw new TripValidationException(TripErrorCode.TRIP_FULL);
         }
         boolean alreadyMember = tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(trip.getTripId(), joinRequest.getUserId(), TripMemberStatus.ACTIVE);
         if (alreadyMember)
         {
-            throw new ConflictException("User is already a trip member");
+            throw new TripJoinRequestException(TripErrorCode.USER_ALREADY_TRIP_MEMBER);
         }
         joinRequest.setStatus(JoinRequestStatus.APPROVED);
         joinRequest.setReviewedBy(userId);
@@ -259,18 +252,18 @@ public class TripJoinRequestService {
     public TripJoinRequestResponseDto rejectJoinRequest(UUID joinRequestId, UUID userId)
     {
         TripJoinRequestEntity joinRequest = tripJoinRequestRepository.findById(joinRequestId)
-                .orElseThrow(() -> new EntityNotFoundException("Join request not found"));
+                .orElseThrow(() -> new TripJoinRequestException(TripErrorCode.JOIN_REQUEST_NOT_FOUND));
         if (joinRequest.getStatus() != JoinRequestStatus.PENDING)
         {
-            throw new ConflictException("Join request is not pending");
+            throw new TripJoinRequestException(TripErrorCode.JOIN_REQUEST_NOT_PENDING);
         }
         TripEntity trip = tripRepository.findById(joinRequest.getTrip().getTripId())
-                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+                .orElseThrow(() -> new TripNotFoundException());
         boolean isHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
         log.info("Host user id : {}", userId);
         if (!isHost)
         {
-            throw new ForbiddenException("Only host can reject join requests");
+            throw new TripAccessDeniedException("Only host can reject join requests");
         }
         joinRequest.setStatus(JoinRequestStatus.REJECTED);
         joinRequest.setReviewedBy(userId);
@@ -297,14 +290,14 @@ public class TripJoinRequestService {
     public List<TripJoinRequestResponseDto> getJoinRequestsForTrip(UUID tripId, UUID userId, JoinRequestStatus status)
     {
         TripEntity trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+                .orElseThrow(() -> new TripNotFoundException());
         if (trip.getTripStatus() != TripStatus.PUBLISHED) {
-            throw new TripPublishException(TRIP_NOT_PUBLISHED) ;
+            throw new TripValidationException(TripErrorCode.TRIP_NOT_PUBLISHED);
         }
         boolean isHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(tripId, userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
         if (!isHost)
         {
-            throw new ForbiddenException("Only host can fetch join requests for the trip");
+            throw new TripAccessDeniedException("Only host can fetch join requests for the trip");
         }
         List<TripJoinRequestEntity> joinRequests = (status == null) ? tripJoinRequestRepository.findByTrip_TripId(tripId) : tripJoinRequestRepository.findByTrip_TripIdAndStatus(tripId, status);
         List<UUID> requestorUserIds = joinRequests.stream().map(TripJoinRequestEntity::getUserId).toList();
@@ -332,14 +325,14 @@ public class TripJoinRequestService {
     public void cancelJoinRequestsForTrip(UUID joinRequestId, UUID userId)
     {
         TripJoinRequestEntity joinRequest = tripJoinRequestRepository.findById(joinRequestId)
-                .orElseThrow(() -> new EntityNotFoundException("Join request not found"));
+                .orElseThrow(() -> new TripJoinRequestException(TripErrorCode.JOIN_REQUEST_NOT_FOUND));
         if (joinRequest.getStatus() != JoinRequestStatus.PENDING)
         {
-            throw new ConflictException("Join request is not pending");
+            throw new TripJoinRequestException(TripErrorCode.JOIN_REQUEST_NOT_PENDING);
         }
         if (!joinRequest.getUserId().equals(userId))
         {
-            throw new ForbiddenException("User can't cancel the join request of another user");
+            throw new TripJoinRequestException(TripErrorCode.INVALID_JOIN_REQUEST_CANCEL, "User can't cancel the join request of another user");
         }
         joinRequest.setStatus(JoinRequestStatus.CANCELLED);
     }
@@ -348,13 +341,13 @@ public class TripJoinRequestService {
     public void removeOrLeaveTrip(UUID tripId, UUID removalParticipantUserId, UUID userId, RemoveParticipantRequestDto removeParticipantRequestDto)
     {
         TripEntity trip = tripRepository.findByIdForUpdate(tripId)
-                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+                .orElseThrow(() -> new TripNotFoundException());
         if (trip.getTripStatus() != TripStatus.PUBLISHED)
         {
-            throw new TripPublishException(TRIP_NOT_PUBLISHED);
+            throw new TripValidationException(TripErrorCode.TRIP_NOT_PUBLISHED);
         }
         TripMemberEntity tripMember = tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, removalParticipantUserId, TripMemberStatus.ACTIVE)
-                .orElseThrow(() -> new EntityNotFoundException("User is not member of the trip"));
+                .orElseThrow(() -> new TripMemberException(TripErrorCode.USER_NOT_TRIP_MEMBER));
         List<UUID> otherMemberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
                 .stream()
                 .map(TripMemberEntity::getUserId)
@@ -366,7 +359,7 @@ public class TripJoinRequestService {
         {
             if (userId.equals(removalParticipantUserId))
             {
-                throw new ConflictException("Host can't leave his own trip");
+                throw new TripMemberException(TripErrorCode.HOST_CANNOT_LEAVE_TRIP);
             }
             tripMember.setStatus(TripMemberStatus.REMOVED);
             tripMember.setExitedBy(userId);
@@ -380,7 +373,7 @@ public class TripJoinRequestService {
             }
             else
             {
-                throw new ForbiddenException("User can't remove another user from the trip until the user is a host");
+                throw new TripAccessDeniedException("User can't remove another user from the trip until the user is a host");
             }
         }
         tripMember.setExitedAt(LocalDateTime.now());
