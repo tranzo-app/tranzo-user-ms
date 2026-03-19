@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.user.controller;
 
+import com.tranzo.tranzo_user_ms.commons.exception.BadRequestException;
 import com.tranzo.tranzo_user_ms.commons.service.JwtService;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.user.dto.*;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Slf4j
+@CrossOrigin
 @RestController
 public class UserController {
     private final UserService userService;
@@ -39,6 +41,21 @@ public class UserController {
         log.info("Fetching user profile for userId: {}", userId);
         UserProfileDto userProfileDto = userService.getUserProfile(userId);
         return ResponseEntity.ok(ResponseDto.success(200,"User profile fetched successfully", userProfileDto));
+    }
+
+    /**
+     * Public profile for another user (no email / phone). Authenticated callers only.
+     */
+    @GetMapping("/user/{userId}/public")
+    public ResponseEntity<ResponseDto<PublicUserProfileDto>> getPublicUserProfile(@PathVariable String userId) {
+        UUID id;
+        try {
+            id = UUID.fromString(userId);
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Invalid user id");
+        }
+        PublicUserProfileDto dto = userService.getPublicUserProfile(id);
+        return ResponseEntity.ok(ResponseDto.success(200, "Public profile fetched successfully", dto));
     }
 
     /**

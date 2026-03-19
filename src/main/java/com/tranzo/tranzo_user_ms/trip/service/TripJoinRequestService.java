@@ -18,6 +18,8 @@ import com.tranzo.tranzo_user_ms.commons.events.*;
 import com.tranzo.tranzo_user_ms.trip.repository.TripJoinRequestRepository;
 import com.tranzo.tranzo_user_ms.trip.repository.TripMemberRepository;
 import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
+import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
+import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -42,6 +45,7 @@ public class TripJoinRequestService {
     private final TripJoinRequestRepository tripJoinRequestRepository;
     private final TripEventPublisher tripEventPublisher;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final UserProfileClient userProfileClient;
 
     @Transactional
     public TripJoinRequestResponseDto createJoinRequest(TripJoinRequestDto tripJoinRequestDto, UUID tripId, UUID userId)
@@ -158,11 +162,15 @@ public class TripJoinRequestService {
             }
         }
 
-        // Response
+        // Response with requestor name
+        UserNameDto names = userProfileClient.getNamesByUserIds(List.of(userId)).get(userId);
         return TripJoinRequestResponseDto.builder()
                 .joinRequestId(savedRequest.getRequestId())
                 .tripId(tripId)
                 .requestorUserId(userId)
+                .firstName(names != null ? names.getFirstName() : null)
+                .middleName(names != null ? names.getMiddleName() : null)
+                .lastName(names != null ? names.getLastName() : null)
                 .status(savedRequest.getStatus())
                 .requestedChannel(savedRequest.getSource())
                 .createdAt(savedRequest.getCreatedAt())
@@ -232,10 +240,14 @@ public class TripJoinRequestService {
             }
         }
 
+        UserNameDto names = userProfileClient.getNamesByUserIds(List.of(joinRequest.getUserId())).get(joinRequest.getUserId());
         return TripJoinRequestResponseDto.builder()
                 .joinRequestId(joinRequest.getRequestId())
                 .tripId(trip.getTripId())
                 .requestorUserId(joinRequest.getUserId())
+                .firstName(names != null ? names.getFirstName() : null)
+                .middleName(names != null ? names.getMiddleName() : null)
+                .lastName(names != null ? names.getLastName() : null)
                 .status(joinRequest.getStatus())
                 .requestedChannel(joinRequest.getSource())
                 .createdAt(joinRequest.getCreatedAt())
@@ -266,10 +278,14 @@ public class TripJoinRequestService {
         tripJoinRequestRepository.save(joinRequest);
         applicationEventPublisher.publishEvent(
                 new JoinRequestRejectedEvent(trip.getTripId(), trip.getTripTitle(), joinRequest.getUserId()));
+        UserNameDto names = userProfileClient.getNamesByUserIds(List.of(joinRequest.getUserId())).get(joinRequest.getUserId());
         return TripJoinRequestResponseDto.builder()
                 .joinRequestId(joinRequest.getRequestId())
                 .tripId(trip.getTripId())
                 .requestorUserId(joinRequest.getUserId())
+                .firstName(names != null ? names.getFirstName() : null)
+                .middleName(names != null ? names.getMiddleName() : null)
+                .lastName(names != null ? names.getLastName() : null)
                 .status(joinRequest.getStatus())
                 .requestedChannel(joinRequest.getSource())
                 .createdAt(joinRequest.getCreatedAt())
@@ -291,11 +307,17 @@ public class TripJoinRequestService {
             throw new ForbiddenException("Only host can fetch join requests for the trip");
         }
         List<TripJoinRequestEntity> joinRequests = (status == null) ? tripJoinRequestRepository.findByTrip_TripId(tripId) : tripJoinRequestRepository.findByTrip_TripIdAndStatus(tripId, status);
+        List<UUID> requestorUserIds = joinRequests.stream().map(TripJoinRequestEntity::getUserId).toList();
+        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(requestorUserIds);
         List<TripJoinRequestResponseDto> joinRequestResponseDtoList = joinRequests.stream().map((joinRequest) -> {
+            UserNameDto names = namesByUserId.get(joinRequest.getUserId());
             return TripJoinRequestResponseDto.builder()
                     .joinRequestId(joinRequest.getRequestId())
                     .tripId(tripId)
                     .requestorUserId(joinRequest.getUserId())
+                    .firstName(names != null ? names.getFirstName() : null)
+                    .middleName(names != null ? names.getMiddleName() : null)
+                    .lastName(names != null ? names.getLastName() : null)
                     .status(joinRequest.getStatus())
                     .requestedChannel(joinRequest.getSource())
                     .createdAt(joinRequest.getCreatedAt())

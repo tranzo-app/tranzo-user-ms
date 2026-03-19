@@ -11,6 +11,8 @@ import com.tranzo.tranzo_user_ms.trip.repository.*;
 import com.tranzo.tranzo_user_ms.trip.specification.SpecificationBuilder;
 import com.tranzo.tranzo_user_ms.trip.utility.PageableBuilder;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
+import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
+import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
 import com.tranzo.tranzo_user_ms.commons.events.*;
@@ -42,6 +44,7 @@ public class TripManagementService {
     private final UserUtil userUtil;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final TravelPalService travelPalService;
+    private final UserProfileClient userProfileClient;
 
     public TripManagementService(TripMemberRepository tripMemberRepository,
                                  TripRepository tripRepository,
@@ -53,7 +56,8 @@ public class TripManagementService {
                                  TripEventPublisher tripEventPublisher,
                                  UserUtil userUtil,
                                  ApplicationEventPublisher applicationEventPublisher,
-                                 TravelPalService travelPalService) {
+                                 TravelPalService travelPalService,
+                                 UserProfileClient userProfileClient) {
         this.tripMemberRepository = tripMemberRepository;
         this.tripRepository = tripRepository;
         this.tagRepository = tagRepository;
@@ -65,6 +69,7 @@ public class TripManagementService {
         this.userUtil = userUtil;
         this.applicationEventPublisher = applicationEventPublisher;
         this.travelPalService = travelPalService;
+        this.userProfileClient = userProfileClient;
     }
 
 
@@ -142,6 +147,7 @@ public class TripManagementService {
         host.setUserId(userId);
         host.setTrip(tripEntity);
         tripEntity.getTripMembers().add(host);
+        tripEntity.setCurrentParticipants(1);
 
         TripEntity newTrip = tripRepository.save(tripEntity);
         return TripResponseDto.builder()
@@ -209,13 +215,21 @@ public class TripManagementService {
                 .filter(m -> m.getRole() == TripMemberRole.CO_HOST)
                 .map(TripMemberEntity::getUserId)
                 .toList();
+        List<UUID> memberUserIds = activeMembers.stream().map(TripMemberEntity::getUserId).toList();
+        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(memberUserIds);
         List<TripMemberResponseDto> memberDtos = activeMembers.stream()
-                .map(m -> TripMemberResponseDto.builder()
-                        .membershipId(m.getMembershipId())
-                        .userId(m.getUserId())
-                        .role(m.getRole())
-                        .joinedAt(m.getJoinedAt())
-                        .build())
+                .map(m -> {
+                    UserNameDto names = namesByUserId.get(m.getUserId());
+                    return TripMemberResponseDto.builder()
+                            .membershipId(m.getMembershipId())
+                            .userId(m.getUserId())
+                            .role(m.getRole())
+                            .joinedAt(m.getJoinedAt())
+                            .firstName(names != null ? names.getFirstName() : null)
+                            .middleName(names != null ? names.getMiddleName() : null)
+                            .lastName(names != null ? names.getLastName() : null)
+                            .build();
+                })
                 .toList();
         return TripMembersListResponseDto.builder()
                 .tripId(tripId)
@@ -489,6 +503,8 @@ public class TripManagementService {
 
     private TripViewDto mapTripEntityToDto(TripEntity trip, Boolean isTripHost)
     {
+        int activeMemberCount = tripMemberRepository.countByTrip_TripIdAndStatus(
+                trip.getTripId(), TripMemberStatus.ACTIVE);
         return TripViewDto.builder()
                 .tripId(trip.getTripId())
                 .tripDescription(trip.getTripDescription())
@@ -498,7 +514,9 @@ public class TripManagementService {
                 .tripEndDate(trip.getTripEndDate())
                 .estimatedBudget(trip.getEstimatedBudget())
                 .maxParticipants(trip.getMaxParticipants())
+                .currentParticipants(activeMemberCount)
                 .isFull(trip.getIsFull())
+                .splitWiseGroupId(trip.getSplitwiseGroupId())
                 .isTripHost(isTripHost)
                 .tripFullReason(trip.getTripFullReason())
                 .joinPolicy(trip.getJoinPolicy())
@@ -615,6 +633,7 @@ public class TripManagementService {
             }
             tripQuery.setAnswer(answerQnaRequestDto.getAnswer());
             tripQuery.setAnsweredAt(LocalDateTime.now());
+            tripQuery.setAnsweredBy(userID);
             tripQueryRepository.save(tripQuery);
 
             applicationEventPublisher.publishEvent(
@@ -633,18 +652,35 @@ public class TripManagementService {
 
         List<TripQueryEntity> tripQueries = tripQueryRepository.findByTrip_TripIdOrderByCreatedAtDesc(tripId);
 
+        Set<UUID> userIds = new HashSet<>();
+        for (TripQueryEntity q : tripQueries) {
+            userIds.add(q.getAskedBy());
+            if (q.getAnsweredBy() != null) userIds.add(q.getAnsweredBy());
+        }
+        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(userIds);
+
         return tripQueries.stream()
-                .map(this::mapToTripQueryResponseDto)
+                .map(q -> mapToTripQueryResponseDto(q, namesByUserId))
                 .toList();
     }
 
-    private TripQnaResponseDto mapToTripQueryResponseDto(TripQueryEntity tripQueryEntity){
+    private TripQnaResponseDto mapToTripQueryResponseDto(TripQueryEntity tripQueryEntity, Map<UUID, UserNameDto> namesByUserId){
+        UserNameDto askedByNames = namesByUserId != null ? namesByUserId.get(tripQueryEntity.getAskedBy()) : null;
+        UserNameDto answeredByNames = tripQueryEntity.getAnsweredBy() != null && namesByUserId != null
+                ? namesByUserId.get(tripQueryEntity.getAnsweredBy()) : null;
         return TripQnaResponseDto.builder()
                 .qnaId(tripQueryEntity.getQueryId())
                 .tripId(tripQueryEntity.getTrip().getTripId())
                 .authorUserId(tripQueryEntity.getAskedBy())
+                .askedByFirstName(askedByNames != null ? askedByNames.getFirstName() : null)
+                .askedByMiddleName(askedByNames != null ? askedByNames.getMiddleName() : null)
+                .askedByLastName(askedByNames != null ? askedByNames.getLastName() : null)
                 .question(tripQueryEntity.getQuestion())
                 .answer(tripQueryEntity.getAnswer())
+                .answeredBy(tripQueryEntity.getAnsweredBy())
+                .answeredByFirstName(answeredByNames != null ? answeredByNames.getFirstName() : null)
+                .answeredByMiddleName(answeredByNames != null ? answeredByNames.getMiddleName() : null)
+                .answeredByLastName(answeredByNames != null ? answeredByNames.getLastName() : null)
                 .answeredAt(tripQueryEntity.getAnsweredAt())
                 .createdAt(tripQueryEntity.getCreatedAt())
                 .build();
