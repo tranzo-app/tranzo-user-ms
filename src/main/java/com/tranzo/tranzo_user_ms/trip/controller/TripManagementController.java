@@ -82,8 +82,17 @@ public class TripManagementController {
 
     // Handles both /trips and /trips/ - WebConfig.setUseTrailingSlashMatch(true) ensures this works
     @GetMapping
-    public ResponseEntity<ResponseDto<List<TripViewDto>>> fetchAllTrips() throws AuthException {
-        List<TripViewDto> tripDto = tripManagementService.fetchAllTrips();
+    public ResponseEntity<ResponseDto<List<TripViewDto>>> fetchAllTrips() {
+        UUID userId;
+        try
+        {
+            userId = SecurityUtils.getCurrentUserUuid();
+        }
+        catch(AuthException authException)
+        {
+            userId = null;
+        }
+        List<TripViewDto> tripDto = tripManagementService.fetchAllTrips(userId);
         return ResponseEntity.ok(ResponseDto.success("All trip details have been fetched successfully", tripDto));
     }
 

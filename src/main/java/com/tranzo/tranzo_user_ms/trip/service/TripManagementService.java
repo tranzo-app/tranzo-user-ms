@@ -254,7 +254,7 @@ public class TripManagementService {
                 .toList();
     }
 
-    public List<TripViewDto> fetchTripForUser(UUID userId)
+    public List<TripViewDto> fetchTripForUser(final UUID userId)
     {
         List<TripStatus> statuses = List.of(TripStatus.PUBLISHED, TripStatus.ONGOING, TripStatus.COMPLETED);
         List<TripEntity> trips = tripMemberRepository.findTripsByUserIdAndStatusIn(userId, statuses);
@@ -266,12 +266,17 @@ public class TripManagementService {
                 .toList();
     }
 
-    public List<TripViewDto> fetchAllTrips()
+    public List<TripViewDto> fetchAllTrips(UUID userId)
     {
         List<TripEntity> trips = tripRepository.findAllTrips(TripStatus.COMPLETED);
         return trips.stream()
                 .map(trip -> {
-                    return mapTripEntityToDto(trip, null);
+                    Boolean isTripHost = null;
+                    if (userId != null)
+                    {
+                        isTripHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+                    }
+                    return mapTripEntityToDto(trip, isTripHost);
                 })
                 .toList();
     }
