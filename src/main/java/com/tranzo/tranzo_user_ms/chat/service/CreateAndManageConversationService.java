@@ -7,6 +7,7 @@ import com.tranzo.tranzo_user_ms.chat.exception.ConversationNotFoundException;
 import com.tranzo.tranzo_user_ms.chat.model.*;
 import com.tranzo.tranzo_user_ms.chat.repository.*;
 import com.tranzo.tranzo_user_ms.commons.exception.ForbiddenException;
+import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
 import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
 import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import lombok.AllArgsConstructor;
@@ -33,9 +34,14 @@ public class CreateAndManageConversationService {
     private final ConversationMuteRepository muteRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final UserProfileClient userProfileClient;
+    private final TripRepository tripRepository;
 
     public CreateConversationResponseDto createOneToOneConversation(UUID userId, CreateConversationRequestDto request) {
         UUID otherUserId = request.getOtherUserId();
+        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(otherUserId));
+        String firstName = namesByUserId.get(otherUserId).getFirstName();
+        String middleName = namesByUserId.get(otherUserId).getMiddleName();
+        String lastName = namesByUserId.get(otherUserId).getLastName();
 
         if(userId.equals(otherUserId)) {
             throw new IllegalArgumentException("Cannot create a conversation with yourself");
@@ -55,6 +61,7 @@ public class CreateAndManageConversationService {
 
         newConversation.addParticipant(userId, ConversationRole.MEMBER);
         newConversation.addParticipant(otherUserId, ConversationRole.MEMBER);
+        newConversation.setConversationName(firstName + middleName + lastName);
 
         MessageEntity systemMessage = MessageEntity.systemMessage(
                         newConversation,
@@ -70,9 +77,11 @@ public class CreateAndManageConversationService {
                 .build();
     }
 
-    public ConversationEntity createTripGroupChat(UUID hostUserId){
+    public ConversationEntity createTripGroupChat(UUID hostUserId, UUID tripId){
         ConversationEntity newConversation = ConversationEntity.createGroup(hostUserId);
+        String tripTitle = tripRepository.findTripNameByTripId(tripId);
         newConversation.addParticipant(hostUserId, ConversationRole.ADMIN_HOST);
+        newConversation.setConversationName(tripTitle);
         MessageEntity systemMessage = MessageEntity.systemMessage(
                 newConversation,
                 "Trip Hosted Successfully"

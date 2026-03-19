@@ -33,6 +33,7 @@ public interface ConversationRepository extends JpaRepository<ConversationEntity
     SELECT new com.tranzo.tranzo_user_ms.chat.dto.ChatListItemDto(
         c.conversationId,
         c.type,
+        c.conversationName,
 
         /* Last message content */
         COALESCE((
