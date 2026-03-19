@@ -67,8 +67,8 @@ app:
 
 aws:
   region: ap-south-1
-  access-key:
-  secret-key:
+  access-key: AKIAXICNF7EWCLQU5CHV
+  secret-key: 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
 
 ses:
   from-email: support@tranzo.in
