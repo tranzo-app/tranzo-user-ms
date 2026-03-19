@@ -142,6 +142,12 @@
 			<artifactId>s3</artifactId>
 			<version>2.28.0</version>
 		</dependency>
+		<!-- SpringDoc OpenAPI for Swagger documentation -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.2.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
