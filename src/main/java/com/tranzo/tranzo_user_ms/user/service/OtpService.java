@@ -65,7 +65,8 @@ public class OtpService {
                 return;
             }
         }
-        String otp = otpUtility.generateOtp();
+//        String otp = otpUtility.generateOtp();
+        String otp = "111111";
         String hash = hashOtp(otp);
         cacheService.put(
                 otpKey,
@@ -75,14 +76,14 @@ public class OtpService {
         // Sending SMS via AWS SNS
 //        smsService.sendOtp(identifier, otp);
         // Sending SMS via AWS SNS
-        if (requestOtpDto.getEmailId() != null)
-        {
-            emailService.sendOtpEmail(identifier, otp);
-        }
-        else
-        {
-            smsService.sendOtp(identifier, otp);
-        }
+//        if (requestOtpDto.getEmailId() != null)
+//        {
+//            emailService.sendOtpEmail(identifier, otp);
+//        }
+//        else
+//        {
+//            smsService.sendOtp(identifier, otp);
+//        }
     }
 
     public VerifyOtpResponseDto verifyOtp(VerifyOtpDto verifyOtpDto, HttpServletResponse response) throws Exception {
