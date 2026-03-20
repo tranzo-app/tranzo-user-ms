@@ -18,35 +18,35 @@ spring:
 #    driver-class-name: org.h2.Driver
 #    username: sa
 #    password:
-#  url: ${SPRING_DATASOURCE_URL}
-#  driver-class-name: tranzo-db.cpu4oaigsdj5.ap-south-1.rds.amazonaws.com
-#  username: TRANZO_DB
-#  password: TRANZO_DB
-#  hikari:
-#    maximum-pool-size: 10
-#    minimum-idle: 2
-#    connection-timeout: 20000
-#    idle-timeout: 300000
+    url: ${SPRING_DATASOURCE_URL}
+    driver-class-name: org.postgresql.Driver
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+      idle-timeout: 300000
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: create
-    show-sql: true
+      ddl-auto: validate
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
     # false avoids circular dependency: flyway <-> entityManagerFactory (Flyway runs first when false)
     defer-datasource-initialization: false
 
-#  flyway:
-#    enabled: true
-#    baseline-on-migrate: false
-#    # Set to false so app starts despite checksum mismatch (e.g. after editing V1). Run: ./mvnw flyway:repair from project root, then set back to true.
-#    validate-on-migrate: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    # Set to false so app starts despite checksum mismatch (e.g. after editing V1). Run: ./mvnw flyway:repair from project root, then set back to true.
+    validate-on-migrate: false
 
-#  sql:
-#    init:
-#      mode: always
+  sql:
+    init:
+      mode: always
 
   h2:
     console:

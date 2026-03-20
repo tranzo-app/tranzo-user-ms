@@ -1,0 +1,42 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+    
+  flyway:
+    enabled: false
+    
+  h2:
+    console:
+      enabled: false
+
+  jwt:
+    secret: test-secret-key-for-jwt-signing-min-256-bits-long
+    access-token-expiry-minutes: 60
+    refresh-token-expiry-days: 7
+    registration-token-expiry-minutes: 60
+    issuer: tranzo-auth-test
+
+app:
+  s3:
+    media-bucket: 
+    region: ap-south-1
+    presigned-url-expiry-minutes: 15
+
+logging:
+  level:
+    root: WARN
+    com.tranzo: WARN
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
