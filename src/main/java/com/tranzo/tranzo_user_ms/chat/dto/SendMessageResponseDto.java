@@ -15,7 +15,10 @@ import java.util.UUID;
 public class SendMessageResponseDto {
     private UUID messageId;
     private UUID conversationId;
-    private UUID senderId;      // null for system messages (not here)
+    private UUID senderId;
+    private String firstName;
+    private String middleName;
+    private String lastName;
     private String content;
     private LocalDateTime createdAt;
 }

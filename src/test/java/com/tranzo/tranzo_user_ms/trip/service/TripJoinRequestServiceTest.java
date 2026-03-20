@@ -5,8 +5,8 @@ import com.tranzo.tranzo_user_ms.trip.dto.RemoveParticipantRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestResponseDto;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
-import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
 import com.tranzo.tranzo_user_ms.trip.events.TripEventPublisher;
+import com.tranzo.tranzo_user_ms.trip.exception.TripException;
 import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
 import com.tranzo.tranzo_user_ms.trip.model.TripJoinRequestEntity;
 import com.tranzo.tranzo_user_ms.trip.model.TripMemberEntity;
@@ -125,7 +125,7 @@ class TripJoinRequestServiceTest {
         when(tripRepository.findByIdForUpdate(tripId)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripException.class, () ->
             tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId)
         );
     }
@@ -138,7 +138,7 @@ class TripJoinRequestServiceTest {
         when(tripRepository.findByIdForUpdate(tripId)).thenReturn(Optional.of(tripEntity));
 
         // When & Then
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripException.class, () ->
             tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId)
         );
     }

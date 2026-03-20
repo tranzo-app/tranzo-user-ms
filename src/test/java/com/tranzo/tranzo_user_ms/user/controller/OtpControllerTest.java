@@ -35,7 +35,7 @@ class OtpControllerTest {
 
     @Test
     @DisplayName("Should request OTP successfully")
-    void requestOtp_Success() {
+    void requestOtp_Success() throws Exception {
         RequestOtpDto dto = new RequestOtpDto();
         dto.setEmailId("u@test.com");
         doNothing().when(otpService).sendOtp(any(RequestOtpDto.class));
@@ -49,7 +49,7 @@ class OtpControllerTest {
 
     @Test
     @DisplayName("Should verify OTP successfully")
-    void verifyOtp_Success() {
+    void verifyOtp_Success() throws Exception {
         VerifyOtpDto dto = new VerifyOtpDto();
         dto.setEmailId("u@test.com");
         dto.setOtp("123456");
@@ -61,5 +61,28 @@ class OtpControllerTest {
         assertEquals(HttpStatus.OK, res.getStatusCode());
         assertNotNull(res.getBody().getData());
         assertTrue(res.getBody().getData().isUserExists());
+    }
+
+    @Test
+    @DisplayName("Should handle OTP request exception")
+    void requestOtp_Exception() throws Exception {
+        RequestOtpDto dto = new RequestOtpDto();
+        dto.setEmailId("u@test.com");
+        doThrow(new RuntimeException("Service unavailable")).when(otpService).sendOtp(any(RequestOtpDto.class));
+
+        assertThrows(Exception.class, () -> controller.requestOtp(dto));
+        verify(otpService).sendOtp(dto);
+    }
+
+    @Test
+    @DisplayName("Should handle OTP verification exception")
+    void verifyOtp_Exception() throws Exception {
+        VerifyOtpDto dto = new VerifyOtpDto();
+        dto.setEmailId("u@test.com");
+        dto.setOtp("123456");
+        doThrow(new RuntimeException("Invalid OTP")).when(otpService).verifyOtp(any(VerifyOtpDto.class), any(HttpServletResponse.class));
+
+        assertThrows(Exception.class, () -> controller.verifyOtp(dto, response));
+        verify(otpService).verifyOtp(dto, response);
     }
 }

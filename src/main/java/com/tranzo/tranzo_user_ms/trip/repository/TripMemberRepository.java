@@ -27,6 +27,8 @@ public interface TripMemberRepository extends JpaRepository<TripMemberEntity, UU
 
     boolean existsByTrip_TripIdAndUserIdAndStatus(UUID tripId, UUID userId, TripMemberStatus status);
 
+    int countByTrip_TripIdAndStatus(UUID tripId, TripMemberStatus status);
+
     @Query("""
         SELECT tm.trip
         FROM TripMemberEntity tm

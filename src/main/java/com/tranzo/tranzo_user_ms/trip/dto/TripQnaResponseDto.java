@@ -16,10 +16,17 @@ public class TripQnaResponseDto {
     private UUID tripId;
 
     private UUID authorUserId;
+    private String askedByFirstName;
+    private String askedByMiddleName;
+    private String askedByLastName;
+
     private String question;
 
     private String answer;
     private UUID answeredBy;
+    private String answeredByFirstName;
+    private String answeredByMiddleName;
+    private String answeredByLastName;
     private LocalDateTime answeredAt;
 
     private LocalDateTime createdAt;

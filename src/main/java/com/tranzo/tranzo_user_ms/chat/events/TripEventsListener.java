@@ -30,7 +30,7 @@ public class TripEventsListener {
         log.info("Received TripPublishedEvent. tripId={}, hostUserId={}", event.getTripId(), event.getHostUserId());
         UUID tripId = event.getTripId();
         UUID hostUserId = event.getHostUserId();
-        ConversationEntity conversation = createAndManageConversationService.createTripGroupChat(hostUserId);
+        ConversationEntity conversation = createAndManageConversationService.createTripGroupChat(hostUserId, tripId);
         applicationEventPublisher.publishEvent(new TripGroupChatCreatedEvent(tripId, conversation.getConversationId()));
     }
 

@@ -51,7 +51,13 @@ class CreateAndManageChatControllerTest {
     @DisplayName("sendMessage returns 201 and payload")
     void testSendMessage() throws Exception {
         SendMessageRequestDto request = SendMessageRequestDto.builder().content("hello").build();
-        SendMessageResponseDto resp = new SendMessageResponseDto(UUID.randomUUID(), conversationId, userId, "hello", LocalDateTime.now());
+        SendMessageResponseDto resp = SendMessageResponseDto.builder()
+                .messageId(UUID.randomUUID())
+                .conversationId(conversationId)
+                .senderId(userId)
+                .content("hello")
+                .createdAt(LocalDateTime.now())
+                .build();
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
@@ -94,7 +100,7 @@ class CreateAndManageChatControllerTest {
     @Test
     @DisplayName("getMyConversations returns list from service")
     void testGetMyConversations() throws Exception {
-        ChatListItemDto item = new ChatListItemDto(UUID.randomUUID(), null, "hi", LocalDateTime.now(), false, 0L);
+        ChatListItemDto item = new ChatListItemDto(UUID.randomUUID(), null, "hi", "test conversation", LocalDateTime.now(), false, 0L);
         List<ChatListItemDto> list = List.of(item);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
@@ -111,7 +117,7 @@ class CreateAndManageChatControllerTest {
     @Test
     @DisplayName("fetchMessages delegates to service and returns messages")
     void testFetchMessages() throws Exception {
-        MessageResponseDto m = new MessageResponseDto(UUID.randomUUID(), conversationId, userId, "hi", LocalDateTime.now());
+        MessageResponseDto m = new MessageResponseDto(UUID.randomUUID(), conversationId, userId, "John", "", "Doe", "hi", LocalDateTime.now());
         List<MessageResponseDto> messages = List.of(m);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {

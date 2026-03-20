@@ -3,6 +3,7 @@ package com.tranzo.tranzo_user_ms.user.service;
 import com.tranzo.tranzo_user_ms.commons.exception.*;
 import com.tranzo.tranzo_user_ms.user.dto.SocialHandleDto;
 import com.tranzo.tranzo_user_ms.user.dto.UrlDto;
+import com.tranzo.tranzo_user_ms.user.dto.PublicUserProfileDto;
 import com.tranzo.tranzo_user_ms.user.dto.UserProfileDto;
 import com.tranzo.tranzo_user_ms.user.dto.UserReportRequestDto;
 import com.tranzo.tranzo_user_ms.user.enums.AccountStatus;
@@ -49,6 +50,36 @@ public class UserService {
                 .findAllUserProfileDetailByUserId(userId)
                 .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
         return mapToUserProfileDto(profileEntity);
+    }
+
+    /**
+     * Public profile for another user: no email or mobile. Picture URL presigned when stored in S3.
+     */
+    public PublicUserProfileDto getPublicUserProfile(UUID userId) {
+        UserProfileEntity profileEntity = userProfileRepository
+                .findAllUserProfileDetailByUserId(userId)
+                .orElseThrow(() -> new UserProfileNotFoundException("User not found for id: " + userId));
+        return mapToPublicUserProfileDto(profileEntity);
+    }
+
+    private PublicUserProfileDto mapToPublicUserProfileDto(UserProfileEntity profileEntity) {
+        UsersEntity user = profileEntity.getUser();
+        List<SocialHandleDto> socialHandleDtos = user.getSocialHandleEntity().stream()
+                .map(this::mapToSocialHandleDto)
+                .collect(Collectors.toList());
+        String profilePictureUrl = resolveProfilePictureUrl(profileEntity.getProfilePictureUrl());
+        return PublicUserProfileDto.builder()
+                .firstName(profileEntity.getFirstName())
+                .middleName(profileEntity.getMiddleName())
+                .lastName(profileEntity.getLastName())
+                .bio(profileEntity.getBio())
+                .gender(profileEntity.getGender())
+                .dob(profileEntity.getDob())
+                .location(profileEntity.getLocation())
+                .profilePictureUrl(profilePictureUrl)
+                .socialHandleDtoList(socialHandleDtos)
+                .verificationStatus(profileEntity.getVerificationStatus())
+                .build();
     }
 
     /**
@@ -123,6 +154,7 @@ public class UserService {
                 .location(profileEntity.getLocation())
                 .profilePictureUrl(profilePictureUrl)
                 .socialHandleDtoList(socialHandleDtos)
+                .verificationStatus(profileEntity.getVerificationStatus())
                 .build();
     }
 

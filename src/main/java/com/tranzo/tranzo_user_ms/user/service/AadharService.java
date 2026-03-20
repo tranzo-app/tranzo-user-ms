@@ -12,6 +12,7 @@ import com.tranzo.tranzo_user_ms.user.repository.AadharOtpRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.user.repository.VerificationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "aadhar.enabled", havingValue = "true")
 public class AadharService {
     private final AadharClient aadharClient;
     private final AadharOtpRepository aadhaarOtpRepository;

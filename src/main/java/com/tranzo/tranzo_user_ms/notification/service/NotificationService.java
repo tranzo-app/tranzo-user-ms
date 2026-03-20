@@ -1,6 +1,8 @@
 package com.tranzo.tranzo_user_ms.notification.service;
 
 import com.tranzo.tranzo_user_ms.notification.enums.NotificationType;
+import com.tranzo.tranzo_user_ms.notification.exception.NotificationNotFoundException;
+import com.tranzo.tranzo_user_ms.notification.exception.NotificationAccessDeniedException;
 import com.tranzo.tranzo_user_ms.notification.model.UserNotificationEntity;
 import com.tranzo.tranzo_user_ms.notification.repository.UserNotificationRepository;
 import lombok.RequiredArgsConstructor;
@@ -49,12 +51,17 @@ public class NotificationService {
     }
 
     public void markAsRead(UUID notificationId, UUID userId) {
-        userNotificationRepository.findById(notificationId).ifPresent(notification -> {
-            if (notification.getUserId().equals(userId) && notification.getReadAt() == null) {
-                notification.setReadAt(LocalDateTime.now());
-                userNotificationRepository.save(notification);
-            }
-        });
+        UserNotificationEntity notification = userNotificationRepository.findById(notificationId)
+                .orElseThrow(() -> new NotificationNotFoundException(notificationId));
+        
+        if (!notification.getUserId().equals(userId)) {
+            throw new NotificationAccessDeniedException("Access denied to notification " + notificationId);
+        }
+        
+        if (notification.getReadAt() == null) {
+            notification.setReadAt(LocalDateTime.now());
+            userNotificationRepository.save(notification);
+        }
     }
 
     public void markAllAsRead(UUID userId) {

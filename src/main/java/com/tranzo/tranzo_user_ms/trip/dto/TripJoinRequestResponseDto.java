@@ -18,6 +18,9 @@ public class TripJoinRequestResponseDto {
     private UUID joinRequestId;
     private UUID tripId;
     private UUID requestorUserId;
+    private String firstName;
+    private String middleName;
+    private String lastName;
     private JoinRequestStatus status;
     private JoinRequestSource requestedChannel;
     private LocalDateTime createdAt;

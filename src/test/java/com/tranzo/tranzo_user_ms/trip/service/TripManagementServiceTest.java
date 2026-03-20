@@ -3,7 +3,7 @@ package com.tranzo.tranzo_user_ms.trip.service;
 import com.tranzo.tranzo_user_ms.commons.exception.*;
 import com.tranzo.tranzo_user_ms.trip.dto.*;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
-import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
+import com.tranzo.tranzo_user_ms.trip.exception.TripValidationException;
 import com.tranzo.tranzo_user_ms.trip.events.TripEventPublisher;
 import com.tranzo.tranzo_user_ms.trip.model.*;
 import com.tranzo.tranzo_user_ms.trip.repository.*;
@@ -108,7 +108,7 @@ class TripManagementServiceTest {
         invalidDto.setTripEndDate(LocalDate.of(2026, 2, 1));
 
         // When & Then
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.createDraftTrip(invalidDto, userId)
         );
     }
@@ -244,7 +244,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.updateDraftTrip(tripDto, tripId, userId)
         );
     }
@@ -292,7 +292,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.fetchTrip(tripId, userId)
         );
     }
@@ -456,11 +456,11 @@ class TripManagementServiceTest {
 
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(draftTrip));
         doNothing().when(userUtil).validateUserIsHost(tripId, userId);
-        doThrow(new TripPublishException(TripPublishErrorCode.TITLE_MISSING))
+        doThrow(new TripValidationException(TripErrorCode.TITLE_MISSING))
             .when(tripPublishEligibilityValidator).validate(any(TripEntity.class));
 
         // When & Then
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.publishTrip(tripId, userId)
         );
     }
@@ -564,7 +564,7 @@ class TripManagementServiceTest {
     void testUpdateTrip_TripNotFound() {
         when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
 
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.updateTrip(tripDto, tripId, userId));
     }
 
@@ -579,7 +579,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(publishedTrip));
         doNothing().when(userUtil).validateUserIsHost(tripId, userId);
 
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.updateTrip(tripDto, tripId, userId));
     }
 
