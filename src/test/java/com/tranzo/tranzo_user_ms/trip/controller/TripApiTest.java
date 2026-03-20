@@ -58,11 +58,11 @@ class TripApiTest extends ApiTestBase {
     }
 
     @Test
-    @DisplayName("GET /trips/{tripId} returns 400 for non-existent trip when authenticated")
+    @DisplayName("GET /trips/{tripId} returns 404 for non-existent trip when authenticated")
     @WithMockUser(username = USER_UUID_1)
-    void fetchTrip_nonExistent_returns400() throws Exception {
+    void fetchTrip_nonExistent_returns404() throws Exception {
         mvc.perform(get("/trips/{tripId}", NON_EXISTENT_UUID))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.statusCode").value(400));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.statusCode").value(404));
     }
 }

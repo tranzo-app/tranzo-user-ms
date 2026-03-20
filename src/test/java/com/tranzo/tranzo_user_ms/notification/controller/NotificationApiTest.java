@@ -47,11 +47,10 @@ class NotificationApiTest extends ApiTestBase {
     }
 
     @Test
-    @DisplayName("PATCH /notifications/{id}/read returns 200 when authenticated")
+    @DisplayName("PATCH /notifications/{id}/read returns 404 when notification not found")
     @WithMockUser(username = USER_UUID_1)
-    void markAsRead_authenticated_returns200() throws Exception {
+    void markAsRead_authenticated_returns404() throws Exception {
         mvc.perform(patch("/notifications/{notificationId}/read", NOTIFICATION_ID_USER1))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.statusCode").value(200));
+                .andExpect(status().isNotFound());
     }
 }

@@ -1,68 +1,68 @@
-## Production: PostgreSQL (e.g. Amazon RDS). Data persists when the app stops.
-## Activate with: spring.profiles.active=prod
-## Set these in AWS (ECS task def, Elastic Beanstalk, Parameter Store, or Secrets Manager):
-##   SPRING_DATASOURCE_URL      = jdbc:postgresql://<RDS_ENDPOINT>:5432/<DB_NAME>
-##   SPRING_DATASOURCE_USERNAME = <master_username>
-##   SPRING_DATASOURCE_PASSWORD = <master_password>
-##   SPRING_JWT_SECRET          = <strong secret for JWT signing>
-#
-#server:
-#  port: ${PORT:8083}
-#
-#spring:
-#  datasource:
-#    url: ${SPRING_DATASOURCE_URL}
-#    driver-class-name: org.postgresql.Driver
-#    username: ${SPRING_DATASOURCE_USERNAME}
-#    password: ${SPRING_DATASOURCE_PASSWORD}
-#    hikari:
-#      maximum-pool-size: 10
-#      minimum-idle: 2
-#      connection-timeout: 20000
-#      idle-timeout: 300000
-#
-#  jpa:
-#    database-platform: org.hibernate.dialect.PostgreSQLDialect
-#    hibernate:
-#      ddl-auto: validate
-#    show-sql: false
-#    properties:
-#      hibernate:
-#        format_sql: false
-#    defer-datasource-initialization: false
-#
-#  flyway:
-#    enabled: true
-#    # true = when DB has tables but no flyway_schema_history, create history table and baseline (then run newer migrations only)
-#    baseline-on-migrate: true
-#    validate-on-migrate: true
-#
-#  sql:
-#    init:
-#      mode: never
-#
-#  h2:
-#    console:
-#      enabled: false
-#
-#  jwt:
-#    # Required in production: set SPRING_JWT_SECRET in your deployment (Docker, ECS, etc.).
-#    # If unset, this default is used so the app can start; replace with a strong secret from Secrets Manager.
-#    secret: ${SPRING_JWT_SECRET:please-set-SPRING_JWT_SECRET-to-a-strong-secret-in-production-min-256-bits}
-#    access-token-expiry-minutes: ${JWT_ACCESS_EXPIRY_MINUTES:15}
-#    refresh-token-expiry-days: ${JWT_REFRESH_EXPIRY_DAYS:7}
-#    registration-token-expiry-minutes: ${JWT_REGISTRATION_EXPIRY_MINUTES:10}
-#    issuer: tranzo-auth
-#
-#app:
-#  s3:
-#    media-bucket: ${AWS_S3_MEDIA_BUCKET}
-#    region: ${AWS_REGION:ap-south-1}
-#    presigned-url-expiry-minutes: 15
-#
-#logging:
-#  level:
-#    root: INFO
-#    com.tranzo: INFO
-#    org.springframework.web: INFO
-#    org.hibernate.SQL: WARN
+# Production: PostgreSQL (e.g. Amazon RDS). Data persists when the app stops.
+# Activate with: spring.profiles.active=prod
+# Set these in AWS (ECS task def, Elastic Beanstalk, Parameter Store, or Secrets Manager):
+#   SPRING_DATASOURCE_URL      = jdbc:postgresql://<RDS_ENDPOINT>:5432/<DB_NAME>
+#   SPRING_DATASOURCE_USERNAME = <master_username>
+#   SPRING_DATASOURCE_PASSWORD = <master_password>
+#   SPRING_JWT_SECRET          = <strong secret for JWT signing>
+
+server:
+  port: ${PORT:8083}
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    driver-class-name: org.postgresql.Driver
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+      idle-timeout: 300000
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+    defer-datasource-initialization: false
+
+  flyway:
+    enabled: true
+    # true = when DB has tables but no flyway_schema_history, create history table and baseline (then run newer migrations only)
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+  sql:
+    init:
+      mode: never
+
+  h2:
+    console:
+      enabled: false
+
+  jwt:
+    # Required in production: set SPRING_JWT_SECRET in your deployment (Docker, ECS, etc.).
+    # If unset, this default is used so the app can start; replace with a strong secret from Secrets Manager.
+    secret: ${SPRING_JWT_SECRET:please-set-SPRING_JWT_SECRET-to-a-strong-secret-in-production-min-256-bits}
+    access-token-expiry-minutes: ${JWT_ACCESS_EXPIRY_MINUTES:15}
+    refresh-token-expiry-days: ${JWT_REFRESH_EXPIRY_DAYS:7}
+    registration-token-expiry-minutes: ${JWT_REGISTRATION_EXPIRY_MINUTES:10}
+    issuer: tranzo-auth
+
+app:
+  s3:
+    media-bucket: ${AWS_S3_MEDIA_BUCKET}
+    region: ${AWS_REGION:ap-south-1}
+    presigned-url-expiry-minutes: 15
+
+logging:
+  level:
+    root: INFO
+    com.tranzo: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
