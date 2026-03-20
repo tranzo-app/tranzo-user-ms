@@ -11,7 +11,7 @@ import java.util.UUID;
  * Base for full integration API tests. Uses H2 + data.sql.
  * Do not add @WithMockUser here; use it on individual test methods for authenticated vs unauthenticated scenarios.
  */
-@SpringBootTest
+@SpringBootTest(classes = TranzoUserMsApplication.class, properties = "spring.profiles.active=test")
 @AutoConfigureMockMvc
 public abstract class ApiTestBase {
 
