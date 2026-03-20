@@ -7,6 +7,9 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+
+@ConditionalOnProperty(name = "aadhar.enabled", havingValue = "true")
 public interface AadharOtpRepository extends JpaRepository<AadharOtpEntity, UUID> {
     @Query("""
     SELECT o 

@@ -16,6 +16,7 @@ import com.tranzo.tranzo_user_ms.user.model.AadharOtpVerifyBaseResponse;
 import com.tranzo.tranzo_user_ms.user.model.AadharOtpVerifyRequest;
 import com.tranzo.tranzo_user_ms.user.model.AadharOtpVerifySuccessResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -29,6 +30,7 @@ import java.io.IOException;
 
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "aadhar.enabled", havingValue = "true")
 public class AadharClient {
     private final WebClient aadharWebClient;
     private final ObjectMapper objectMapper;

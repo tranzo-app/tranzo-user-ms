@@ -3,10 +3,9 @@ package com.tranzo.tranzo_user_ms.user.client;
 import com.tranzo.tranzo_user_ms.user.configuration.AadharProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -18,6 +17,7 @@ import java.time.Duration;
 @Configuration
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "aadhar.enabled", havingValue = "true")
 public class AadharWebClientConfig {
     private final AadharProperties properties;
 

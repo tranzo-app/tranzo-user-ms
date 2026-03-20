@@ -4,6 +4,7 @@ import com.tranzo.tranzo_user_ms.user.enums.OtpStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

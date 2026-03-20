@@ -2,18 +2,12 @@ package com.tranzo.tranzo_user_ms.user.controller;
 
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
-import com.tranzo.tranzo_user_ms.user.dto.PublicProfileResponseDto;
-import com.tranzo.tranzo_user_ms.user.dto.SubmitHostRatingRequest;
-import com.tranzo.tranzo_user_ms.user.dto.SubmitMemberRatingsRequest;
-import com.tranzo.tranzo_user_ms.user.dto.SubmitTripRatingRequest;
-import com.tranzo.tranzo_user_ms.user.service.PublicProfileService;
-import com.tranzo.tranzo_user_ms.user.service.RatingService;
 import com.tranzo.tranzo_user_ms.user.dto.AadharNumberDto;
 import com.tranzo.tranzo_user_ms.user.service.AadharService;
 import jakarta.security.auth.message.AuthException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +16,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/aadhaar/otp")
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "aadhar.enabled", havingValue = "true")
 public class AadharController {
     private final AadharService aadharService;
 

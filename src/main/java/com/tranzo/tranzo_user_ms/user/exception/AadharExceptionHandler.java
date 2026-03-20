@@ -3,9 +3,11 @@ package com.tranzo.tranzo_user_ms.user.exception;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
+@ConditionalOnProperty(name = "aadhar.enabled", havingValue = "true")
 public class AadharExceptionHandler {
 
     @ExceptionHandler(AadharValidationException.class)
