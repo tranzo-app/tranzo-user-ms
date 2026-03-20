@@ -64,6 +64,6 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(500, res.getStatusCodeValue());
         assertNotNull(res.getBody());
-        assertEquals("Something went wrong", res.getBody().getStatusMessage());
+        assertEquals("Something went wrong. Please try again later.", res.getBody().getStatusMessage());
     }
 }

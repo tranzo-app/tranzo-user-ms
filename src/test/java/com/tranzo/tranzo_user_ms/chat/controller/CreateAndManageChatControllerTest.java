@@ -91,7 +91,7 @@ class CreateAndManageChatControllerTest {
 
             ResponseEntity<ResponseDto<CreateConversationResponseDto>> response = controller.createConversation(req);
 
-            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertEquals(HttpStatus.CREATED, response.getStatusCode());
             assertNotNull(response.getBody());
             assertEquals(resp.getConversationId(), response.getBody().getData().getConversationId());
         }

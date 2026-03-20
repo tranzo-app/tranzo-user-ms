@@ -14,10 +14,10 @@ spring:
     timeout: 30
 
   datasource:
-    url: jdbc:h2:file:./data/tranzo_db;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+#    url: jdbc:h2:file:./data/tranzo_db;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
+#    driver-class-name: org.h2.Driver
+#    username: sa
+#    password:
 #  url: ${SPRING_DATASOURCE_URL}
 #  driver-class-name: tranzo-db.cpu4oaigsdj5.ap-south-1.rds.amazonaws.com
 #  username: TRANZO_DB
