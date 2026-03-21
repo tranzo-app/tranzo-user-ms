@@ -3,7 +3,9 @@ package com.tranzo.tranzo_user_ms.chat.service;
 import com.tranzo.tranzo_user_ms.chat.dto.ChatListItemDto;
 import com.tranzo.tranzo_user_ms.chat.dto.MessageResponseDto;
 import com.tranzo.tranzo_user_ms.chat.enums.ChatErrorCode;
+import com.tranzo.tranzo_user_ms.chat.enums.ConversationType;
 import com.tranzo.tranzo_user_ms.chat.exception.ConversationNotFoundException;
+import com.tranzo.tranzo_user_ms.chat.model.ConversationParticipantEntity;
 import com.tranzo.tranzo_user_ms.chat.model.MessageEntity;
 import com.tranzo.tranzo_user_ms.chat.repository.ConversationParticipantRepository;
 import com.tranzo.tranzo_user_ms.chat.repository.ConversationRepository;
@@ -51,9 +53,56 @@ public class ConversationService {
         log.debug("Fetching conversations for user {}", currentUserId);
 
         List<ChatListItemDto> conversations = conversationRepository.findChatListForUser(currentUserId);
+        
+        // Populate conversation names for one-on-one chats
+        for (ChatListItemDto conversation : conversations) {
+            if (conversation.getType().equals(ConversationType.ONE_ON_ONE)) {
+                // This is a one-on-one conversation, fetch the other user's name
+                List<ConversationParticipantEntity> participants =
+                    conversationParticipantRepository.findByConversation_ConversationIdAndLeftAtIsNull(
+                        conversation.getConversationId());
+                
+                // Find the other participant (not the current user)
+                UUID otherUserId = participants.stream()
+                    .map(ConversationParticipantEntity::getUserId)
+                    .filter(userId -> !userId.equals(currentUserId))
+                    .findFirst()
+                    .orElse(null);
+                
+                if (otherUserId != null) {
+                    Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(otherUserId));
+                    UserNameDto otherUser = namesByUserId.get(otherUserId);
+                    
+                    if (otherUser != null) {
+                        String fullName = buildFullName(otherUser.getFirstName(), otherUser.getMiddleName(), otherUser.getLastName());
+                        conversation.setConversationName(fullName);
+                    } else {
+                        conversation.setConversationName("Unknown User");
+                    }
+                } else {
+                    conversation.setConversationName("Unknown");
+                }
+            }
+        }
+        
         log.info("Retrieved {} conversations for user {}", conversations.size(), currentUserId);
-
         return conversations;
+    }
+    
+    private String buildFullName(String firstName, String middleName, String lastName) {
+        StringBuilder name = new StringBuilder();
+        if (firstName != null && !firstName.trim().isEmpty()) {
+            name.append(firstName.trim());
+        }
+        if (middleName != null && !middleName.trim().isEmpty()) {
+            if (!name.isEmpty()) name.append(" ");
+            name.append(middleName.trim());
+        }
+        if (lastName != null && !lastName.trim().isEmpty()) {
+            if (!name.isEmpty()) name.append(" ");
+            name.append(lastName.trim());
+        }
+        return name.length() > 0 ? name.toString() : "Unknown";
     }
 
     /**
@@ -110,7 +159,7 @@ public class ConversationService {
 
         // Convert messages to DTOs with sender information
         List<MessageResponseDto> messageResponseDtos = messages.stream()
-                .map(message -> convertToMessageResponseDto(message, conversationId))
+                .map(message -> convertToMessageResponseDto(message, conversationId, currentUserId))
                 .toList();
 
         log.info("Retrieved {} messages for conversation {} for user {}", messageResponseDtos.size(), conversationId, currentUserId);
@@ -122,24 +171,40 @@ public class ConversationService {
      *
      * @param message        the message entity
      * @param conversationId the conversation ID
+     * @param currentUserId  the current user ID
      * @return MessageResponseDto with enriched sender details
      */
-    private MessageResponseDto convertToMessageResponseDto(MessageEntity message, UUID conversationId) {
-        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(message.getSenderId()));
-        UserNameDto senderName = namesByUserId.get(message.getSenderId());
+    private MessageResponseDto convertToMessageResponseDto(MessageEntity message, UUID conversationId, UUID currentUserId) {
+        UUID senderId = message.getSenderId();
+        String firstName, middleName, lastName;
 
-        String firstName = senderName != null ? senderName.getFirstName() : "Unknown";
-        String middleName = senderName != null ? senderName.getMiddleName() : null;
-        String lastName = senderName != null ? senderName.getLastName() : null;
+        if (senderId == null && (message.getContent().equals("You are now connected") || message.getContent().equals("Trip Hosted Successfully"))) {
+            // System message
+            firstName = "System";
+            middleName = null;
+            lastName = null;
+        } else {
+            // User message - fetch sender details
+            Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(senderId));
+            UserNameDto senderName = namesByUserId.get(senderId);
+
+            firstName = senderName != null ? senderName.getFirstName() : "Unknown";
+            middleName = senderName != null ? senderName.getMiddleName() : null;
+            lastName = senderName != null ? senderName.getLastName() : null;
+        }
+
+        // Determine if current user is the sender
+        Boolean isSender = senderId != null && senderId.equals(currentUserId);
 
         return new MessageResponseDto(
                 message.getMessageId(),
                 conversationId,
-                message.getSenderId(),
+                senderId,
                 firstName,
                 middleName,
                 lastName,
                 message.getContent(),
+                isSender,
                 message.getCreatedAt()
         );
     }
