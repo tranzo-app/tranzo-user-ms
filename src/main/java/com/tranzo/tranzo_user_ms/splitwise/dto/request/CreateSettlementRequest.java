@@ -22,7 +22,7 @@ import java.util.UUID;
 public class CreateSettlementRequest {
 
     @NotNull(message = "Group ID is required")
-    private Long groupId;
+    private UUID groupId;
 
     @NotNull(message = "Paid by user ID is required")
     private UUID paidById;
@@ -37,8 +37,8 @@ public class CreateSettlementRequest {
     @Size(max = 50, message = "Payment method must not exceed 50 characters")
     private String paymentMethod;
 
-    @Size(max = 100, message = "Transaction ID must not exceed 100 characters")
-    private String transactionId;
+    @NotNull(message = "transaction ID is required")
+    private UUID transactionId;
 
     @Size(max = 500, message = "Notes must not exceed 500 characters")
     private String notes;

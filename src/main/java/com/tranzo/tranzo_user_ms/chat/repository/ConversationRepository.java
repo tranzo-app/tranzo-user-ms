@@ -45,7 +45,7 @@ public interface ConversationRepository extends JpaRepository<ConversationEntity
                   WHERE m2.conversation.conversationId = c.conversationId
               )
         ), ''),
-
+        c.conversationName,
         /* Last activity time */
         COALESCE((
             SELECT MAX(m.createdAt)

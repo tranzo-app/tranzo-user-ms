@@ -28,8 +28,8 @@ import java.util.UUID;
 public class SplitwiseGroup {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(name = "trip_id", nullable = false, unique = true)
     private UUID tripId;
@@ -94,19 +94,5 @@ public class SplitwiseGroup {
                 .toList();
     }
 
-    /**
-     * Gets regular members of this group.
-     */
-    public List<GroupMember> getRegularMembers() {
-        return members.stream()
-                .filter(member -> member.getRole() == GroupMember.MemberRole.MEMBER)
-                .toList();
-    }
 
-    /**
-     * Gets the total number of members in the group.
-     */
-    public int getMemberCount() {
-        return members.size();
-    }
 }

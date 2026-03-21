@@ -35,7 +35,7 @@ public class UserProfileHistoryEntity {
     private UUID userProfileUuid;
 
     @ManyToOne(fetch = FetchType.LAZY , optional = false)
-    @JoinColumn(name = "user_uuid", nullable = false , foreignKey = @ForeignKey(name = "fk_user_profile_user"))
+    @JoinColumn(name = "user_uuid", nullable = false , foreignKey = @ForeignKey(name = "fk_user_profile_history_user"))
     private UsersEntity user;
 
     @Column(name = "FIRST_NAME", nullable = false, updatable = false)

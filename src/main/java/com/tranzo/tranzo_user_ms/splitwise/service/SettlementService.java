@@ -2,26 +2,38 @@ package com.tranzo.tranzo_user_ms.splitwise.service;
 
 import com.tranzo.tranzo_user_ms.splitwise.dto.SettlementProposal;
 import com.tranzo.tranzo_user_ms.splitwise.dto.request.CreateSettlementRequest;
+import com.tranzo.tranzo_user_ms.splitwise.dto.response.ExpenseResponse;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.GroupResponse;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.SettlementResponse;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.UserResponse;
-import com.tranzo.tranzo_user_ms.splitwise.entity.*;
-import com.tranzo.tranzo_user_ms.splitwise.exception.*;
-import com.tranzo.tranzo_user_ms.splitwise.repository.BalanceRepository;
+import com.tranzo.tranzo_user_ms.splitwise.entity.Expense;
+import com.tranzo.tranzo_user_ms.splitwise.entity.Settlement;
+import com.tranzo.tranzo_user_ms.splitwise.entity.SettlementExpense;
+import com.tranzo.tranzo_user_ms.splitwise.entity.SplitwiseGroup;
+import com.tranzo.tranzo_user_ms.splitwise.exception.GroupNotFoundException;
+import com.tranzo.tranzo_user_ms.splitwise.exception.SettlementNotFoundException;
+import com.tranzo.tranzo_user_ms.splitwise.exception.UserNotMemberException;
 import com.tranzo.tranzo_user_ms.splitwise.repository.SettlementRepository;
 import com.tranzo.tranzo_user_ms.splitwise.repository.SplitwiseGroupRepository;
+import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
+import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
+import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
+import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Service for managing settlements between users.
+ * Service for creating, reading, listing, optimizing, and deleting settlements; enforces group membership.
  */
 @Slf4j
 @Service
@@ -29,205 +41,171 @@ import java.util.stream.Collectors;
 public class SettlementService {
 
     private final SettlementRepository settlementRepository;
+    private final SplitwiseGroupRepository splitwiseGroupRepository;
     private final BalanceService balanceService;
     private final ActivityService activityService;
-    private final BalanceRepository balanceRepository;
-    private final SplitwiseGroupRepository splitwiseGroupRepository;
+    private final UserRepository userRepository;
+    private final TripRepository tripRepository;
 
     public SettlementService(SettlementRepository settlementRepository,
-                         BalanceService balanceService,
-                         ActivityService activityService,
-                         BalanceRepository balanceRepository,
-                         SplitwiseGroupRepository splitwiseGroupRepository) {
+                            SplitwiseGroupRepository splitwiseGroupRepository,
+                            BalanceService balanceService,
+                            ActivityService activityService,
+                            UserRepository userRepository,
+                            TripRepository tripRepository) {
         this.settlementRepository = settlementRepository;
+        this.splitwiseGroupRepository = splitwiseGroupRepository;
         this.balanceService = balanceService;
         this.activityService = activityService;
-        this.balanceRepository = balanceRepository;
-        this.splitwiseGroupRepository = splitwiseGroupRepository;
+        this.userRepository = userRepository;
+        this.tripRepository = tripRepository;
     }
 
     /**
-     * Creates a new settlement with proper validation and balance updates.
+     * Creates a settlement. Current user must be group member and typically the payer (paidById = currentUserId).
      */
     public SettlementResponse createSettlement(CreateSettlementRequest request, UUID currentUserId) {
-        log.info("Creating settlement: {} -> {} amount {} by user {}", 
-                 request.getPaidById(), request.getPaidToId(), request.getAmount(), currentUserId);
+        if (!splitwiseGroupRepository.isUserMemberOfGroup(request.getGroupId(), currentUserId)) {
+            throw new UserNotMemberException(currentUserId, request.getGroupId());
+        }
+        if (!request.getPaidById().equals(currentUserId)) {
+            throw new UserNotMemberException("Only the payer can create a settlement for themselves");
+        }
+        balanceService.validateSettlementAmount(request.getGroupId(), request.getPaidById(), request.getPaidToId(), request.getAmount());
 
-        // Validate settlement amount
-        balanceService.validateSettlementAmount(request.getGroupId(), 
-                                          request.getPaidById(), 
-                                          request.getPaidToId(), 
-                                          request.getAmount());
-
-        // Create settlement entity
         SplitwiseGroup group = splitwiseGroupRepository.findById(request.getGroupId())
-                .orElseThrow(() -> new GroupNotFoundException("Group not found: " + request.getGroupId()));
-                
+                .orElseThrow(() -> new GroupNotFoundException(request.getGroupId()));
+
         Settlement settlement = Settlement.builder()
+                .group(group)
                 .paidBy(request.getPaidById())
                 .paidTo(request.getPaidToId())
-                .group(group)
                 .amount(request.getAmount())
                 .paymentMethod(request.getPaymentMethod())
                 .transactionId(request.getTransactionId())
                 .notes(request.getNotes())
+                .status("COMPLETED")
                 .build();
-
         settlement = settlementRepository.save(settlement);
 
-        // Update balances
         balanceService.updateBalancesForSettlement(settlement);
-
-        // Log activity
-        activityService.logSettlementCreated(
-                currentUserId,
-                settlement.getGroup(),
-                settlement.getId(),
-                settlement.getAmount()
-        );
-
-        log.info("Successfully created settlement with ID: {}", settlement.getId());
-        return convertToSettlementResponse(settlement);
+        activityService.logSettlementCreated(currentUserId, group, settlement.getId(), settlement.getAmount());
+        log.info("Created settlement {} in group {}", settlement.getId(), request.getGroupId());
+        return toSettlementResponse(settlement);
     }
 
-    /**
-     * Gets a settlement by ID.
-     */
     @Transactional(readOnly = true)
-    public SettlementResponse getSettlement(Long settlementId) {
-        log.debug("Fetching settlement: {}", settlementId);
-
+    public SettlementResponse getSettlement(UUID settlementId) {
         Settlement settlement = settlementRepository.findById(settlementId)
-                .orElseThrow(() -> new SettlementNotFoundException("Settlement not found: " + settlementId));
-
-        log.debug("Successfully retrieved settlement: {}", settlement.getId());
-        return convertToSettlementResponse(settlement);
+                .orElseThrow(() -> new SettlementNotFoundException("Settlement not found with ID: " + settlementId));
+        return toSettlementResponse(settlement);
     }
 
-    /**
-     * Gets all settlements for a group.
-     */
     @Transactional(readOnly = true)
-    public List<SettlementResponse> getGroupSettlements(Long groupId) {
-        log.debug("Fetching settlements for group: {}", groupId);
-
+    public List<SettlementResponse> getGroupSettlements(UUID groupId) {
         List<Settlement> settlements = settlementRepository.findByGroupId(groupId);
-
-        log.debug("Found {} settlements for group {}", settlements.size(), groupId);
-        return settlements.stream()
-                .map(this::convertToSettlementResponse)
-                .collect(Collectors.toList());
+        return settlements.stream().map(this::toSettlementResponse).collect(Collectors.toList());
     }
 
-    /**
-     * Gets settlements involving a specific user.
-     */
     @Transactional(readOnly = true)
     public List<SettlementResponse> getUserSettlements(UUID userId) {
-        log.debug("Fetching settlements for user: {}", userId);
-
         List<Settlement> settlements = settlementRepository.findSettlementsInvolvingUser(userId);
-
-        log.debug("Found {} settlements for user {}", settlements.size(), userId);
-        return settlements.stream()
-                .map(this::convertToSettlementResponse)
-                .collect(Collectors.toList());
+        return settlements.stream().map(this::toSettlementResponse).collect(Collectors.toList());
     }
 
-    /**
-     * Gets optimized settlement proposals for a group.
-     */
     @Transactional(readOnly = true)
-    public List<SettlementProposal> getOptimizedSettlements(Long groupId) {
-        log.info("Calculating optimized settlements for group: {}", groupId);
-
-        List<SettlementProposal> proposals = balanceService.getOptimizedSettlements(groupId);
-
-        log.info("Generated {} optimized settlement proposals for group {}", proposals.size(), groupId);
-        return proposals;
+    public List<SettlementProposal> getOptimizedSettlements(UUID groupId) {
+        return balanceService.getOptimizedSettlements(groupId);
     }
 
     /**
-     * Updates balances when a settlement is created.
-     * This method is now handled by BalanceService.updateBalancesForSettlement()
+     * Updates settlement status (e.g. PENDING -> COMPLETED). Optional; controller may not expose.
      */
-    private void updateBalancesForSettlement(Settlement settlement) {
-        // Delegate to BalanceService which has the proper balance update logic
-        balanceService.updateBalancesForSettlement(settlement);
-    }
-
-    /**
-     * Updates the status of a settlement.
-     */
-    public SettlementResponse updateSettlementStatus(Long settlementId, String newStatus, UUID updatedBy) {
-        log.info("Updating settlement status: {} -> {} by user {}", settlementId, newStatus, updatedBy);
-
+    public SettlementResponse updateSettlementStatus(UUID settlementId, String status, UUID updatedBy) {
         Settlement settlement = settlementRepository.findById(settlementId)
-                .orElseThrow(() -> new SettlementNotFoundException("Settlement not found: " + settlementId));
-
-        settlement.setStatus(newStatus);
+                .orElseThrow(() -> new SettlementNotFoundException("Settlement not found with ID: " + settlementId));
+        if (!splitwiseGroupRepository.isUserMemberOfGroup(settlement.getGroup().getId(), updatedBy)) {
+            throw new UserNotMemberException(updatedBy, settlement.getGroup().getId());
+        }
+        settlement.setStatus(status != null ? status : settlement.getStatus());
         settlement = settlementRepository.save(settlement);
-
-        log.info("Successfully updated settlement status: {} -> {}", settlementId, newStatus);
-        return convertToSettlementResponse(settlement);
+        return toSettlementResponse(settlement);
     }
 
     /**
-     * Deletes a settlement by ID and reverses balance updates.
+     * Deletes a settlement and reverses balance updates.
      */
-    public void deleteSettlement(Long settlementId, UUID deletedBy) {
-        log.info("Deleting settlement: {} by user {}", settlementId, deletedBy);
-
+    public void deleteSettlement(UUID settlementId, UUID deletedBy) {
         Settlement settlement = settlementRepository.findById(settlementId)
-                .orElseThrow(() -> new SettlementNotFoundException("Settlement not found: " + settlementId));
-
-        // Reverse the balance updates before deleting
-        reverseBalanceUpdatesForSettlement(settlement);
-
-        settlementRepository.delete(settlement);
-
-        // Log activity
-        activityService.logSettlementDeleted(deletedBy, settlement.getGroup(), settlementId, settlement.getAmount());
-
-        log.info("Successfully deleted settlement: {}", settlementId);
-    }
-
-    /**
-     * Reverses balance updates when a settlement is deleted.
-     */
-    private void reverseBalanceUpdatesForSettlement(Settlement settlement) {
-        log.debug("Reversing balance updates for settlement: {}", settlement.getId());
-        
-        // Add back the balance that was settled
+                .orElseThrow(() -> new SettlementNotFoundException("Settlement not found with ID: " + settlementId));
+        if (!splitwiseGroupRepository.isUserMemberOfGroup(settlement.getGroup().getId(), deletedBy)) {
+            throw new UserNotMemberException(deletedBy, settlement.getGroup().getId());
+        }
+        BigDecimal amount = settlement.getAmount();
+        SplitwiseGroup group = settlement.getGroup();
         balanceService.reverseBalancesForSettlement(settlement);
-        
-        log.debug("Successfully reversed balance updates for settlement: {}", settlement.getId());
+        settlementRepository.delete(settlement);
+        activityService.logSettlementDeleted(deletedBy, group, settlementId, amount);
+        log.info("Deleted settlement {}", settlementId);
     }
 
-    /**
-     * Converts Settlement entity to SettlementResponse DTO.
-     */
-    private SettlementResponse convertToSettlementResponse(Settlement settlement) {
+    private SettlementResponse toSettlementResponse(Settlement settlement) {
+        SplitwiseGroup g = settlement.getGroup();
+        String groupName = g != null && g.getTripId() != null
+                ? tripRepository.findById(g.getTripId()).map(TripEntity::getTripTitle).orElse(g.getDescription())
+                : (g != null ? g.getDescription() : null);
+        GroupResponse groupResponse = g != null ? GroupResponse.builder()
+                .id(g.getId())
+                .tripId(g.getTripId())
+                .name(groupName)
+                .description(g.getDescription())
+                .build() : null;
+
+        List<ExpenseResponse> settledExpenseResponses = new ArrayList<>();
+        if (settlement.getSettledExpenses() != null) {
+            for (SettlementExpense se : settlement.getSettledExpenses()) {
+                Expense exp = se.getExpense();
+                if (exp != null) {
+                    settledExpenseResponses.add(ExpenseResponse.builder()
+                            .id(exp.getId())
+                            .name(exp.getName())
+                            .amount(se.getAmount())
+                            .build());
+                }
+            }
+        }
+
         return SettlementResponse.builder()
                 .id(settlement.getId())
-                .group(GroupResponse.builder()
-                        .id(settlement.getGroup().getId())
-                        .name(settlement.getGroup().getName())
-                        .build())
-                .paidBy(UserResponse.builder()
-                        .userUuid(settlement.getPaidBy())
-                        .build())
-                .paidTo(UserResponse.builder()
-                        .userUuid(settlement.getPaidTo())
-                        .build())
+                .group(groupResponse)
+                .paidBy(toUserResponse(settlement.getPaidBy()))
+                .paidTo(toUserResponse(settlement.getPaidTo()))
                 .amount(settlement.getAmount())
                 .paymentMethod(settlement.getPaymentMethod())
                 .transactionId(settlement.getTransactionId())
                 .notes(settlement.getNotes())
                 .settledAt(settlement.getSettledAt())
+                .settledExpenses(settledExpenseResponses)
                 .isFullyAllocated(settlement.isFullyAllocated())
                 .remainingAmount(settlement.getRemainingAmount())
                 .status(settlement.getStatus())
+                .build();
+    }
+
+    private UserResponse toUserResponse(UUID userId) {
+        if (userId == null) return null;
+        UsersEntity user = userRepository.findUserByUserUuid(userId).orElse(null);
+        if (user == null) return UserResponse.builder().userUuid(userId).build();
+        String name = "";
+        if (user.getUserProfileEntity() != null) {
+            UserProfileEntity p = user.getUserProfileEntity();
+            name = (p.getFirstName() != null ? p.getFirstName() : "") + " " + (p.getLastName() != null ? p.getLastName() : "");
+        }
+        return UserResponse.builder()
+                .userUuid(user.getUserUuid())
+                .name(name.trim().isEmpty() ? null : name.trim())
+                .email(user.getEmail())
+                .mobileNumber(user.getMobileNumber())
                 .build();
     }
 }

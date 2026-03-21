@@ -1,23 +1,40 @@
 server:
-  port: 8083
+  port: 8080
 
 # Schema: Flyway runs first (V1__create_all_tables.sql), then Hibernate validates.
 # Tables are created once; on restart Flyway skips applied migrations, data persists (file-based H2).
 # For future changes: add V2__description.sql, V3__..., never edit V1 after it has been applied.
 spring:
+  # Aadhar configuration - disabled for current release
+  aadhar:
+    enabled: false
+    baseUrl: https://aadhar-api.example.com
+    xApiKey: test-key
+    xApiSecret: test-secret
+    timeout: 30
+
   datasource:
-    url: jdbc:h2:file:./data/tranzo_db;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+#    url: jdbc:h2:file:./data/tranzo_db;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
+#    driver-class-name: org.h2.Driver
+#    username: sa
+#    password:
+    url: ${SPRING_DATASOURCE_URL}
+    driver-class-name: org.postgresql.Driver
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+      idle-timeout: 300000
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
     # false avoids circular dependency: flyway <-> entityManagerFactory (Flyway runs first when false)
     defer-datasource-initialization: false
 
@@ -55,6 +72,14 @@ app:
 #   notification:
 #     draft-reminder-cron: "0 0 9 * * ?"
 #     upcoming-cron: "0 0 8 * * ?"
+
+aws:
+  region: ap-south-1
+  access-key: AKIAXICNF7EWCLQU5CHV
+  secret-key: 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
+
+ses:
+  from-email: support@tranzo.in
 
 logging:
   level:

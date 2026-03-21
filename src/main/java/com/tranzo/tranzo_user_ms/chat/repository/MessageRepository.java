@@ -20,7 +20,7 @@ public interface MessageRepository extends JpaRepository<MessageEntity, UUID> {
         SELECT m
         FROM MessageEntity m
         WHERE m.conversation.conversationId = :conversationId
-        ORDER BY m.createdAt DESC
+        ORDER BY m.createdAt ASC
     """)
     List<MessageEntity> findMessages(
             @Param("conversationId") UUID conversationId,
@@ -33,7 +33,7 @@ public interface MessageRepository extends JpaRepository<MessageEntity, UUID> {
         FROM MessageEntity m
         WHERE m.conversation.conversationId = :conversationId
           AND m.createdAt < :before
-        ORDER BY m.createdAt DESC
+        ORDER BY m.createdAt ASC
     """)
     List<MessageEntity> findMessagesBefore(
             @Param("conversationId") UUID conversationId,

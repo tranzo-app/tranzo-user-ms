@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration test that verifies seed data is present and services can read it.
  * Uses trip-api-test-data.sql (no project data.sql); thresholds relaxed to match.
  */
-@SpringBootTest
+@SpringBootTest(classes = TranzoUserMsApplication.class, properties = "spring.profiles.active=test")
 @DisplayName("Data.sql integration and verification")
 @Sql(scripts = "/trip-api-test-data.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class DataSqlIntegrationTest {

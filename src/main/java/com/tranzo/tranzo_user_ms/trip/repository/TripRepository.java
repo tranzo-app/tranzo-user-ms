@@ -50,4 +50,7 @@ public interface TripRepository extends JpaRepository<TripEntity, UUID>, JpaSpec
             @Param("status") TripStatus status);
 
     Page<TripEntity> findAll(Specification<TripEntity> spec, Pageable pageable);
+
+    @Query("SELECT t.tripTitle FROM TripEntity t WHERE t.tripId = :tripId")
+    String findTripNameByTripId(UUID tripId);
 }

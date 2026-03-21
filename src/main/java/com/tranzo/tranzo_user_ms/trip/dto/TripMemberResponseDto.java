@@ -14,6 +14,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class TripMemberResponseDto {
+    private String firstName;
+    private String middleName;
+    private String lastName;
     private UUID membershipId;
     private UUID userId;
     private TripMemberRole role;

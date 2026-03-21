@@ -3,7 +3,7 @@ package com.tranzo.tranzo_user_ms.trip.service;
 import com.tranzo.tranzo_user_ms.commons.exception.*;
 import com.tranzo.tranzo_user_ms.trip.dto.*;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
-import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
+import com.tranzo.tranzo_user_ms.trip.exception.*;
 import com.tranzo.tranzo_user_ms.trip.events.TripEventPublisher;
 import com.tranzo.tranzo_user_ms.trip.model.*;
 import com.tranzo.tranzo_user_ms.trip.repository.*;
@@ -108,7 +108,7 @@ class TripManagementServiceTest {
         invalidDto.setTripEndDate(LocalDate.of(2026, 2, 1));
 
         // When & Then
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.createDraftTrip(invalidDto, userId)
         );
     }
@@ -232,7 +232,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(publishedTrip));
 
         // When & Then
-        assertThrows(ConflictException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.updateDraftTrip(tripDto, tripId, userId)
         );
     }
@@ -244,7 +244,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripNotFoundException.class, () ->
             tripManagementService.updateDraftTrip(tripDto, tripId, userId)
         );
     }
@@ -292,7 +292,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripNotFoundException.class, () ->
             tripManagementService.fetchTrip(tripId, userId)
         );
     }
@@ -307,7 +307,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(cancelledTrip));
 
         // When & Then
-        assertThrows(ForbiddenException.class, () ->
+        assertThrows(TripAccessDeniedException.class, () ->
             tripManagementService.fetchTrip(tripId, userId)
         );
     }
@@ -325,7 +325,7 @@ class TripManagementServiceTest {
             .thenReturn(Optional.empty());
 
         // When & Then
-        assertThrows(ForbiddenException.class, () ->
+        assertThrows(TripAccessDeniedException.class, () ->
             tripManagementService.fetchTrip(tripId, userId)
         );
     }
@@ -404,7 +404,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(cancelledTrip));
 
         // When & Then
-        assertThrows(ConflictException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.cancelTrip(tripId, userId)
         );
     }
@@ -419,7 +419,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(ongoingTrip));
 
         // When & Then
-        assertThrows(ConflictException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.cancelTrip(tripId, userId)
         );
     }
@@ -456,11 +456,11 @@ class TripManagementServiceTest {
 
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(draftTrip));
         doNothing().when(userUtil).validateUserIsHost(tripId, userId);
-        doThrow(new TripPublishException(TripPublishErrorCode.TITLE_MISSING))
+        doThrow(new TripValidationException(TripErrorCode.TITLE_MISSING))
             .when(tripPublishEligibilityValidator).validate(any(TripEntity.class));
 
         // When & Then
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.publishTrip(tripId, userId)
         );
     }
@@ -555,7 +555,7 @@ class TripManagementServiceTest {
         draftTrip.setTripStatus(TripStatus.DRAFT);
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(draftTrip));
 
-        assertThrows(ConflictException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.updateTrip(tripDto, tripId, userId));
     }
 
@@ -564,7 +564,7 @@ class TripManagementServiceTest {
     void testUpdateTrip_TripNotFound() {
         when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
 
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripNotFoundException.class, () ->
             tripManagementService.updateTrip(tripDto, tripId, userId));
     }
 
@@ -579,7 +579,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(publishedTrip));
         doNothing().when(userUtil).validateUserIsHost(tripId, userId);
 
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.updateTrip(tripDto, tripId, userId));
     }
 
@@ -621,7 +621,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(userUtil).validateUserIsHost(tripId, userId);
 
-        assertThrows(BadRequestException.class, () ->
+        assertThrows(TripMemberException.class, () ->
             tripManagementService.promoteToCoHost(userId, tripId, userId));
     }
 
@@ -639,7 +639,7 @@ class TripManagementServiceTest {
         when(tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, participantUserId, TripMemberStatus.ACTIVE))
             .thenReturn(Optional.of(member));
 
-        assertThrows(ConflictException.class, () ->
+        assertThrows(TripMemberException.class, () ->
             tripManagementService.promoteToCoHost(userId, tripId, participantUserId));
     }
 
@@ -652,7 +652,7 @@ class TripManagementServiceTest {
         when(tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, participantUserId, TripMemberStatus.ACTIVE))
             .thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () ->
+        assertThrows(TripMemberException.class, () ->
             tripManagementService.promoteToCoHost(userId, tripId, participantUserId));
     }
 
@@ -690,7 +690,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(userUtil).validateUserIsHost(tripId, userId);
 
-        assertThrows(ConflictException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripManagementService.markTripFull(userId, tripId));
     }
 
@@ -699,7 +699,7 @@ class TripManagementServiceTest {
     void testMarkTripFull_TripNotFound() {
         when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () ->
+        assertThrows(TripNotFoundException.class, () ->
             tripManagementService.markTripFull(userId, tripId));
     }
 
@@ -738,7 +738,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(userUtil).validateUserIsHost(tripId, userId);
 
-        assertThrows(BadRequestException.class, () ->
+        assertThrows(TripQnaException.class, () ->
             tripManagementService.addTripQnA(userId, qnaDto, tripId));
     }
 
@@ -753,7 +753,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(userUtil).validateUserIsHost(tripId, userId);
 
-        assertThrows(ConflictException.class, () ->
+        assertThrows(TripQnaException.class, () ->
             tripManagementService.addTripQnA(userId, qnaDto, tripId));
     }
 
@@ -806,7 +806,7 @@ class TripManagementServiceTest {
 
         AnswerQnaRequestDto answerDto = new AnswerQnaRequestDto();
         answerDto.setAnswer("New answer");
-        assertThrows(ConflictException.class, () ->
+        assertThrows(TripQnaException.class, () ->
             tripManagementService.answerTripQnA(userId, tripId, qnaId, answerDto));
     }
 

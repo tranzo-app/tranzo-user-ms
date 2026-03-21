@@ -17,7 +17,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GroupResponse {
-    private Long id;
+    private UUID id;
     private UUID tripId;
     private String name;
     private String description;
@@ -25,5 +25,4 @@ public class GroupResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<UserResponse> members;
-    private Integer memberCount;
 }

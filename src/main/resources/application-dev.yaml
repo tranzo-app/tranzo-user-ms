@@ -1,6 +1,0 @@
-# Dev profile: in-memory H2 (clean DB on every restart). Use when you don't need to persist data.
-# Default (no profile): file-based H2 at ./data/tranzo_db (data persists across restarts).
-# Activate with: spring.profiles.active=dev
-spring:
-  datasource:
-    url: jdbc:h2:mem:tranzo_user_db;DB_CLOSE_DELAY=-1
