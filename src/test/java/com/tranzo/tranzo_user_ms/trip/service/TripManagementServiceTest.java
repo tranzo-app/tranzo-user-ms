@@ -683,15 +683,31 @@ class TripManagementServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw when trip already marked full")
+    @DisplayName("Should unmark trip full when already marked full")
     void testMarkTripFull_AlreadyFull() {
         TripEntity trip = createSampleTripEntity();
         trip.setIsFull(true);
+        TripMemberEntity host = new TripMemberEntity();
+        host.setUserId(userId);
+        host.setRole(TripMemberRole.HOST);
+        TripMemberEntity other = new TripMemberEntity();
+        other.setUserId(UUID.randomUUID());
+        other.setRole(TripMemberRole.MEMBER);
+        
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(userUtil).validateUserIsHost(tripId, userId);
+        when(tripRepository.save(any(TripEntity.class))).thenReturn(trip);
+        when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
+            .thenReturn(Arrays.asList(host, other));
 
-        assertThrows(TripValidationException.class, () ->
-            tripManagementService.markTripFull(userId, tripId));
+        // Initially full
+        assertTrue(trip.getIsFull());
+        
+        tripManagementService.markTripFull(userId, tripId);
+
+        // Should be toggled to not full
+        assertFalse(trip.getIsFull());
+        verify(applicationEventPublisher).publishEvent(any(com.tranzo.tranzo_user_ms.commons.events.TripUnmarkedFullByHostEvent.class));
     }
 
     @Test
