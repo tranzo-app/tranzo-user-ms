@@ -26,7 +26,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       # 3. Build & Test (🔥 FAILS HERE if anything breaks)
       - name: Build & Test
