@@ -21,6 +21,13 @@ spring:
       connection-timeout: 20000
       idle-timeout: 300000
 
+  aadhar:
+    enabled: false
+    baseUrl: https://aadhar-api.example.com
+    xApiKey: test-key
+    xApiSecret: test-secret
+    timeout: 30
+
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -48,10 +55,10 @@ spring:
   jwt:
     # Required in production: set SPRING_JWT_SECRET in your deployment (Docker, ECS, etc.).
     # If unset, this default is used so the app can start; replace with a strong secret from Secrets Manager.
-    secret: ${SPRING_JWT_SECRET:please-set-SPRING_JWT_SECRET-to-a-strong-secret-in-production-min-256-bits}
-    access-token-expiry-minutes: ${JWT_ACCESS_EXPIRY_MINUTES:15}
-    refresh-token-expiry-days: ${JWT_REFRESH_EXPIRY_DAYS:7}
-    registration-token-expiry-minutes: ${JWT_REGISTRATION_EXPIRY_MINUTES:10}
+    secret: ${SPRING_JWT_SECRET}
+    access-token-expiry-minutes: ${JWT_ACCESS_EXPIRY_MINUTES}
+    refresh-token-expiry-days: ${JWT_REFRESH_EXPIRY_DAYS}
+    registration-token-expiry-minutes: ${JWT_REGISTRATION_EXPIRY_MINUTES}
     issuer: tranzo-auth
 
 app:
@@ -59,6 +66,11 @@ app:
     media-bucket: ${AWS_S3_MEDIA_BUCKET}
     region: ${AWS_REGION:ap-south-1}
     presigned-url-expiry-minutes: 15
+
+aws:
+  region: ap-south-1
+  access-key: ${AWS_ACCESS_KEY_ID}
+  secret-key: ${AWS_SECRET_ACCESS_KEY}
 
 logging:
   level:
