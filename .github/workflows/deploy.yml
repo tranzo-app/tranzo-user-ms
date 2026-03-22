@@ -15,11 +15,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref || github.sha }}
 
+      # 2. Setup Java (adjust version if needed)
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 3. Build & Test (🔥 FAILS HERE if anything breaks)
+      - name: Build & Test
+        run: |
+          chmod +x mvnw || true
+          ./mvnw clean verify
+
+      # 4. Clean old files on EC2
       - name: Clean Old Source Files on Server
         uses: appleboy/ssh-action@master
         with:
@@ -27,9 +42,11 @@ jobs:
           username: ec2-user
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
             rm -rf /home/ec2-user/tranzo-user-ms/src
             rm -rf /home/ec2-user/tranzo-user-ms/target
 
+      # 5. Transfer code
       - name: Transfer Code To Server
         uses: appleboy/scp-action@master
         with:
@@ -39,6 +56,7 @@ jobs:
           source: "."
           target: "/home/ec2-user/tranzo-user-ms"
 
+      # 6. Build & Deploy
       - name: Build Image and Deploy on Server
         uses: appleboy/ssh-action@master
         with:
@@ -46,8 +64,12 @@ jobs:
           username: ec2-user
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
+
             cd /home/ec2-user/tranzo-user-ms
             export DOCKER_BUILDKIT=0
+
             docker compose build --no-cache app
             docker compose up -d --force-recreate --no-deps app
+
             sudo docker system prune -af

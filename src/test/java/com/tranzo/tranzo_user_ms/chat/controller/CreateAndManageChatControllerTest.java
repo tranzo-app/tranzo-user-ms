@@ -117,7 +117,7 @@ class CreateAndManageChatControllerTest {
     @Test
     @DisplayName("fetchMessages delegates to service and returns messages")
     void testFetchMessages() throws Exception {
-        MessageResponseDto m = new MessageResponseDto(UUID.randomUUID(), conversationId, userId, "John", "", "Doe", "hi", LocalDateTime.now());
+        MessageResponseDto m = new MessageResponseDto(UUID.randomUUID(), conversationId, userId, "John", "", "Doe", "hi", true, LocalDateTime.now());
         List<MessageResponseDto> messages = List.of(m);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
