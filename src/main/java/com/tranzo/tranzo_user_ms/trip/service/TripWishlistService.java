@@ -21,8 +21,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class TripWishlistService {
-    TripRepository tripRepository;
-    TripWishlistRepository tripWishlistRepository;
+    private final TripRepository tripRepository;
+    private final TripWishlistRepository tripWishlistRepository;
 
     @Transactional
     public TripWishlistResponseDto addTripToWishlist(TripWishlistRequestDto tripWishlistRequestDto, UUID userId)
