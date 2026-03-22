@@ -65,17 +65,19 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
-
+  
             cd /home/ec2-user/tranzo-user-ms
             export DOCKER_BUILDKIT=0
-
-            # 🔥 FIX: stop & remove old containers properly
-            docker compose down
-
-            # Build fresh image
+            
+            # 🔥 Always clean old container (safe)
+            docker stop tranzo-user || true
+            docker rm tranzo-user || true
+            
+            # Clean compose
+            docker compose down || true
+            
+            # Build & run
             docker compose build --no-cache app
-
-            # Start new container
             docker compose up -d app
-
+            
             sudo docker system prune -af
