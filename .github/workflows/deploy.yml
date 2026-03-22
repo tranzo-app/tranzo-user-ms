@@ -68,6 +68,7 @@ jobs:
   
             cd /home/ec2-user/tranzo-user-ms
             export DOCKER_BUILDKIT=0
+            export COMPOSE_DOCKER_CLI_BUILD=0
             
             # 🔥 Always clean old container (safe)
             docker stop tranzo-user || true
