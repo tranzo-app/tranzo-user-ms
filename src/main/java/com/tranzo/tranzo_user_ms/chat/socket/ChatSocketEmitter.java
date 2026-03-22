@@ -32,6 +32,7 @@ public class ChatSocketEmitter {
                         namesByUserId.get(message.getSenderId()).getMiddleName(),
                         namesByUserId.get(message.getSenderId()).getLastName(),
                         message.getContent(),
+                        true,
                         message.getCreatedAt()
                 )
         );

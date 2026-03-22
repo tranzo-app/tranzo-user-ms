@@ -17,8 +17,9 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/users/me/wishlist")
+@RequiredArgsConstructor
 public class TripWishlistController {
-    TripWishlistService tripWishlistService;
+    private final TripWishlistService tripWishlistService;
 
     @PostMapping("/")
     public ResponseEntity<ResponseDto<TripWishlistResponseDto>> addToWishlist(@Valid @RequestBody TripWishlistRequestDto tripWishlistRequestDto) throws AuthException {
@@ -34,7 +35,7 @@ public class TripWishlistController {
         return ResponseEntity.ok(ResponseDto.success("Trip has been removed from the wishlist successfully", null));
     }
 
-    @GetMapping("/")
+    @GetMapping
     public ResponseEntity<ResponseDto<List<TripWishlistResponseDto>>> fetchWishlist() throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         List<TripWishlistResponseDto> response = tripWishlistService.fetchWishlist(userId);

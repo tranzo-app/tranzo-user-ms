@@ -78,7 +78,7 @@ public class SessionService {
             throw new AuthException("Invalid refresh token");
         }
         jwtService.validateTokenOrThrow(refreshToken);
-        if ("REFRESH".equals(jwtService.extractTokenType(refreshToken))) {
+        if (!"REFRESH".equals(jwtService.extractTokenType(refreshToken))) {
             throw new UnauthorizedException("Invalid token type for refresh");
         }
         UsersEntity user = storedToken.getUser();

@@ -47,8 +47,12 @@ public class TrendingDestinationService {
         LocalDate windowStart = getWindowStartDate(timeWindow);
         LocalDate windowEnd = LocalDate.now();
         
+        // Convert to LocalDateTime for repository calls
+        LocalDateTime windowStartDateTime = windowStart.atStartOfDay();
+        LocalDateTime windowEndDateTime = windowEnd.atTime(23, 59, 59);
+        
         // Fetch trips in window
-        List<TripEntity> tripsInWindow = tripDiscoveryRepository.findTripsInWindow(windowStart, windowEnd);
+        List<TripEntity> tripsInWindow = tripDiscoveryRepository.findTripsInWindow(windowStartDateTime, windowEndDateTime);
         
         log.debug("Found {} trips in window {}", tripsInWindow.size(), timeWindow);
         

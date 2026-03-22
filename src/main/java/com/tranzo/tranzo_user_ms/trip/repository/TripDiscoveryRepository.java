@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -76,12 +77,12 @@ public interface TripDiscoveryRepository extends JpaRepository<TripEntity, UUID>
         FROM TripEntity t
         WHERE t.tripStatus = com.tranzo.tranzo_user_ms.trip.enums.TripStatus.PUBLISHED
           AND t.visibilityStatus = com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus.PUBLIC
-          AND DATE(t.createdAt) BETWEEN :windowStart AND :windowEnd
+          AND t.createdAt BETWEEN :windowStart AND :windowEnd
         ORDER BY t.createdAt DESC
     """)
     List<TripEntity> findTripsInWindow(
-        @Param("windowStart") LocalDate windowStart,
-        @Param("windowEnd") LocalDate windowEnd
+        @Param("windowStart") LocalDateTime windowStart,
+        @Param("windowEnd") LocalDateTime windowEnd
     );
 
     /**
@@ -93,13 +94,13 @@ public interface TripDiscoveryRepository extends JpaRepository<TripEntity, UUID>
         FROM TripEntity t
         WHERE t.tripStatus = com.tranzo.tranzo_user_ms.trip.enums.TripStatus.PUBLISHED
           AND t.visibilityStatus = com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus.PUBLIC
-          AND DATE(t.createdAt) BETWEEN :windowStart AND :windowEnd
+          AND t.createdAt BETWEEN :windowStart AND :windowEnd
         GROUP BY t.tripDestination
         ORDER BY trip_count DESC
     """)
     List<Object[]> countTripsByDestinationInWindow(
-        @Param("windowStart") LocalDate windowStart,
-        @Param("windowEnd") LocalDate windowEnd
+        @Param("windowStart") LocalDateTime windowStart,
+        @Param("windowEnd") LocalDateTime windowEnd
     );
 
     /**
@@ -111,14 +112,14 @@ public interface TripDiscoveryRepository extends JpaRepository<TripEntity, UUID>
         FROM TripEntity t
         WHERE t.tripStatus = com.tranzo.tranzo_user_ms.trip.enums.TripStatus.PUBLISHED
           AND t.visibilityStatus = com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus.PUBLIC
-          AND DATE(t.createdAt) BETWEEN :windowStart AND :windowEnd
+          AND t.createdAt BETWEEN :windowStart AND :windowEnd
           AND LOWER(t.tripDestination) = LOWER(:destination)
         ORDER BY t.createdAt DESC
     """)
     List<TripEntity> findTripsByDestinationInWindow(
         @Param("destination") String destination,
-        @Param("windowStart") LocalDate windowStart,
-        @Param("windowEnd") LocalDate windowEnd
+        @Param("windowStart") LocalDateTime windowStart,
+        @Param("windowEnd") LocalDateTime windowEnd
     );
 }
 
