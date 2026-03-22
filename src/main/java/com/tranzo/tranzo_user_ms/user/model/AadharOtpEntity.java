@@ -10,12 +10,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "aadhar_otp",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"user_uuid", "document_type"})
-        }
-)
+@Table(name = "aadhar_otp")
 @Getter
 @Setter
 @NoArgsConstructor
