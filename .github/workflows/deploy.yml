@@ -69,7 +69,13 @@ jobs:
             cd /home/ec2-user/tranzo-user-ms
             export DOCKER_BUILDKIT=0
 
+            # 🔥 FIX: stop & remove old containers properly
+            docker compose down
+
+            # Build fresh image
             docker compose build --no-cache app
-            docker compose up -d --force-recreate --no-deps app
+
+            # Start new container
+            docker compose up -d app
 
             sudo docker system prune -af
