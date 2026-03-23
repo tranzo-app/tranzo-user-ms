@@ -732,7 +732,6 @@ class TripManagementServiceTest {
         member.setUserId(userId);
 
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
         when(tripQueryRepository.save(any(TripQueryEntity.class))).thenReturn(new TripQueryEntity());
         when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
             .thenReturn(Collections.singletonList(member));
@@ -752,7 +751,6 @@ class TripManagementServiceTest {
         qnaDto.setQuestion("   ");
 
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
 
         assertThrows(TripQnaException.class, () ->
             tripManagementService.addTripQnA(userId, qnaDto, tripId));
@@ -767,7 +765,6 @@ class TripManagementServiceTest {
         qnaDto.setQuestion("Where?");
 
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        doNothing().when(userUtil).validateUserIsHost(tripId, userId);
 
         assertThrows(TripQnaException.class, () ->
             tripManagementService.addTripQnA(userId, qnaDto, tripId));
