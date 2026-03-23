@@ -585,7 +585,7 @@ public class TripManagementService {
             TripEntity trip = tripRepository.findById(tripId)
                     .orElseThrow(() -> new TripNotFoundException());
 
-            userUtil.validateUserIsHost(tripId, userID);
+//            userUtil.validateUserIsHost(tripId, userID);
 
             if(createQnaRequestDto.getQuestion() == null || createQnaRequestDto.getQuestion().trim().isEmpty()){
                 throw new TripQnaException(TripErrorCode.QUESTION_EMPTY);
@@ -597,7 +597,7 @@ public class TripManagementService {
                         .answer(null)
                         .askedBy(userID)
                         .trip(trip)
-                        .visibility(TripQueryVisibility.HOST_AND_CO_HOSTS)
+                        .visibility(TripQueryVisibility.ALL_TRIP_MEMBER)
                         .build();
 
                 tripQueryRepository.save(tripQueryEntity);
