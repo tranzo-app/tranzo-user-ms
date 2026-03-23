@@ -1,8 +1,14 @@
 package com.tranzo.tranzo_user_ms.user.service;
 
+import com.tranzo.tranzo_user_ms.user.dto.SuggestedTravelPalDto;
+import com.tranzo.tranzo_user_ms.user.enums.AccountStatus;
 import com.tranzo.tranzo_user_ms.user.enums.TravelPalStatus;
 import com.tranzo.tranzo_user_ms.user.model.TravelPalEntity;
+import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
+import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.user.repository.TravelPalRepository;
+import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
+import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +21,8 @@ import java.util.List;
 @Transactional
 public class TravelPalService {
     private final TravelPalRepository repository;
+    private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
 
     /* ================= NORMALIZE ================= */
 
@@ -105,6 +113,34 @@ public class TravelPalService {
 
     public List<TravelPalEntity> getIncomingPendingRequests(UUID userId) {
         return repository.findIncomingPending(userId);
+    }
+
+    public List<SuggestedTravelPalDto> getSuggestedTravelPals(UUID currentUserId) {
+        // Get all active users except the current user
+        List<UsersEntity> allUsers = userRepository.findAll().stream()
+                .filter(user -> user.getAccountStatus() == AccountStatus.ACTIVE)
+                .filter(user -> !user.getUserUuid().equals(currentUserId))
+                .toList();
+
+        // Get user profiles for these users
+        List<UUID> userIds = allUsers.stream()
+                .map(UsersEntity::getUserUuid)
+                .toList();
+
+        List<UserProfileEntity> profiles = userProfileRepository.findByUser_UserUuidIn(userIds);
+
+        // Convert to DTOs
+        return profiles.stream()
+                .map(profile -> SuggestedTravelPalDto.builder()
+                        .userId(profile.getUser().getUserUuid())
+                        .firstName(profile.getFirstName())
+                        .middleName(profile.getMiddleName())
+                        .lastName(profile.getLastName())
+                        .bio(profile.getBio())
+                        .location(profile.getLocation())
+                        .profilePictureUrl(profile.getProfilePictureUrl())
+                        .build())
+                .toList();
     }
 }
 

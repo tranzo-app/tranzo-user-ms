@@ -254,7 +254,7 @@ public class TripManagementService {
 
     public List<TripViewDto> fetchTripForUser(final UUID userId)
     {
-        List<TripStatus> statuses = List.of(TripStatus.PUBLISHED, TripStatus.ONGOING, TripStatus.COMPLETED);
+        List<TripStatus> statuses = List.of(TripStatus.DRAFT, TripStatus.PUBLISHED, TripStatus.ONGOING, TripStatus.COMPLETED);
         List<TripEntity> trips = tripMemberRepository.findTripsByUserIdAndStatusIn(userId, statuses);
         return trips.stream()
                 .map(trip -> {
@@ -585,7 +585,7 @@ public class TripManagementService {
             TripEntity trip = tripRepository.findById(tripId)
                     .orElseThrow(() -> new TripNotFoundException());
 
-            userUtil.validateUserIsHost(tripId, userID);
+//            userUtil.validateUserIsHost(tripId, userID);
 
             if(createQnaRequestDto.getQuestion() == null || createQnaRequestDto.getQuestion().trim().isEmpty()){
                 throw new TripQnaException(TripErrorCode.QUESTION_EMPTY);
@@ -597,7 +597,7 @@ public class TripManagementService {
                         .answer(null)
                         .askedBy(userID)
                         .trip(trip)
-                        .visibility(TripQueryVisibility.HOST_AND_CO_HOSTS)
+                        .visibility(TripQueryVisibility.ALL_TRIP_MEMBER)
                         .build();
 
                 tripQueryRepository.save(tripQueryEntity);
@@ -756,10 +756,11 @@ public class TripManagementService {
         TripEntity trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new TripNotFoundException());
         userUtil.validateUserIsHost(tripId, userId);
-        if (Boolean.TRUE.equals(trip.getIsFull())) {
-            throw new TripValidationException(TripErrorCode.TRIP_ALREADY_MARKED_FULL);
-        }
-        trip.setIsFull(true);
+//        if (Boolean.TRUE.equals(trip.getIsFull())) {
+//            throw new TripValidationException(TripErrorCode.TRIP_ALREADY_MARKED_FULL);
+//        }
+        boolean wasFull = Boolean.TRUE.equals(trip.getIsFull());
+        trip.setIsFull(!wasFull);
         tripRepository.save(trip);
 
         UUID hostUserId = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
@@ -774,8 +775,15 @@ public class TripManagementService {
                 .filter(id -> !id.equals(hostUserId))
                 .toList();
         if (!membersExcludingHost.isEmpty()) {
-            applicationEventPublisher.publishEvent(
-                    new TripMarkedFullByHostEvent(tripId, trip.getTripTitle(), membersExcludingHost));
+            if (!wasFull) {
+                // Trip is being marked as full
+                applicationEventPublisher.publishEvent(
+                        new TripMarkedFullByHostEvent(tripId, trip.getTripTitle(), membersExcludingHost));
+            } else {
+                // Trip is being unmarked as full
+                applicationEventPublisher.publishEvent(
+                        new TripUnmarkedFullByHostEvent(tripId, trip.getTripTitle(), membersExcludingHost));
+            }
         }
     }
 

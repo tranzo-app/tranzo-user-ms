@@ -40,7 +40,9 @@ public class SecurityConfig {
                                 "/auth/otp/**",
                                 "/auth/session/**",
                                 "/h2-console/**",
-                                "/ws-chat/**"
+                                "/ws-chat/**",
+                                "/trips/featured",
+                                "/trips/trending-destinations"
                         ).permitAll()
                         .requestMatchers("/user/register").authenticated()
                         .anyRequest().authenticated()
