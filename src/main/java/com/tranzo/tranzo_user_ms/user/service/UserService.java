@@ -121,15 +121,19 @@ public class UserService {
                     }).toList();
             user.getSocialHandleEntity().addAll(socialHandles);
         }
-        userRepository.save(user);
-        UUID userId = user.getUserUuid();
+        // Handle profile picture BEFORE saving the user profile
+        String profilePictureUrl = null;
         if (file != null && !file.isEmpty()) {
-            var uploadResult = s3MediaService.upload(file, userId.toString());
-            updateProfilePicture(userId, new UrlDto(uploadResult.getKey()));
+            var uploadResult = s3MediaService.upload(file, user.getUserUuid().toString());
+            profilePictureUrl = uploadResult.getKey();
         } else if (userProfileDto.getProfilePictureUrl() != null && !userProfileDto.getProfilePictureUrl().isBlank()) {
-            updateProfilePicture(userId, new UrlDto(userProfileDto.getProfilePictureUrl()));
+            profilePictureUrl = userProfileDto.getProfilePictureUrl();
         }
-        return userId;
+        userProfileEntity.setProfilePictureUrl(profilePictureUrl);
+        userRepository.save(user);
+        UUID savedUserId = user.getUserUuid();
+        log.info("User profile created successfully for userId: {} with profilePictureUrl: {}", savedUserId, profilePictureUrl);
+        return savedUserId;
     }
 
     private UserProfileDto mapToUserProfileDto(UserProfileEntity profileEntity) {
@@ -270,14 +274,30 @@ public class UserService {
      */
     @Transactional
     public UserProfileDto updateUserProfile(UUID userId, UserProfileDto modifiedUserProfileDto, MultipartFile file) throws IOException {
+        UserProfileEntity profileEntity = userProfileRepository
+                .findAllUserProfileDetailByUserId(userId)
+                .orElseThrow(() -> new UserProfileNotFoundException("User profile not found for id: " + userId));
+
+        // Save history before making changes
+        saveProfileHistory(profileEntity);
+
+        // Handle profile picture upload FIRST
         if (file != null && !file.isEmpty()) {
             var uploadResult = s3MediaService.upload(file, userId.toString());
-            updateProfilePicture(userId, new UrlDto(uploadResult.getKey()));
+            profileEntity.setProfilePictureUrl(uploadResult.getKey());
+            log.info("Profile picture uploaded for userId: {} with key: {}", userId, uploadResult.getKey());
         }
+
+        // Update other profile fields
         if (!isEmptyUpdateRequest(modifiedUserProfileDto)) {
             updateUserProfile(userId, modifiedUserProfileDto);
         }
-        return getUserProfile(userId);
+
+        // Save the profile entity with the new profile picture URL
+        userProfileRepository.save(profileEntity);
+
+        log.info("User profile updated successfully for userId: {}", userId);
+        return mapToUserProfileDto(profileEntity);
     }
 
     @Transactional
