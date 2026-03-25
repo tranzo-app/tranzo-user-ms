@@ -184,11 +184,11 @@ public class TripManagementService {
         if (trip.getTripStatus() == TripStatus.CANCELLED && !isTripHost) {
             throw new TripAccessDeniedException("Cancelled trip is not accessible for anyone except the host of the trip");
         }
-        if (trip.getVisibilityStatus() == VisibilityStatus.PRIVATE)
-        {
-            tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE)
-                    .orElseThrow(() -> new TripAccessDeniedException("User is not allowed to view this private trip as the user is not the member of the trip"));
-        }
+//        if (trip.getVisibilityStatus() == VisibilityStatus.PRIVATE)
+//        {
+//            tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE)
+//                    .orElseThrow(() -> new TripAccessDeniedException("User is not allowed to view this private trip as the user is not the member of the trip"));
+//        }
         return mapTripEntityToDto(trip, isTripHost);
     }
 
