@@ -1,6 +1,7 @@
 package com.tranzo.tranzo_user_ms.trip.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.tranzo.tranzo_user_ms.trip.enums.JoinPolicy;
 import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus;
@@ -135,6 +136,7 @@ public class TripEntity {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
+    @JsonManagedReference
     private Set<TripMemberEntity> tripMembers = new HashSet<>();
 
     @OneToMany(mappedBy = "trip", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)

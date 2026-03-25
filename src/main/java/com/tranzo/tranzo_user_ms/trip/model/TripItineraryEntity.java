@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tranzo.tranzo_user_ms.commons.converter.JsonMapConverter;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,6 +31,7 @@ public class TripItineraryEntity {
     private UUID itineraryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JsonIgnore
     @JoinColumn(name = "trip_id", nullable = false)
     private TripEntity trip;
 

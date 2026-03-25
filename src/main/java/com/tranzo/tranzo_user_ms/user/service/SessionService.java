@@ -55,8 +55,8 @@ public class SessionService {
         log.info("Refresh token after creating the session : {}", refreshToken);
 
         saveNewRefreshToken(refreshToken, user);
-        setCookie(response, "ACCESS_TOKEN", accessToken, (int) (accessExpiryMinutes * 60));
-        setCookie(response, "REFRESH_TOKEN", refreshToken, (int) (refreshExpiryDays * 24 * 60 * 60));
+        setCookie(response, "ACCESS_TOKEN", accessToken, (int) (accessExpiryMinutes));
+        setCookie(response, "REFRESH_TOKEN", refreshToken, (int) (refreshExpiryDays * 60));
 
         return SessionResponseDto.builder()
                 .authenticated(true)

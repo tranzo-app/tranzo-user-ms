@@ -70,8 +70,8 @@ public class RecommendedTripService {
             request.getDestination(),
             request.getBudgetMin(),
             request.getBudgetMax(),
-            joinPolicy,
-            candidatePageable
+            joinPolicy != null ? joinPolicy.name() : null,
+            candidatePageable.getPageSize()
         );
         
         log.debug("Found {} candidate trips for recommendations", candidateTrips.size());

@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tranzo.tranzo_user_ms.commons.converter.JsonMapConverter;
 import jakarta.persistence.*;
 import lombok.*;
@@ -25,6 +26,7 @@ public class TripMetaDataEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
     @JoinColumn(name = "trip_id")
+    @JsonIgnore
     private TripEntity trip;
 
     @Convert(converter = JsonMapConverter.class)

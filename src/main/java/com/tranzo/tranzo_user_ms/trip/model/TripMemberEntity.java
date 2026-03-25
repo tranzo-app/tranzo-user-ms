@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.tranzo.tranzo_user_ms.trip.enums.TripMemberRole;
 import com.tranzo.tranzo_user_ms.trip.enums.TripMemberStatus;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
@@ -40,6 +41,7 @@ public class TripMemberEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id", nullable = false)
+    @JsonBackReference
     private TripEntity trip;
 
     @Enumerated(EnumType.STRING)

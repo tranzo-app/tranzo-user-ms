@@ -46,26 +46,27 @@ public interface TripDiscoveryRepository extends JpaRepository<TripEntity, UUID>
      * Fetch recommended trip candidates with destination filter
      * Filters: PUBLISHED + PUBLIC + Date range + Budget + Destination + Join Policy
      */
-    @Query("""
-        SELECT t
-        FROM TripEntity t
-        WHERE t.tripStatus = com.tranzo.tranzo_user_ms.trip.enums.TripStatus.PUBLISHED
-          AND t.visibilityStatus = com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus.PUBLIC
-          AND t.tripStartDate BETWEEN :startMin AND :startMax
-          AND (:destination IS NULL OR LOWER(t.tripDestination) LIKE LOWER(CONCAT('%', :destination, '%')))
-          AND (:budgetMin IS NULL OR t.estimatedBudget >= :budgetMin)
-          AND (:budgetMax IS NULL OR t.estimatedBudget <= :budgetMax)
-          AND (:joinPolicy IS NULL OR t.joinPolicy = :joinPolicy)
-        ORDER BY t.createdAt DESC
-    """)
+    @Query(value = """
+        SELECT *
+        FROM core_trip_details t
+        WHERE t.trip_status = 'PUBLISHED'
+          AND t.visibility_status = 'PUBLIC'
+          AND t.trip_start_date BETWEEN CAST(:startMin AS DATE) AND CAST(:startMax AS DATE)
+          AND (:destination IS NULL OR t.trip_destination LIKE CONCAT('%', CAST(:destination AS TEXT), '%'))
+          AND (:budgetMin IS NULL OR t.estimated_budget >= CAST(:budgetMin AS DOUBLE PRECISION))
+          AND (:budgetMax IS NULL OR t.estimated_budget <= CAST(:budgetMax AS DOUBLE PRECISION))
+          AND (:joinPolicy IS NULL OR t.join_policy = CAST(:joinPolicy AS TEXT))
+        ORDER BY t.created_at DESC
+        LIMIT CAST(:limit AS INTEGER)
+        """, nativeQuery = true)
     List<TripEntity> findRecommendedTripCandidates(
         @Param("startMin") LocalDate startMin,
         @Param("startMax") LocalDate startMax,
         @Param("destination") String destination,
         @Param("budgetMin") Double budgetMin,
         @Param("budgetMax") Double budgetMax,
-        @Param("joinPolicy") JoinPolicy joinPolicy,
-        Pageable pageable
+        @Param("joinPolicy") String joinPolicy,
+        @Param("limit") Integer limit
     );
 
     /**
