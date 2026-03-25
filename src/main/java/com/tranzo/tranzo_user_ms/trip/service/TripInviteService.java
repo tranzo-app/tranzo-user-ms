@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.ArrayList;
 
 @Slf4j
 @Service
@@ -63,6 +64,49 @@ public class TripInviteService {
         }
 
         createAndPublishInvite(trip, hostOrCoHostUserId, travelPalUserId);
+    }
+
+    @Transactional
+    public void inviteMultipleTravelPals(UUID tripId, UUID hostOrCoHostUserId, List<UUID> travelPalUserIds) {
+        if (travelPalUserIds == null || travelPalUserIds.isEmpty()) {
+            throw new BadRequestException("Travel pal list cannot be empty");
+        }
+
+        TripEntity trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+        validateTripPublished(trip);
+
+        ensureUserIsHostOrCoHost(tripId, hostOrCoHostUserId);
+
+        List<UUID> travelPals = travelPalService.getMyTravelPals(hostOrCoHostUserId);
+        List<UUID> validTravelPalIds = new ArrayList<>();
+        
+        for (UUID travelPalUserId : travelPalUserIds) {
+            if (hostOrCoHostUserId.equals(travelPalUserId)) {
+                continue; // Skip self-invitation
+            }
+            
+            if (!travelPals.contains(travelPalUserId)) {
+                continue; // Skip non-travel pals
+            }
+
+            if (tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(tripId, travelPalUserId, TripMemberStatus.ACTIVE)) {
+                continue; // Skip existing members
+            }
+
+            if (tripInviteRepository.existsByTrip_TripIdAndInvitedUserId(tripId, travelPalUserId)) {
+                continue; // Skip already invited users
+            }
+
+            validTravelPalIds.add(travelPalUserId);
+        }
+
+        // Create invites for valid travel pals
+        for (UUID validTravelPalId : validTravelPalIds) {
+            createAndPublishInvite(trip, hostOrCoHostUserId, validTravelPalId);
+        }
+        
+        log.info("Successfully invited {} travel pals to trip {}", validTravelPalIds.size(), tripId);
     }
 
     @Transactional

@@ -34,56 +34,56 @@ public class DiscoveryController {
      * GET /trips/featured
      * Fetch featured trips with optional budget filtering
      */
-    @GetMapping("/featured")
-    @Operation(
-        summary = "Get featured trips",
-        description = "Fetch curated featured trips. Sorted by recency, availability, and engagement."
-    )
-    public ResponseEntity<ResponseDto<Page<FeaturedTripDto>>> getFeaturedTrips(
-            @Parameter(description = "Page number (0-indexed)", example = "0")
-            @RequestParam(defaultValue = "0") int page,
-            
-            @Parameter(description = "Page size (max 50)", example = "20")
-            @RequestParam(defaultValue = "20") int size,
-            
-            @Parameter(description = "Minimum budget (INR)", required = false)
-            @RequestParam(required = false) Double budgetMin,
-            
-            @Parameter(description = "Maximum budget (INR)", required = false)
-            @RequestParam(required = false) Double budgetMax
-    ) {
-        log.info("GET /trips/featured - page: {}, size: {}", page, size);
-        
-        Page<FeaturedTripDto> trips = discoveryService.getFeaturedTrips(page, size, budgetMin, budgetMax);
-        
-        return ResponseEntity.ok(
-            ResponseDto.success("Featured trips fetched successfully", trips)
-        );
-    }
+//    @GetMapping("/featured")
+//    @Operation(
+//        summary = "Get featured trips",
+//        description = "Fetch curated featured trips. Sorted by recency, availability, and engagement."
+//    )
+//    public ResponseEntity<ResponseDto<Page<FeaturedTripDto>>> getFeaturedTrips(
+//            @Parameter(description = "Page number (0-indexed)", example = "0")
+//            @RequestParam(defaultValue = "0") int page,
+//
+//            @Parameter(description = "Page size (max 50)", example = "20")
+//            @RequestParam(defaultValue = "20") int size,
+//
+//            @Parameter(description = "Minimum budget (INR)", required = false)
+//            @RequestParam(required = false) Double budgetMin,
+//
+//            @Parameter(description = "Maximum budget (INR)", required = false)
+//            @RequestParam(required = false) Double budgetMax
+//    ) {
+//        log.info("GET /trips/featured - page: {}, size: {}", page, size);
+//
+//        Page<FeaturedTripDto> trips = discoveryService.getFeaturedTrips(page, size, budgetMin, budgetMax);
+//
+//        return ResponseEntity.ok(
+//            ResponseDto.success("Featured trips fetched successfully", trips)
+//        );
+//    }
 
     /**
      * POST /trips/recommended
      * Fetch recommended trips with advanced filtering
      */
-    @PostMapping("/recommended")
-    @Operation(
-        summary = "Get recommended trips",
-        description = "Fetch recommended trips based on popularity, trends, availability, and booking timing."
-    )
-    public ResponseEntity<ResponseDto<Page<RecommendedTripDto>>> getRecommendedTrips(
-            @RequestBody(required = false) DiscoveryFilterRequest request
-    ) {
-        log.info("POST /trips/recommended - filters: {}", request);
-        
-        // Default request if not provided
-        DiscoveryFilterRequest validRequest = request != null ? request : new DiscoveryFilterRequest();
-        
-        Page<RecommendedTripDto> trips = discoveryService.getRecommendedTrips(validRequest);
-        
-        return ResponseEntity.ok(
-            ResponseDto.success("Recommended trips fetched successfully", trips)
-        );
-    }
+//    @PostMapping("/recommended")
+//    @Operation(
+//        summary = "Get recommended trips",
+//        description = "Fetch recommended trips based on popularity, trends, availability, and booking timing."
+//    )
+//    public ResponseEntity<ResponseDto<Page<RecommendedTripDto>>> getRecommendedTrips(
+//            @RequestBody(required = false) DiscoveryFilterRequest request
+//    ) {
+//        log.info("POST /trips/recommended - filters: {}", request);
+//
+//        // Default request if not provided
+//        DiscoveryFilterRequest validRequest = request != null ? request : new DiscoveryFilterRequest();
+//
+//        Page<RecommendedTripDto> trips = discoveryService.getRecommendedTrips(validRequest);
+//
+//        return ResponseEntity.ok(
+//            ResponseDto.success("Recommended trips fetched successfully", trips)
+//        );
+//    }
 
     /**
      * GET /trips/trending-destinations

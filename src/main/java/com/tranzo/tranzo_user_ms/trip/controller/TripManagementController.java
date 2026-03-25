@@ -82,16 +82,8 @@ public class TripManagementController {
 
     // Handles both /trips and /trips/ - WebConfig.setUseTrailingSlashMatch(true) ensures this works
     @GetMapping
-    public ResponseEntity<ResponseDto<List<TripViewDto>>> fetchAllTrips() {
-        UUID userId;
-        try
-        {
-            userId = SecurityUtils.getCurrentUserUuid();
-        }
-        catch(AuthException authException)
-        {
-            userId = null;
-        }
+    public ResponseEntity<ResponseDto<List<TripViewDto>>> fetchAllTrips() throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
         List<TripViewDto> tripDto = tripManagementService.fetchAllTrips(userId);
         return ResponseEntity.ok(ResponseDto.success("All trip details have been fetched successfully", tripDto));
     }
@@ -167,18 +159,18 @@ public class TripManagementController {
         return ResponseEntity.ok(ResponseDto.success("Trip has been marked full successfully", null));
     }
 
-    @PostMapping("/{tripId}/invites/travel-pal/bulk")
-    public ResponseEntity<ResponseDto<Void>> inviteAllTravelPals(@PathVariable UUID tripId) throws AuthException {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        tripInviteService.inviteAllTravelPals(tripId, userId);
-        return ResponseEntity.ok(ResponseDto.success("Travel pals invited successfully", null));
-    }
+//    @PostMapping("/{tripId}/invites/travel-pal/bulk")
+//    public ResponseEntity<ResponseDto<Void>> inviteAllTravelPals(@PathVariable UUID tripId) throws AuthException {
+//        UUID userId = SecurityUtils.getCurrentUserUuid();
+//        tripInviteService.inviteAllTravelPals(tripId, userId);
+//        return ResponseEntity.ok(ResponseDto.success("Travel pals invited successfully", null));
+//    }
 
-    @PostMapping("/{tripId}/invites/travel-pal/{travelPalUserId}")
-    public ResponseEntity<ResponseDto<Void>> inviteTravelPal(@PathVariable UUID tripId, @PathVariable UUID travelPalUserId) throws AuthException {
+    @PostMapping("/{tripId}/invites/travel-pal")
+    public ResponseEntity<ResponseDto<Void>> inviteTravelPals(@PathVariable UUID tripId, @RequestBody @Valid TravelPalInviteRequestDto inviteRequest) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        tripInviteService.inviteTravelPal(tripId, userId, travelPalUserId);
-        return ResponseEntity.ok(ResponseDto.success("Travel pal invited successfully", null));
+        tripInviteService.inviteMultipleTravelPals(tripId, userId, inviteRequest.getTravelPalIds());
+        return ResponseEntity.ok(ResponseDto.success("Travel pals invited successfully", null));
     }
 
     @PostMapping("/{tripId}/broadcast")
@@ -188,12 +180,12 @@ public class TripManagementController {
         return ResponseEntity.ok(ResponseDto.success("Trip broadcast to travel pals successfully", null));
     }
 
-    @PostMapping("/search")
-    public ResponseEntity<ResponseDto<Page<TripViewDto>>> searchTrips(
-            @RequestBody SearchRequest request) throws AuthException {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        List<String> globalFields = new ArrayList<>();
-        Page<TripViewDto> searchedTrips = tripManagementService.search(request, globalFields);
-        return ResponseEntity.ok(ResponseDto.success("Trip search is success", searchedTrips));
-    }
+//    @PostMapping("/search")
+//    public ResponseEntity<ResponseDto<Page<TripViewDto>>> searchTrips(
+//            @RequestBody SearchRequest request) throws AuthException {
+//        UUID userId = SecurityUtils.getCurrentUserUuid();
+//        List<String> globalFields = new ArrayList<>();
+//        Page<TripViewDto> searchedTrips = tripManagementService.search(request, globalFields);
+//        return ResponseEntity.ok(ResponseDto.success("Trip search is success", searchedTrips));
+//    }
 }

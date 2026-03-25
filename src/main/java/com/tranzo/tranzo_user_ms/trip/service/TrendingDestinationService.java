@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.service;
 
+import com.tranzo.tranzo_user_ms.trip.dto.SampleTripDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TrendingDestinationDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TrendingDestinationsResponse;
 import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
@@ -85,7 +86,10 @@ public class TrendingDestinationService {
                     .trendScore(trendScore)
                     .momentum(scoringService.computeMomentum(destination, trips, timeWindow))
                     .participation(scoringService.computeParticipation(trips))
-                    .sampleTrips(trips.stream().limit(3).collect(Collectors.toList()))
+                    .sampleTrips(trips.stream()
+                        .limit(3)
+                        .map(this::mapToSampleTripDto)
+                        .collect(Collectors.toList()))
                     .computedAt(LocalDateTime.now())
                     .build();
             })
@@ -120,6 +124,24 @@ public class TrendingDestinationService {
             case "30d" -> LocalDate.now().minusDays(30);
             default -> LocalDate.now().minusDays(7);
         };
+    }
+    
+    /**
+     * Convert TripEntity to SampleTripDto for trending destinations
+     */
+    private SampleTripDto mapToSampleTripDto(TripEntity trip) {
+        return SampleTripDto.builder()
+            .tripId(trip.getTripId())
+            .tripTitle(trip.getTripTitle())
+            .tripDescription(trip.getTripDescription())
+            .tripDestination(trip.getTripDestination())
+            .tripStartDate(trip.getTripStartDate())
+            .tripEndDate(trip.getTripEndDate())
+            .estimatedBudget(trip.getEstimatedBudget())
+            .maxParticipants(trip.getMaxParticipants())
+            .currentParticipants(trip.getCurrentParticipants())
+            .isFull(trip.getIsFull())
+            .build();
     }
 }
 
