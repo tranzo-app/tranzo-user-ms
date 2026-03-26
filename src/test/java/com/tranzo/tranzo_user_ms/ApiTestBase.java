@@ -1,8 +1,10 @@
 package com.tranzo.tranzo_user_ms;
 
+import com.tranzo.tranzo_user_ms.config.TestConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
@@ -13,6 +15,7 @@ import java.util.UUID;
  */
 @SpringBootTest(classes = TranzoUserMsApplication.class, properties = "spring.profiles.active=test")
 @AutoConfigureMockMvc
+@Import(TestConfig.class)
 public abstract class ApiTestBase {
 
     protected static final String USER_UUID_1 = "11111111-1111-4111-8111-111111111111";

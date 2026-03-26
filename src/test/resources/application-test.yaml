@@ -34,6 +34,26 @@ app:
     region: ap-south-1
     presigned-url-expiry-minutes: 15
 
+# Disable external services in tests
+aadhar:
+  enabled: false
+  baseUrl: https://aadhar-api.example.com
+  xApiKey: test-key
+  xApiSecret: test-secret
+  timeout: 30
+
+twilio:
+  enabled: false
+  auth-token: auth-token
+  phone-number: phone-number
+  username: username
+  sms-template: sns-template
+
+aws:
+  region: region
+  access-key: ses-access-key
+  secret-key: ses-secret-key
+
 logging:
   level:
     root: WARN

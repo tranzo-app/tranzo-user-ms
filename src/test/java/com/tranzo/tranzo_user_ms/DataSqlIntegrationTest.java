@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms;
 
+import com.tranzo.tranzo_user_ms.config.TestConfig;
 import com.tranzo.tranzo_user_ms.user.repository.HostRatingRepository;
 import com.tranzo.tranzo_user_ms.user.repository.MemberRatingRepository;
 import com.tranzo.tranzo_user_ms.user.repository.TripRatingRepository;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.jdbc.Sql;
 
 import java.util.UUID;
@@ -26,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Uses trip-api-test-data.sql (no project data.sql); thresholds relaxed to match.
  */
 @SpringBootTest(classes = TranzoUserMsApplication.class, properties = "spring.profiles.active=test")
+@Import(TestConfig.class)
 @DisplayName("Data.sql integration and verification")
 @Sql(scripts = "/trip-api-test-data.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class DataSqlIntegrationTest {
