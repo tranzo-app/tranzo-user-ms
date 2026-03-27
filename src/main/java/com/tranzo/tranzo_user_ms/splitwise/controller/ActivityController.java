@@ -41,22 +41,21 @@ public class ActivityController {
      */
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<ActivityResponse>> getGroupActivities(@PathVariable UUID groupId, @RequestParam(defaultValue = "10") int limit, @RequestParam(defaultValue = "0") int offset) throws AuthException {
-
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
-        log.debug("Received request to get activities for group: {} with limit {} and offset {}", 
-                 groupId, limit, offset);
+        log.info("Incoming request | API=/api/splitwise/activities/group/{} | method=GET | userId={} | limit={} | offset={}", groupId, currentUserId, limit, offset);
 
         List<Activity> activities;
         try {
             activities = activityService.getGroupActivities(groupId, currentUserId, limit, offset);
         } catch (UserNotMemberException e) {
+            log.warn("Access denied | operation=getGroupActivities | userId={} | groupId={} | reason=NOT_MEMBER", currentUserId, groupId);
             return ResponseEntity.status(403).build();
         }
         List<ActivityResponse> response = activities.stream()
                 .map(this::convertToActivityResponse)
                 .collect(Collectors.toList());
         
-        log.debug("Retrieved {} activities for group {}", response.size(), groupId);
+        log.info("Group activities retrieved | userId={} | groupId={} | activitiesCount={} | status=SUCCESS", currentUserId, groupId, response.size());
         return ResponseEntity.ok(response);
     }
 
@@ -67,17 +66,15 @@ public class ActivityController {
     public ResponseEntity<List<ActivityResponse>> getUserActivities(
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(defaultValue = "0") int offset) throws AuthException {
-
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
-        log.debug("Received request to get activities for current user with limit {} and offset {}", 
-                 limit, offset);
+        log.info("Incoming request | API=/api/splitwise/activities/my-activities | method=GET | userId={} | limit={} | offset={}", currentUserId, limit, offset);
 
         List<Activity> activities = activityService.getUserActivities(currentUserId, limit, offset);
         List<ActivityResponse> response = activities.stream()
                 .map(this::convertToActivityResponse)
                 .collect(Collectors.toList());
         
-        log.debug("Retrieved {} activities for user {}", response.size(), currentUserId);
+        log.info("User activities retrieved | userId={} | activitiesCount={} | status=SUCCESS", currentUserId, response.size());
         return ResponseEntity.ok(response);
     }
 

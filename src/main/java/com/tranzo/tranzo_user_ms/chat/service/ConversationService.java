@@ -50,43 +50,49 @@ public class ConversationService {
      * @return list of ChatListItemDto with conversation details
      */
     public List<ChatListItemDto> getMyConversations(UUID currentUserId) {
-        log.debug("Fetching conversations for user {}", currentUserId);
+        log.info("Processing started | operation=getMyConversations | userId={}", currentUserId);
 
-        List<ChatListItemDto> conversations = conversationRepository.findChatListForUser(currentUserId);
-        
-        // Populate conversation names for one-on-one chats
-        for (ChatListItemDto conversation : conversations) {
-            if (conversation.getType().equals(ConversationType.ONE_ON_ONE)) {
-                // This is a one-on-one conversation, fetch the other user's name
-                List<ConversationParticipantEntity> participants =
-                    conversationParticipantRepository.findByConversation_ConversationIdAndLeftAtIsNull(
-                        conversation.getConversationId());
-                
-                // Find the other participant (not the current user)
-                UUID otherUserId = participants.stream()
-                    .map(ConversationParticipantEntity::getUserId)
-                    .filter(userId -> !userId.equals(currentUserId))
-                    .findFirst()
-                    .orElse(null);
-                
-                if (otherUserId != null) {
-                    Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(otherUserId));
-                    UserNameDto otherUser = namesByUserId.get(otherUserId);
+        try {
+            List<ChatListItemDto> conversations = conversationRepository.findChatListForUser(currentUserId);
+            
+            // Populate conversation names for one-on-one chats
+            for (ChatListItemDto conversation : conversations) {
+                if (conversation.getType().equals(ConversationType.ONE_ON_ONE)) {
+                    // This is a one-on-one conversation, fetch the other user's name
+                    List<ConversationParticipantEntity> participants =
+                        conversationParticipantRepository.findByConversation_ConversationIdAndLeftAtIsNull(
+                            conversation.getConversationId());
                     
-                    if (otherUser != null) {
-                        String fullName = buildFullName(otherUser.getFirstName(), otherUser.getMiddleName(), otherUser.getLastName());
-                        conversation.setConversationName(fullName);
+                    // Find the other participant (not the current user)
+                    UUID otherUserId = participants.stream()
+                        .map(ConversationParticipantEntity::getUserId)
+                        .filter(userId -> !userId.equals(currentUserId))
+                        .findFirst()
+                        .orElse(null);
+                    
+                    if (otherUserId != null) {
+                        log.info("Calling external service | service=UserProfileClient | operation=getNamesByUserIds | userIds={}", List.of(otherUserId));
+                        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(otherUserId));
+                        UserNameDto otherUser = namesByUserId.get(otherUserId);
+                        
+                        if (otherUser != null) {
+                            String fullName = buildFullName(otherUser.getFirstName(), otherUser.getMiddleName(), otherUser.getLastName());
+                            conversation.setConversationName(fullName);
+                        } else {
+                            conversation.setConversationName("Unknown User");
+                        }
                     } else {
-                        conversation.setConversationName("Unknown User");
+                        conversation.setConversationName("Unknown");
                     }
-                } else {
-                    conversation.setConversationName("Unknown");
                 }
             }
+            
+            log.info("Processing completed | operation=getMyConversations | userId={} | conversationsCount={} | status=SUCCESS", currentUserId, conversations.size());
+            return conversations;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=getMyConversations | userId={} | reason={}", currentUserId, e.getMessage(), e);
+            throw e;
         }
-        
-        log.info("Retrieved {} conversations for user {}", conversations.size(), currentUserId);
-        return conversations;
     }
     
     private String buildFullName(String firstName, String middleName, String lastName) {
@@ -119,51 +125,57 @@ public class ConversationService {
      * @throws BadRequestException if limit is invalid
      */
     public List<MessageResponseDto> fetchMessages(UUID conversationId, UUID currentUserId, LocalDateTime before, Integer limit) {
-        log.debug("Fetching messages for conversation {} by user {} with limit {} before {}", 
-                  conversationId, currentUserId, limit, before);
+        log.info("Processing started | operation=fetchMessages | conversationId={} | userId={} | limit={}", conversationId, currentUserId, limit);
 
-        conversationRepository.findById(conversationId)
-                .orElseThrow(() -> {
-                    log.error("Conversation not found with ID: {}", conversationId);
-                    return new ConversationNotFoundException(ChatErrorCode.CONVERSATION_NOT_FOUND, "Conversation not found");
-                });
+        try {
+            conversationRepository.findById(conversationId)
+                    .orElseThrow(() -> {
+                        log.error("Conversation not found | operation=fetchMessages | conversationId={} | reason=NOT_FOUND", conversationId);
+                        return new ConversationNotFoundException(ChatErrorCode.CONVERSATION_NOT_FOUND, "Conversation not found");
+                    });
 
-        var participant = conversationParticipantRepository
-                .findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, currentUserId)
-                .orElseThrow(() -> {
-                    log.error("User {} is not a participant in conversation {}", currentUserId, conversationId);
-                    return new ConversationNotFoundException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
-                });
+            var participant = conversationParticipantRepository
+                    .findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, currentUserId)
+                    .orElseThrow(() -> {
+                        log.error("Access denied | operation=fetchMessages | conversationId={} | userId={} | reason=NOT_PARTICIPANT", conversationId, currentUserId);
+                        return new ConversationNotFoundException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
+                    });
 
-        // Validate and set page size
-        int pageSize = DEFAULT_LIMIT;
-        if (limit != null) {
-            if (limit <= 0 || limit > MAX_LIMIT) {
-                log.warn("Invalid limit {} requested for conversation {}", limit, conversationId);
-                throw new BadRequestException("Limit must be between 1 and " + MAX_LIMIT);
+            // Validate and set page size
+            int pageSize = DEFAULT_LIMIT;
+            if (limit != null) {
+                if (limit <= 0 || limit > MAX_LIMIT) {
+                    log.warn("Invalid limit | operation=fetchMessages | conversationId={} | requestedLimit={} | maxLimit={}", conversationId, limit, MAX_LIMIT);
+                    throw new BadRequestException("Limit must be between 1 and " + MAX_LIMIT);
+                }
+                pageSize = limit;
             }
-            pageSize = limit;
+
+            Pageable pageable = PageRequest.of(0, pageSize);
+
+            // Fetch messages with optional timestamp filtering
+            List<MessageEntity> messages = (before == null)
+                    ? messageRepository.findMessages(conversationId, pageable)
+                    : messageRepository.findMessagesBefore(conversationId, before, pageable);
+
+            // Mark conversation as read
+            participant.markAsRead();
+            conversationParticipantRepository.save(participant);
+            log.info("Conversation marked as read | conversationId={} | userId={} | status=SUCCESS", conversationId, currentUserId);
+
+            // Convert messages to DTOs with sender information
+            List<MessageResponseDto> messageResponseDtos = messages.stream()
+                    .map(message -> convertToMessageResponseDto(message, conversationId, currentUserId))
+                    .toList();
+
+            log.info("Processing completed | operation=fetchMessages | conversationId={} | userId={} | messagesCount={} | status=SUCCESS", conversationId, currentUserId, messageResponseDtos.size());
+            return messageResponseDtos;
+        } catch (ConversationNotFoundException | BadRequestException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=fetchMessages | conversationId={} | userId={} | reason={}", conversationId, currentUserId, e.getMessage(), e);
+            throw e;
         }
-
-        Pageable pageable = PageRequest.of(0, pageSize);
-
-        // Fetch messages with optional timestamp filtering
-        List<MessageEntity> messages = (before == null)
-                ? messageRepository.findMessages(conversationId, pageable)
-                : messageRepository.findMessagesBefore(conversationId, before, pageable);
-
-        // Mark conversation as read
-        participant.markAsRead();
-        conversationParticipantRepository.save(participant);
-        log.debug("Conversation {} marked as read for user {}", conversationId, currentUserId);
-
-        // Convert messages to DTOs with sender information
-        List<MessageResponseDto> messageResponseDtos = messages.stream()
-                .map(message -> convertToMessageResponseDto(message, conversationId, currentUserId))
-                .toList();
-
-        log.info("Retrieved {} messages for conversation {} for user {}", messageResponseDtos.size(), conversationId, currentUserId);
-        return messageResponseDtos;
     }
 
     /**
@@ -185,6 +197,7 @@ public class ConversationService {
             lastName = null;
         } else {
             // User message - fetch sender details
+            log.debug("Calling external service | service=UserProfileClient | operation=getNamesByUserIds | senderId={}", senderId);
             Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(senderId));
             UserNameDto senderName = namesByUserId.get(senderId);
 

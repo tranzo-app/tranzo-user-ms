@@ -33,7 +33,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BaseException.class)
     public ResponseEntity<ResponseDto<Void>> handleBaseException(BaseException ex) {
-        log.warn("BaseException caught: {}", ex.getMessage());
+        log.warn("Business exception | type={} | message={}", ex.getClass().getSimpleName(), ex.getMessage());
         return ExceptionResponseUtil.build(
                 ex.getMessage(),
                 ex.getStatusCode(),
@@ -47,7 +47,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ChatException.class)
     public ResponseEntity<ResponseDto<ErrorDetailsDto>> handleChatException(
             ChatException ex) {
-        log.warn("ChatException caught: {}", ex.getErrorCode());
+        log.warn("Chat exception | errorCode={} | message={}", ex.getErrorCode(), ex.getMessage());
 
         ErrorDetailsDto errorDetails = ErrorDetailsDto.builder()
                 .errorCode(ex.getErrorCode().getCode())
@@ -69,7 +69,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SplitwiseException.class)
     public ResponseEntity<ResponseDto<ErrorDetailsDto>> handleSplitwiseException(
             SplitwiseException ex) {
-        log.warn("SplitwiseException caught: {}", ex.getErrorCode());
+        log.warn("Splitwise exception | errorCode={} | message={}", ex.getErrorCode(), ex.getMessage());
 
         ErrorDetailsDto errorDetails = ErrorDetailsDto.builder()
                 .errorCode(ex.getErrorCode().getCode())
@@ -91,7 +91,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NotificationException.class)
     public ResponseEntity<ResponseDto<ErrorDetailsDto>> handleNotificationException(
             NotificationException ex) {
-        log.warn("NotificationException caught: {}", ex.getErrorCode());
+        log.warn("Notification exception | errorCode={} | message={}", ex.getErrorCode(), ex.getMessage());
 
         ErrorDetailsDto errorDetails = ErrorDetailsDto.builder()
                 .errorCode(ex.getErrorCode().getCode())
@@ -113,7 +113,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TripException.class)
     public ResponseEntity<ResponseDto<ErrorDetailsDto>> handleTripException(
             TripException ex) {
-        log.warn("TripException caught: {}", ex.getErrorCode());
+        log.warn("Trip exception | errorCode={} | message={}", ex.getErrorCode(), ex.getMessage());
 
         ErrorDetailsDto errorDetails = ErrorDetailsDto.builder()
                 .errorCode(ex.getErrorCode().getCode())
@@ -146,7 +146,7 @@ public class GlobalExceptionHandler {
                 .forEach(error ->
                         errors.put(error.getObjectName(), error.getDefaultMessage()));
 
-        log.warn("Validation errors: {}", errors);
+        log.warn("Validation failed | errors={}", errors);
 
         return ExceptionResponseUtil.build(
                 "Validation failed",
@@ -160,7 +160,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AuthException.class)
     public ResponseEntity<ResponseDto<Void>> handleAuthException(AuthException ex) {
-        log.warn("AuthException caught: {}", ex.getMessage());
+        log.warn("Authentication exception | message={}", ex.getMessage());
 
         ResponseDto<Void> response = ResponseDto.<Void>builder()
                 .status("ERROR")
@@ -177,7 +177,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ResponseDto<Void>> handleBadRequestException(BadRequestException ex) {
-        log.warn("BadRequestException caught: {}", ex.getMessage());
+        log.warn("Bad request exception | message={}", ex.getMessage());
         return ExceptionResponseUtil.build(
                 ex.getMessage(),
                 400,
@@ -190,7 +190,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ResponseDto<Void>> handleConflictException(ConflictException ex) {
-        log.warn("ConflictException caught: {}", ex.getMessage());
+        log.warn("Conflict exception | message={}", ex.getMessage());
         return ExceptionResponseUtil.build(
                 ex.getMessage(),
                 409,
@@ -203,7 +203,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<ResponseDto<Void>> handleForbiddenException(ForbiddenException ex) {
-        log.warn("ForbiddenException caught: {}", ex.getMessage());
+        log.warn("Forbidden exception | message={}", ex.getMessage());
         return ExceptionResponseUtil.build(
                 ex.getMessage(),
                 403,
@@ -216,7 +216,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ResponseDto<Void>> handleEntityNotFoundException(EntityNotFoundException ex) {
-        log.warn("EntityNotFoundException caught: {}", ex.getMessage());
+        log.warn("Entity not found exception | message={}", ex.getMessage());
         return ExceptionResponseUtil.build(
                 ex.getMessage(),
                 404,
@@ -230,7 +230,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ResponseDto<Void>> handleUnhandledException(Exception ex) {
-        log.error("Unhandled exception occurred", ex);
+        log.error("Unhandled exception | type={} | message={}", ex.getClass().getSimpleName(), ex.getMessage(), ex);
 
         return ExceptionResponseUtil.build(
                 "Something went wrong. Please try again later.",

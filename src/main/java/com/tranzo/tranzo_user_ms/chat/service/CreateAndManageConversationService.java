@@ -56,55 +56,63 @@ public class CreateAndManageConversationService {
      */
     public CreateConversationResponseDto createOneToOneConversation(UUID userId, CreateConversationRequestDto request) {
         UUID otherUserId = request.getOtherUserId();
-        log.debug("Creating one-to-one conversation between user {} and {}", userId, otherUserId);
+        log.info("Processing started | operation=createOneToOneConversation | userId={} | otherUserId={}", userId, otherUserId);
 
-        if (userId.equals(otherUserId)) {
-            log.warn("User {} attempted to create conversation with themselves", userId);
-            throw new ConversationNotFoundException(ChatErrorCode.SELF_CONVERSATION, "Cannot create a conversation with yourself");
-        }
+        try {
+            if (userId.equals(otherUserId)) {
+                log.warn("Invalid request | operation=createOneToOneConversation | userId={} | reason=SELF_CONVERSATION", userId);
+                throw new ConversationNotFoundException(ChatErrorCode.SELF_CONVERSATION, "Cannot create a conversation with yourself");
+            }
 
-        // Fetch other user's profile information
-        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(otherUserId));
-        UserNameDto otherUserName = namesByUserId.get(otherUserId);
-        if (otherUserName == null) {
-            log.error("User profile not found for user ID: {}", otherUserId);
-            throw new ConversationNotFoundException(ChatErrorCode.RECIPIENT_NOT_FOUND, "Recipient user not found");
-        }
+            // Fetch other user's profile information
+            log.info("Calling external service | service=UserProfileClient | operation=getNamesByUserIds | userIds={}", List.of(otherUserId));
+            Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(otherUserId));
+            UserNameDto otherUserName = namesByUserId.get(otherUserId);
+            if (otherUserName == null) {
+                log.error("User not found | operation=createOneToOneConversation | otherUserId={} | reason=NOT_FOUND", otherUserId);
+                throw new ConversationNotFoundException(ChatErrorCode.RECIPIENT_NOT_FOUND, "Recipient user not found");
+            }
 
-        String conversationName = buildUserName(otherUserName);
+            String conversationName = buildUserName(otherUserName);
 
-        // Check if conversation already exists
-        Optional<ConversationEntity> existingConversation = conversationRepository.findOneToOneConversationBetweenUsers(userId, otherUserId);
-        if (existingConversation.isPresent()) {
-            ConversationEntity conversation = existingConversation.get();
-            log.info("One-to-one conversation already exists between {} and {}", userId, otherUserId);
+            // Check if conversation already exists
+            Optional<ConversationEntity> existingConversation = conversationRepository.findOneToOneConversationBetweenUsers(userId, otherUserId);
+            if (existingConversation.isPresent()) {
+                ConversationEntity conversation = existingConversation.get();
+                log.info("Processing completed | operation=createOneToOneConversation | userId={} | otherUserId={} | conversationId={} | status=EXISTING", userId, otherUserId, conversation.getConversationId());
+                return CreateConversationResponseDto.builder()
+                        .conversationId(conversation.getConversationId())
+                        .createdAt(conversation.getCreatedAt())
+                        .existing(true)
+                        .build();
+            }
+
+            // Create new one-to-one conversation
+            ConversationEntity newConversation = ConversationEntity.createOneToOneChat(userId);
+            newConversation.addParticipant(userId, ConversationRole.MEMBER);
+            newConversation.addParticipant(otherUserId, ConversationRole.MEMBER);
+            newConversation.setConversationName(conversationName);
+
+            MessageEntity systemMessage = MessageEntity.systemMessage(
+                    newConversation,
+                    "You are now connected"
+            );
+
+            conversationRepository.save(newConversation);
+            messageRepository.save(systemMessage);
+            
+            log.info("Processing completed | operation=createOneToOneConversation | userId={} | otherUserId={} | conversationId={} | status=CREATED", userId, otherUserId, newConversation.getConversationId());
             return CreateConversationResponseDto.builder()
-                    .conversationId(conversation.getConversationId())
-                    .createdAt(conversation.getCreatedAt())
-                    .existing(true)
+                    .conversationId(newConversation.getConversationId())
+                    .createdAt(newConversation.getCreatedAt())
+                    .existing(false)
                     .build();
+        } catch (ConversationNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=createOneToOneConversation | userId={} | otherUserId={} | reason={}", userId, otherUserId, e.getMessage(), e);
+            throw e;
         }
-
-        // Create new one-to-one conversation
-        ConversationEntity newConversation = ConversationEntity.createOneToOneChat(userId);
-        newConversation.addParticipant(userId, ConversationRole.MEMBER);
-        newConversation.addParticipant(otherUserId, ConversationRole.MEMBER);
-        newConversation.setConversationName(conversationName);
-
-        MessageEntity systemMessage = MessageEntity.systemMessage(
-                newConversation,
-                "You are now connected"
-        );
-
-        conversationRepository.save(newConversation);
-        messageRepository.save(systemMessage);
-        log.info("One-to-one conversation created successfully between {} and {}", userId, otherUserId);
-        
-        return CreateConversationResponseDto.builder()
-                .conversationId(newConversation.getConversationId())
-                .createdAt(newConversation.getCreatedAt())
-                .existing(false)
-                .build();
     }
 
     /**
@@ -134,29 +142,36 @@ public class CreateAndManageConversationService {
      * @throws ConversationNotFoundException if trip not found
      */
     public ConversationEntity createTripGroupChat(UUID hostUserId, UUID tripId) {
-        log.debug("Creating group chat for trip {} hosted by user {}", tripId, hostUserId);
+        log.info("Processing started | operation=createTripGroupChat | hostUserId={} | tripId={}", hostUserId, tripId);
 
-        ConversationEntity newConversation = ConversationEntity.createGroup(hostUserId);
-        String tripTitle = tripRepository.findTripNameByTripId(tripId);
-        
-        if (tripTitle == null || tripTitle.isBlank()) {
-            log.error("Trip title not found for trip ID: {}", tripId);
-            throw new ConversationNotFoundException(ChatErrorCode.TRIP_NOT_FOUND, "Trip not found");
+        try {
+            ConversationEntity newConversation = ConversationEntity.createGroup(hostUserId);
+            String tripTitle = tripRepository.findTripNameByTripId(tripId);
+            
+            if (tripTitle == null || tripTitle.isBlank()) {
+                log.error("Trip not found | operation=createTripGroupChat | tripId={} | reason=NOT_FOUND", tripId);
+                throw new ConversationNotFoundException(ChatErrorCode.TRIP_NOT_FOUND, "Trip not found");
+            }
+
+            newConversation.addParticipant(hostUserId, ConversationRole.ADMIN_HOST);
+            newConversation.setConversationName(tripTitle);
+            
+            MessageEntity systemMessage = MessageEntity.systemMessage(
+                    newConversation,
+                    "Trip Hosted Successfully"
+            );
+            
+            ConversationEntity conversationEntity = conversationRepository.save(newConversation);
+            messageRepository.save(systemMessage);
+            
+            log.info("Processing completed | operation=createTripGroupChat | hostUserId={} | tripId={} | conversationId={} | status=CREATED", hostUserId, tripId, conversationEntity.getConversationId());
+            return conversationEntity;
+        } catch (ConversationNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=createTripGroupChat | hostUserId={} | tripId={} | reason={}", hostUserId, tripId, e.getMessage(), e);
+            throw e;
         }
-
-        newConversation.addParticipant(hostUserId, ConversationRole.ADMIN_HOST);
-        newConversation.setConversationName(tripTitle);
-        
-        MessageEntity systemMessage = MessageEntity.systemMessage(
-                newConversation,
-                "Trip Hosted Successfully"
-        );
-        
-        ConversationEntity conversationEntity = conversationRepository.save(newConversation);
-        messageRepository.save(systemMessage);
-        log.info("Group chat created successfully for trip {} with conversation ID {}", tripId, conversationEntity.getConversationId());
-        
-        return conversationEntity;
     }
 
     /**
@@ -168,24 +183,31 @@ public class CreateAndManageConversationService {
      * @throws ConversationNotFoundException if conversation not found
      */
     public void addParticipantToConversation(UUID conversationId, UUID userId) {
-        log.debug("Adding user {} to conversation {}", userId, conversationId);
+        log.info("Processing started | operation=addParticipantToConversation | conversationId={} | userId={}", conversationId, userId);
 
-        ConversationEntity conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> {
-                    log.error("Conversation not found with ID: {}", conversationId);
-                    return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
-                });
+        try {
+            ConversationEntity conversation = conversationRepository.findById(conversationId)
+                    .orElseThrow(() -> {
+                        log.error("Conversation not found | operation=addParticipantToConversation | conversationId={} | reason=NOT_FOUND", conversationId);
+                        return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
+                    });
 
-        boolean alreadyParticipant = conversationParticipantRepository
-                .findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)
-                .isPresent();
+            boolean alreadyParticipant = conversationParticipantRepository
+                    .findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)
+                    .isPresent();
 
-        if (!alreadyParticipant) {
-            conversation.addParticipant(userId, ConversationRole.MEMBER);
-            conversationRepository.save(conversation);
-            log.info("User {} successfully added to conversation {}", userId, conversationId);
-        } else {
-            log.debug("User {} is already a participant in conversation {}", userId, conversationId);
+            if (!alreadyParticipant) {
+                conversation.addParticipant(userId, ConversationRole.MEMBER);
+                conversationRepository.save(conversation);
+                log.info("Processing completed | operation=addParticipantToConversation | conversationId={} | userId={} | status=ADDED", conversationId, userId);
+            } else {
+                log.info("Processing completed | operation=addParticipantToConversation | conversationId={} | userId={} | status=ALREADY_PARTICIPANT", conversationId, userId);
+            }
+        } catch (ConversationNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=addParticipantToConversation | conversationId={} | userId={} | reason={}", conversationId, userId, e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -203,93 +225,103 @@ public class CreateAndManageConversationService {
      */
     public SendMessageResponseDto sendMessage(UUID conversationId, UUID senderId, SendMessageRequestDto request) {
         String content = request.getContent();
-        log.debug("User {} sending message to conversation {}", senderId, conversationId);
+        log.info("Processing started | operation=sendMessage | conversationId={} | senderId={} | contentLength={}", conversationId, senderId, content != null ? content.length() : 0);
 
-        ConversationEntity conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> {
-                    log.error("Conversation not found with ID: {}", conversationId);
-                    return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
-                });
-
-        conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, senderId)
-                .orElseThrow(() -> {
-                    log.error("User {} is not a participant in conversation {}", senderId, conversationId);
-                    return new UserLeftConversationException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
-                });
-
-        // Check if sender has blocked the conversation (for one-on-one chats)
-        if (conversation.getType().equals(ConversationType.ONE_ON_ONE)) {
-            // TODO : Do we need to check if the conversation has been blocked by opposite user too? Should we maintain a flag to mark conversation as blocked if anyone from the conversation does it?
-            boolean isBlocked = conversationBlockRepository.existsByConversation_ConversationIdAndBlockedBy(conversationId, senderId);
-            if (isBlocked) {
-                log.warn("User {} attempted to send message to blocked conversation {}", senderId, conversationId);
-                throw new ConversationMutedException(ChatErrorCode.USER_BLOCKED, "User has blocked this conversation");
-            }
-        }
-
-        // Validate message content
-        if (content == null || content.trim().isEmpty()) {
-            throw new InvalidMessageException(ChatErrorCode.MESSAGE_EMPTY, "Message cannot be empty");
-        }
-        if (content.length() > 1000) {
-            throw new InvalidMessageException(ChatErrorCode.MESSAGE_TOO_LONG, "Message exceeds maximum length");
-        }
-
-        // Save the message
-        MessageEntity message = messageRepository.save(
-                MessageEntity.userMessage(
-                        conversation,
-                        senderId,
-                        content
-                )
-        );
-
-        // Fetch sender's profile information
-        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(senderId));
-        UserNameDto senderName = namesByUserId.get(senderId);
-        
-        SendMessageResponseDto response = new SendMessageResponseDto(
-                message.getMessageId(),
-                conversationId,
-                senderId,
-                senderName != null ? senderName.getFirstName() : "Unknown",
-                senderName != null ? senderName.getMiddleName() : null,
-                senderName != null ? senderName.getLastName() : null,
-                content,
-                message.getCreatedAt()
-        );
-
-        // Send message to appropriate recipients based on conversation type
-        if (conversation.getType() == ConversationType.GROUP_CHAT) {
-            log.debug("Broadcasting message to group chat participants in conversation {}", conversationId);
-            messagingTemplate.convertAndSend(
-                    "/topic/conversations/" + conversationId,
-                    response
-            );
-
-        } else if (conversation.getType() == ConversationType.ONE_ON_ONE) {
-            // Send only to the receiver
-            List<ConversationParticipantEntity> participants =
-                    conversationParticipantRepository
-                            .findByConversation_ConversationIdAndLeftAtIsNull(conversationId);
-            UUID receiverId = participants.stream()
-                    .map(ConversationParticipantEntity::getUserId)
-                    .filter(id -> !id.equals(senderId))
-                    .findFirst()
+        try {
+            ConversationEntity conversation = conversationRepository.findById(conversationId)
                     .orElseThrow(() -> {
-                        log.error("Could not find receiver in one-on-one conversation {}", conversationId);
-                        return new ConversationNotFoundException(ChatErrorCode.RECIPIENT_NOT_FOUND, "Recipient user not found");
+                        log.error("Conversation not found | operation=sendMessage | conversationId={} | reason=NOT_FOUND", conversationId);
+                        return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
                     });
-            log.debug("Sending private message from {} to {}", senderId, receiverId);
-            messagingTemplate.convertAndSendToUser(
-                    receiverId.toString(),
-                    "/queue/messages",
-                    response
-            );
-        }
 
-        log.info("Message sent successfully by user {} to conversation {}", senderId, conversationId);
-        return response;
+            conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, senderId)
+                    .orElseThrow(() -> {
+                        log.error("Access denied | operation=sendMessage | conversationId={} | senderId={} | reason=NOT_PARTICIPANT", conversationId, senderId);
+                        return new UserLeftConversationException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
+                    });
+
+            // Check if sender has blocked the conversation (for one-on-one chats)
+            if (conversation.getType().equals(ConversationType.ONE_ON_ONE)) {
+                boolean isBlocked = conversationBlockRepository.existsByConversation_ConversationIdAndBlockedBy(conversationId, senderId);
+                if (isBlocked) {
+                    log.warn("Access denied | operation=sendMessage | conversationId={} | senderId={} | reason=BLOCKED", conversationId, senderId);
+                    throw new ConversationMutedException(ChatErrorCode.USER_BLOCKED, "User has blocked this conversation");
+                }
+            }
+
+            // Validate message content
+            if (content == null || content.trim().isEmpty()) {
+                log.warn("Invalid request | operation=sendMessage | conversationId={} | senderId={} | reason=EMPTY_MESSAGE", conversationId, senderId);
+                throw new InvalidMessageException(ChatErrorCode.MESSAGE_EMPTY, "Message cannot be empty");
+            }
+            if (content.length() > 1000) {
+                log.warn("Invalid request | operation=sendMessage | conversationId={} | senderId={} | reason=MESSAGE_TOO_LONG", conversationId, senderId);
+                throw new InvalidMessageException(ChatErrorCode.MESSAGE_TOO_LONG, "Message exceeds maximum length");
+            }
+
+            // Save the message
+            MessageEntity message = messageRepository.save(
+                    MessageEntity.userMessage(
+                            conversation,
+                            senderId,
+                            content
+                    )
+            );
+
+            // Fetch sender's profile information
+            log.info("Calling external service | service=UserProfileClient | operation=getNamesByUserIds | senderId={}", senderId);
+            Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(senderId));
+            UserNameDto senderName = namesByUserId.get(senderId);
+            
+            SendMessageResponseDto response = new SendMessageResponseDto(
+                    message.getMessageId(),
+                    conversationId,
+                    senderId,
+                    senderName != null ? senderName.getFirstName() : "Unknown",
+                    senderName != null ? senderName.getMiddleName() : null,
+                    senderName != null ? senderName.getLastName() : null,
+                    content,
+                    message.getCreatedAt()
+            );
+
+            // Send message to appropriate recipients based on conversation type
+            if (conversation.getType() == ConversationType.GROUP_CHAT) {
+                log.info("Calling external service | service=WebSocket | operation=broadcastToGroup | conversationId={}", conversationId);
+                messagingTemplate.convertAndSend(
+                        "/topic/conversations/" + conversationId,
+                        response
+                );
+
+            } else if (conversation.getType() == ConversationType.ONE_ON_ONE) {
+                // Send only to the receiver
+                List<ConversationParticipantEntity> participants =
+                        conversationParticipantRepository
+                                .findByConversation_ConversationIdAndLeftAtIsNull(conversationId);
+                UUID receiverId = participants.stream()
+                        .map(ConversationParticipantEntity::getUserId)
+                        .filter(id -> !id.equals(senderId))
+                        .findFirst()
+                        .orElseThrow(() -> {
+                            log.error("Receiver not found | operation=sendMessage | conversationId={} | reason=NO_RECEIVER", conversationId);
+                            return new ConversationNotFoundException(ChatErrorCode.RECIPIENT_NOT_FOUND, "Recipient user not found");
+                        });
+                
+                log.info("Calling external service | service=WebSocket | operation=sendToUser | senderId={} | receiverId={}", senderId, receiverId);
+                messagingTemplate.convertAndSendToUser(
+                        receiverId.toString(),
+                        "/queue/messages",
+                        response
+                );
+            }
+
+            log.info("Processing completed | operation=sendMessage | conversationId={} | senderId={} | messageId={} | status=SENT", conversationId, senderId, message.getMessageId());
+            return response;
+        } catch (ConversationNotFoundException | UserLeftConversationException | ConversationMutedException | InvalidMessageException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=sendMessage | conversationId={} | senderId={} | reason={}", conversationId, senderId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -300,23 +332,30 @@ public class CreateAndManageConversationService {
      * @throws ConversationNotFoundException if conversation or participant not found
      */
     public void markConversationAsRead(UUID conversationId, UUID userId) {
-        log.debug("Marking conversation {} as read for user {}", conversationId, userId);
+        log.info("Processing started | operation=markConversationAsRead | conversationId={} | userId={}", conversationId, userId);
 
-        conversationRepository.findById(conversationId)
-                .orElseThrow(() -> {
-                    log.error("Conversation not found with ID: {}", conversationId);
-                    return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
-                });
+        try {
+            conversationRepository.findById(conversationId)
+                    .orElseThrow(() -> {
+                        log.error("Conversation not found | operation=markConversationAsRead | conversationId={} | reason=NOT_FOUND", conversationId);
+                        return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
+                    });
 
-        ConversationParticipantEntity conversationParticipant = conversationParticipantRepository
-                .findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)
-                .orElseThrow(() -> {
-                    log.error("User {} is not a participant in conversation {}", userId, conversationId);
-                    return new UserLeftConversationException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
-                });
+            ConversationParticipantEntity conversationParticipant = conversationParticipantRepository
+                    .findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)
+                    .orElseThrow(() -> {
+                        log.error("Access denied | operation=markConversationAsRead | conversationId={} | userId={} | reason=NOT_PARTICIPANT", conversationId, userId);
+                        return new UserLeftConversationException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
+                    });
 
-        conversationParticipant.markAsRead();
-        log.debug("Conversation {} marked as read for user {}", conversationId, userId);
+            conversationParticipant.markAsRead();
+            log.info("Processing completed | operation=markConversationAsRead | conversationId={} | userId={} | status=SUCCESS", conversationId, userId);
+        } catch (ConversationNotFoundException | UserLeftConversationException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=markConversationAsRead | conversationId={} | userId={} | reason={}", conversationId, userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
 
@@ -331,37 +370,44 @@ public class CreateAndManageConversationService {
      * @throws ForbiddenException if conversation is not one-on-one
      */
     public void blockConversation(UUID conversationId, UUID blockingUserId) {
-        log.debug("User {} attempting to block conversation {}", blockingUserId, conversationId);
+        log.info("Processing started | operation=blockConversation | conversationId={} | userId={}", conversationId, blockingUserId);
 
-        ConversationEntity conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> {
-                    log.error("Conversation not found with ID: {}", conversationId);
-                    return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
-                });
+        try {
+            ConversationEntity conversation = conversationRepository.findById(conversationId)
+                    .orElseThrow(() -> {
+                        log.error("Conversation not found | operation=blockConversation | conversationId={} | reason=NOT_FOUND", conversationId);
+                        return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
+                    });
 
-        if (conversation.getType() != ConversationType.ONE_ON_ONE) {
-            log.error("User {} attempted to block non-one-on-one conversation {}", blockingUserId, conversationId);
-            throw new ConversationMutedException(ChatErrorCode.BLOCK_NOT_ALLOWED, "Blocking is not allowed for this conversation type");
+            if (conversation.getType() != ConversationType.ONE_ON_ONE) {
+                log.warn("Invalid request | operation=blockConversation | conversationId={} | userId={} | reason=NOT_ONE_ON_ONE", conversationId, blockingUserId);
+                throw new ConversationMutedException(ChatErrorCode.BLOCK_NOT_ALLOWED, "Blocking is not allowed for this conversation type");
+            }
+
+            conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, blockingUserId)
+                    .orElseThrow(() -> {
+                        log.error("Access denied | operation=blockConversation | conversationId={} | userId={} | reason=NOT_PARTICIPANT", conversationId, blockingUserId);
+                        return new UserLeftConversationException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
+                    });
+
+            if (conversationBlockRepository.existsByConversation_ConversationIdAndBlockedBy(
+                    conversationId, blockingUserId)) {
+                log.info("Processing completed | operation=blockConversation | conversationId={} | userId={} | status=ALREADY_BLOCKED", conversationId, blockingUserId);
+                return;
+            }
+
+            conversationBlockRepository.save(
+                    ConversationBlockEntity.create(conversation, blockingUserId)
+            );
+            log.info("Processing completed | operation=blockConversation | conversationId={} | userId={} | status=BLOCKED", conversationId, blockingUserId);
+
+            // TODO: Remove travel PAL after blocking user i.e trigger unmatching from user service
+        } catch (ConversationNotFoundException | UserLeftConversationException | ConversationMutedException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=blockConversation | conversationId={} | userId={} | reason={}", conversationId, blockingUserId, e.getMessage(), e);
+            throw e;
         }
-
-        conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, blockingUserId)
-                .orElseThrow(() -> {
-                    log.error("User {} is not a participant in conversation {}", blockingUserId, conversationId);
-                    return new UserLeftConversationException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
-                });
-
-        if (conversationBlockRepository.existsByConversation_ConversationIdAndBlockedBy(
-                conversationId, blockingUserId)) {
-            log.debug("Conversation {} already blocked by user {}", conversationId, blockingUserId);
-            return;
-        }
-
-        conversationBlockRepository.save(
-                ConversationBlockEntity.create(conversation, blockingUserId)
-        );
-        log.info("Conversation {} successfully blocked by user {}", conversationId, blockingUserId);
-
-        // TODO: Remove travel PAL after blocking user i.e trigger unmatching from user service
     }
 
     /**
@@ -373,34 +419,41 @@ public class CreateAndManageConversationService {
      * @throws ForbiddenException if conversation is not one-on-one
      */
     public void unblockConversation(UUID conversationId, UUID userId) {
-        log.debug("User {} attempting to unblock conversation {}", userId, conversationId);
+        log.info("Processing started | operation=unblockConversation | conversationId={} | userId={}", conversationId, userId);
 
-        ConversationEntity conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> {
-                    log.error("Conversation not found with ID: {}", conversationId);
-                    return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
-                });
+        try {
+            ConversationEntity conversation = conversationRepository.findById(conversationId)
+                    .orElseThrow(() -> {
+                        log.error("Conversation not found | operation=unblockConversation | conversationId={} | reason=NOT_FOUND", conversationId);
+                        return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
+                    });
 
-        if (conversation.getType() != ConversationType.ONE_ON_ONE) {
-            log.error("User {} attempted to unblock non-one-on-one conversation {}", userId, conversationId);
-            throw new ConversationMutedException(ChatErrorCode.UNBLOCK_NOT_ALLOWED, "Unblocking is not allowed for this conversation type");
+            if (conversation.getType() != ConversationType.ONE_ON_ONE) {
+                log.warn("Invalid request | operation=unblockConversation | conversationId={} | userId={} | reason=NOT_ONE_ON_ONE", conversationId, userId);
+                throw new ConversationMutedException(ChatErrorCode.UNBLOCK_NOT_ALLOWED, "Unblocking is not allowed for this conversation type");
+            }
+
+            conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)
+                    .orElseThrow(() -> {
+                        log.error("Access denied | operation=unblockConversation | conversationId={} | userId={} | reason=NOT_PARTICIPANT", conversationId, userId);
+                        return new UserLeftConversationException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
+                    });
+
+            ConversationBlockEntity blockEntity = conversationBlockRepository.findByConversation_ConversationIdAndBlockedBy(
+                    conversationId, userId)
+                    .orElseThrow(() -> {
+                        log.error("Block not found | operation=unblockConversation | conversationId={} | userId={} | reason=NOT_BLOCKED", conversationId, userId);
+                        return new ConversationNotFoundException(ChatErrorCode.USER_BLOCKED, "No block entry found for this user");
+                    });
+
+            conversationBlockRepository.delete(blockEntity);
+            log.info("Processing completed | operation=unblockConversation | conversationId={} | userId={} | status=UNBLOCKED", conversationId, userId);
+        } catch (ConversationNotFoundException | UserLeftConversationException | ConversationMutedException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=unblockConversation | conversationId={} | userId={} | reason={}", conversationId, userId, e.getMessage(), e);
+            throw e;
         }
-
-        conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)
-                .orElseThrow(() -> {
-                    log.error("User {} is not a participant in conversation {}", userId, conversationId);
-                    return new UserLeftConversationException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
-                });
-
-        ConversationBlockEntity blockEntity = conversationBlockRepository.findByConversation_ConversationIdAndBlockedBy(
-                conversationId, userId)
-                .orElseThrow(() -> {
-                    log.error("Block entry not found for conversation {} blocked by user {}", conversationId, userId);
-                    return new ConversationNotFoundException(ChatErrorCode.USER_BLOCKED, "No block entry found for this user");
-                });
-
-        conversationBlockRepository.delete(blockEntity);
-        log.info("Conversation {} successfully unblocked by user {}", conversationId, userId);
     }
 
 
@@ -414,27 +467,34 @@ public class CreateAndManageConversationService {
      * @throws ForbiddenException if user is not a participant
      */
     public void muteConversation(UUID conversationId, UUID userId) {
-        log.debug("User {} attempting to mute conversation {}", userId, conversationId);
+        log.info("Processing started | operation=muteConversation | conversationId={} | userId={}", conversationId, userId);
 
-        ConversationEntity conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> {
-                    log.error("Conversation not found with ID: {}", conversationId);
-                    return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
-                });
+        try {
+            ConversationEntity conversation = conversationRepository.findById(conversationId)
+                    .orElseThrow(() -> {
+                        log.error("Conversation not found | operation=muteConversation | conversationId={} | reason=NOT_FOUND", conversationId);
+                        return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
+                    });
 
-        conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)
-                .orElseThrow(() -> {
-                    log.error("User {} is not a participant in conversation {}", userId, conversationId);
-                    return new UserLeftConversationException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
-                });
+            conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)
+                    .orElseThrow(() -> {
+                        log.error("Access denied | operation=muteConversation | conversationId={} | userId={} | reason=NOT_PARTICIPANT", conversationId, userId);
+                        return new UserLeftConversationException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
+                    });
 
-        if (muteRepository.existsByConversation_ConversationIdAndUserId(conversationId, userId)) {
-            log.debug("Conversation {} already muted by user {}", conversationId, userId);
-            return;
+            if (muteRepository.existsByConversation_ConversationIdAndUserId(conversationId, userId)) {
+                log.info("Processing completed | operation=muteConversation | conversationId={} | userId={} | status=ALREADY_MUTED", conversationId, userId);
+                return;
+            }
+
+            muteRepository.save(ConversationMuteEntity.create(conversation, userId));
+            log.info("Processing completed | operation=muteConversation | conversationId={} | userId={} | status=MUTED", conversationId, userId);
+        } catch (ConversationNotFoundException | UserLeftConversationException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=muteConversation | conversationId={} | userId={} | reason={}", conversationId, userId, e.getMessage(), e);
+            throw e;
         }
-
-        muteRepository.save(ConversationMuteEntity.create(conversation, userId));
-        log.info("Conversation {} successfully muted by user {}", conversationId, userId);
     }
 
     /**
@@ -447,33 +507,40 @@ public class CreateAndManageConversationService {
      * @throws ForbiddenException if user is not a participant
      */
     public void unmuteConversation(UUID conversationId, UUID userId) {
-        log.debug("User {} attempting to unmute conversation {}", userId, conversationId);
+        log.info("Processing started | operation=unmuteConversation | conversationId={} | userId={}", conversationId, userId);
 
-        ConversationEntity conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> {
-                    log.error("Conversation not found with ID: {}", conversationId);
-                    return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
-                });
+        try {
+            ConversationEntity conversation = conversationRepository.findById(conversationId)
+                    .orElseThrow(() -> {
+                        log.error("Conversation not found | operation=unmuteConversation | conversationId={} | reason=NOT_FOUND", conversationId);
+                        return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
+                    });
 
-        conversationParticipantRepository
-                .findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(
-                        conversationId, userId
-                )
-                .orElseThrow(() -> {
-                    log.error("User {} is not a participant in conversation {}", userId, conversationId);
-                    return new UserLeftConversationException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
-                });
+            conversationParticipantRepository
+                    .findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(
+                            conversationId, userId
+                    )
+                    .orElseThrow(() -> {
+                        log.error("Access denied | operation=unmuteConversation | conversationId={} | userId={} | reason=NOT_PARTICIPANT", conversationId, userId);
+                        return new UserLeftConversationException(ChatErrorCode.USER_NOT_IN_CONVERSATION, "User is not a participant in this conversation");
+                    });
 
-        muteRepository
-                .findByConversation_ConversationIdAndUserId(
-                        conversationId, userId
-                )
-                .ifPresentOrElse(
-                        muteEntity -> {
-                            muteRepository.delete(muteEntity);
-                            log.info("Conversation {} successfully unmuted by user {}", conversationId, userId);
-                        },
-                        () -> log.debug("Conversation {} was not muted by user {}", conversationId, userId)
-                );
+            muteRepository
+                    .findByConversation_ConversationIdAndUserId(
+                            conversationId, userId
+                    )
+                    .ifPresentOrElse(
+                            muteEntity -> {
+                                muteRepository.delete(muteEntity);
+                                log.info("Processing completed | operation=unmuteConversation | conversationId={} | userId={} | status=UNMUTED", conversationId, userId);
+                            },
+                            () -> log.info("Processing completed | operation=unmuteConversation | conversationId={} | userId={} | status=NOT_MUTED", conversationId, userId)
+                    );
+        } catch (ConversationNotFoundException | UserLeftConversationException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=unmuteConversation | conversationId={} | userId={} | reason={}", conversationId, userId, e.getMessage(), e);
+            throw e;
+        }
     }
 }

@@ -80,6 +80,8 @@ twilio :
   sms-template: ${TWILIO_SMS_TEMPLATE}
 
 logging:
+  file:
+    name: /var/log/myapp/app.log
   level:
     root: INFO
     com.tranzo: INFO

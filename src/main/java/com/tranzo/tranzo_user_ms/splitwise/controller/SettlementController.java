@@ -36,11 +36,18 @@ public class SettlementController {
     @PostMapping
     public ResponseEntity<SettlementResponse> createSettlement(@Valid @RequestBody CreateSettlementRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Received request to create settlement: {} -> {} amount {}", 
-                 request.getPaidById(), request.getPaidToId(), request.getAmount());
-        SettlementResponse response = settlementService.createSettlement(request, userId);
-        log.info("Successfully created settlement with ID: {}", response.getId());
-        return ResponseEntity.ok(response);
+        log.info("Incoming request | API=/api/splitwise/settlements | method=POST | userId={} | paidById={} | paidToId={} | amount={}", 
+                 userId, request.getPaidById(), request.getPaidToId(), request.getAmount());
+        
+        try {
+            SettlementResponse response = settlementService.createSettlement(request, userId);
+            
+            log.info("Settlement created | userId={} | settlementId={} | status=SUCCESS", userId, response.getId());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Request failed | API=/api/splitwise/settlements | method=POST | userId={} | reason={}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -48,10 +55,17 @@ public class SettlementController {
      */
     @GetMapping("/{settlementId}")
     public ResponseEntity<SettlementResponse> getSettlement(@PathVariable UUID settlementId) {
-        log.debug("Received request to get settlement: {}", settlementId);
-        SettlementResponse response = settlementService.getSettlement(settlementId);
-        log.debug("Successfully retrieved settlement: {}", response.getId());
-        return ResponseEntity.ok(response);
+        log.info("Incoming request | API=/api/splitwise/settlements/{} | method=GET", settlementId);
+        
+        try {
+            SettlementResponse response = settlementService.getSettlement(settlementId);
+            
+            log.info("Settlement retrieved | settlementId={} | status=SUCCESS", settlementId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Request failed | API=/api/splitwise/settlements/{} | method=GET | reason={}", settlementId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -59,12 +73,17 @@ public class SettlementController {
      */
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<SettlementResponse>> getGroupSettlements(@PathVariable UUID groupId) {
-        log.debug("Received request to get settlements for group: {}", groupId);
+        log.info("Incoming request | API=/api/splitwise/settlements/group/{} | method=GET", groupId);
         
-        List<SettlementResponse> response = settlementService.getGroupSettlements(groupId);
-        
-        log.debug("Retrieved {} settlements for group: {}", response.size(), groupId);
-        return ResponseEntity.ok(response);
+        try {
+            List<SettlementResponse> response = settlementService.getGroupSettlements(groupId);
+            
+            log.info("Group settlements retrieved | groupId={} | settlementsCount={} | status=SUCCESS", groupId, response.size());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Request failed | API=/api/splitwise/settlements/group/{} | method=GET | reason={}", groupId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -73,10 +92,17 @@ public class SettlementController {
     @GetMapping("/my-settlements")
     public ResponseEntity<List<SettlementResponse>> getUserSettlements() throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.debug("Received request to get settlements for current user");
-        List<SettlementResponse> response = settlementService.getUserSettlements(userId);
-        log.debug("Retrieved {} settlements for user: {}", response.size(), userId);
-        return ResponseEntity.ok(response);
+        log.info("Incoming request | API=/api/splitwise/settlements/my-settlements | method=GET | userId={}", userId);
+        
+        try {
+            List<SettlementResponse> response = settlementService.getUserSettlements(userId);
+            
+            log.info("User settlements retrieved | userId={} | settlementsCount={} | status=SUCCESS", userId, response.size());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Request failed | API=/api/splitwise/settlements/my-settlements | method=GET | userId={} | reason={}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -84,12 +110,16 @@ public class SettlementController {
      */
     @GetMapping("/optimize/{groupId}")
     public ResponseEntity<List<SettlementProposal>> getOptimizedSettlements(@PathVariable UUID groupId) {
+        log.info("Incoming request | API=/api/splitwise/settlements/optimize/{} | method=GET", groupId);
         
-        log.info("Received request to optimize settlements for group: {}", groupId);
-        
-        List<SettlementProposal> response = settlementService.getOptimizedSettlements(groupId);
-        
-        log.info("Generated {} optimized settlement proposals for group {}", response.size(), groupId);
-        return ResponseEntity.ok(response);
+        try {
+            List<SettlementProposal> response = settlementService.getOptimizedSettlements(groupId);
+            
+            log.info("Optimized settlements generated | groupId={} | proposalsCount={} | status=SUCCESS", groupId, response.size());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Request failed | API=/api/splitwise/settlements/optimize/{} | method=GET | reason={}", groupId, e.getMessage(), e);
+            throw e;
+        }
     }
 }

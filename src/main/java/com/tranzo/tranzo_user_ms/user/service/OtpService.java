@@ -85,7 +85,7 @@ public class OtpService {
                 otpKey,
                 new OtpData(otp, hash, 0, System.currentTimeMillis())
         );
-        log.info("OTP for {} is {}", identifier, otp);
+        log.info("OTP sent | identifier={} | status=SUCCESS", identifier);
         // Sending SMS via AWS SNS
 //        smsService.sendOtp(identifier, otp);
         // Sending SMS via AWS SNS
@@ -102,13 +102,15 @@ public class OtpService {
     public VerifyOtpResponseDto verifyOtp(VerifyOtpDto verifyOtpDto, HttpServletResponse response) throws Exception {
         String identifier = otpUtility.resolveIdentifier(verifyOtpDto);
         String key = buildKey(identifier);
-        log.info("Key for fetching OTP is {}", key);
+        log.info("Verifying OTP | identifier={}", identifier);
         OtpData cachedOtp = (OtpData) cacheService.get(key);
         if (cachedOtp == null) {
+            log.warn("OTP verification failed | identifier={} | reason=OTP_EXPIRED_OR_NOT_FOUND", identifier);
             throw new OtpException("OTP expired or not found");
         }
         if (cachedOtp.getAttempts() >= MAX_ATTEMPTS)
         {
+            log.warn("OTP verification failed | identifier={} | reason=MAX_ATTEMPTS_REACHED", identifier);
             throw new OtpException("Maximum number of attempts");
         }
         String hash = hashOtp(verifyOtpDto.getOtp());
@@ -116,9 +118,11 @@ public class OtpService {
         {
             cachedOtp.setAttempts(cachedOtp.getAttempts() + 1);
             cacheService.put(key, cachedOtp);
+            log.warn("OTP verification failed | identifier={} | reason=INVALID_OTP | attempt={}", identifier, cachedOtp.getAttempts());
             throw new OtpException("Invalid OTP");
         }
         cacheService.remove(key);
+        log.info("OTP verified successfully | identifier={} | status=SUCCESS", identifier);
         Optional<UsersEntity> user = findUserByIdentifier(verifyOtpDto);
         boolean userExists = user.isPresent();
         if (!userExists)
@@ -183,5 +187,8 @@ public class OtpService {
         usersEntity.setUserRole(UserRole.NORMAL_USER);
         usersEntity.setAccountStatus(AccountStatus.ACTIVE);
         userRepository.save(usersEntity);
+        log.info("New user created | identifier={} | userId={} | status=SUCCESS", 
+                verifyOtpDto.getEmailId() != null ? verifyOtpDto.getEmailId() : verifyOtpDto.getMobileNumber(), 
+                usersEntity.getUserUuid());
     }
 }

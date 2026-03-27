@@ -65,88 +65,175 @@ public class SettlementService {
      * Creates a settlement. Current user must be group member and typically the payer (paidById = currentUserId).
      */
     public SettlementResponse createSettlement(CreateSettlementRequest request, UUID currentUserId) {
-        if (!splitwiseGroupRepository.isUserMemberOfGroup(request.getGroupId(), currentUserId)) {
-            throw new UserNotMemberException(currentUserId, request.getGroupId());
+        log.info("Processing started | operation=createSettlement | userId={} | groupId={} | paidById={} | paidToId={} | amount={}", 
+                 currentUserId, request.getGroupId(), request.getPaidById(), request.getPaidToId(), request.getAmount());
+
+        try {
+            if (!splitwiseGroupRepository.isUserMemberOfGroup(request.getGroupId(), currentUserId)) {
+                log.warn("Access denied | operation=createSettlement | userId={} | groupId={} | reason=NOT_MEMBER", currentUserId, request.getGroupId());
+                throw new UserNotMemberException(currentUserId, request.getGroupId());
+            }
+            if (!request.getPaidById().equals(currentUserId)) {
+                log.warn("Access denied | operation=createSettlement | userId={} | paidById={} | reason=NOT_PAYER", currentUserId, request.getPaidById());
+                throw new UserNotMemberException("Only the payer can create a settlement for themselves");
+            }
+            
+            log.info("Calling external service | service=BalanceService | operation=validateSettlementAmount | groupId={}", request.getGroupId());
+            balanceService.validateSettlementAmount(request.getGroupId(), request.getPaidById(), request.getPaidToId(), request.getAmount());
+
+            SplitwiseGroup group = splitwiseGroupRepository.findById(request.getGroupId())
+                    .orElseThrow(() -> new GroupNotFoundException(request.getGroupId()));
+
+            Settlement settlement = Settlement.builder()
+                    .group(group)
+                    .paidBy(request.getPaidById())
+                    .paidTo(request.getPaidToId())
+                    .amount(request.getAmount())
+                    .paymentMethod(request.getPaymentMethod())
+                    .transactionId(request.getTransactionId())
+                    .notes(request.getNotes())
+                    .status("COMPLETED")
+                    .build();
+            settlement = settlementRepository.save(settlement);
+
+            log.info("Calling external service | service=BalanceService | operation=updateBalancesForSettlement | settlementId={}", settlement.getId());
+            balanceService.updateBalancesForSettlement(settlement);
+            
+            log.info("Calling external service | service=ActivityService | operation=logSettlementCreated | settlementId={}", settlement.getId());
+            activityService.logSettlementCreated(currentUserId, group, settlement.getId(), settlement.getAmount());
+            
+            log.info("Processing completed | operation=createSettlement | userId={} | settlementId={} | status=SUCCESS", currentUserId, settlement.getId());
+            return toSettlementResponse(settlement);
+        } catch (UserNotMemberException | GroupNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=createSettlement | userId={} | groupId={} | reason={}", currentUserId, request.getGroupId(), e.getMessage(), e);
+            throw e;
         }
-        if (!request.getPaidById().equals(currentUserId)) {
-            throw new UserNotMemberException("Only the payer can create a settlement for themselves");
-        }
-        balanceService.validateSettlementAmount(request.getGroupId(), request.getPaidById(), request.getPaidToId(), request.getAmount());
-
-        SplitwiseGroup group = splitwiseGroupRepository.findById(request.getGroupId())
-                .orElseThrow(() -> new GroupNotFoundException(request.getGroupId()));
-
-        Settlement settlement = Settlement.builder()
-                .group(group)
-                .paidBy(request.getPaidById())
-                .paidTo(request.getPaidToId())
-                .amount(request.getAmount())
-                .paymentMethod(request.getPaymentMethod())
-                .transactionId(request.getTransactionId())
-                .notes(request.getNotes())
-                .status("COMPLETED")
-                .build();
-        settlement = settlementRepository.save(settlement);
-
-        balanceService.updateBalancesForSettlement(settlement);
-        activityService.logSettlementCreated(currentUserId, group, settlement.getId(), settlement.getAmount());
-        log.info("Created settlement {} in group {}", settlement.getId(), request.getGroupId());
-        return toSettlementResponse(settlement);
     }
 
     @Transactional(readOnly = true)
     public SettlementResponse getSettlement(UUID settlementId) {
-        Settlement settlement = settlementRepository.findById(settlementId)
-                .orElseThrow(() -> new SettlementNotFoundException("Settlement not found with ID: " + settlementId));
-        return toSettlementResponse(settlement);
+        log.info("Processing started | operation=getSettlement | settlementId={}", settlementId);
+
+        try {
+            Settlement settlement = settlementRepository.findById(settlementId)
+                    .orElseThrow(() -> new SettlementNotFoundException("Settlement not found with ID: " + settlementId));
+            
+            log.info("Processing completed | operation=getSettlement | settlementId={} | status=SUCCESS", settlementId);
+            return toSettlementResponse(settlement);
+        } catch (SettlementNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=getSettlement | settlementId={} | reason={}", settlementId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Transactional(readOnly = true)
     public List<SettlementResponse> getGroupSettlements(UUID groupId) {
-        List<Settlement> settlements = settlementRepository.findByGroupId(groupId);
-        return settlements.stream().map(this::toSettlementResponse).collect(Collectors.toList());
+        log.info("Processing started | operation=getGroupSettlements | groupId={}", groupId);
+
+        try {
+            List<Settlement> settlements = settlementRepository.findByGroupId(groupId);
+            List<SettlementResponse> response = settlements.stream().map(this::toSettlementResponse).collect(Collectors.toList());
+            
+            log.info("Processing completed | operation=getGroupSettlements | groupId={} | settlementsCount={} | status=SUCCESS", groupId, response.size());
+            return response;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=getGroupSettlements | groupId={} | reason={}", groupId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Transactional(readOnly = true)
     public List<SettlementResponse> getUserSettlements(UUID userId) {
-        List<Settlement> settlements = settlementRepository.findSettlementsInvolvingUser(userId);
-        return settlements.stream().map(this::toSettlementResponse).collect(Collectors.toList());
+        log.info("Processing started | operation=getUserSettlements | userId={}", userId);
+
+        try {
+            List<Settlement> settlements = settlementRepository.findSettlementsInvolvingUser(userId);
+            List<SettlementResponse> response = settlements.stream().map(this::toSettlementResponse).collect(Collectors.toList());
+            
+            log.info("Processing completed | operation=getUserSettlements | userId={} | settlementsCount={} | status=SUCCESS", userId, response.size());
+            return response;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=getUserSettlements | userId={} | reason={}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Transactional(readOnly = true)
     public List<SettlementProposal> getOptimizedSettlements(UUID groupId) {
-        return balanceService.getOptimizedSettlements(groupId);
+        log.info("Processing started | operation=getOptimizedSettlements | groupId={}", groupId);
+
+        try {
+            log.info("Calling external service | service=BalanceService | operation=getOptimizedSettlements | groupId={}", groupId);
+            List<SettlementProposal> proposals = balanceService.getOptimizedSettlements(groupId);
+            
+            log.info("Processing completed | operation=getOptimizedSettlements | groupId={} | proposalsCount={} | status=SUCCESS", groupId, proposals.size());
+            return proposals;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=getOptimizedSettlements | groupId={} | reason={}", groupId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
      * Updates settlement status (e.g. PENDING -> COMPLETED). Optional; controller may not expose.
      */
     public SettlementResponse updateSettlementStatus(UUID settlementId, String status, UUID updatedBy) {
-        Settlement settlement = settlementRepository.findById(settlementId)
-                .orElseThrow(() -> new SettlementNotFoundException("Settlement not found with ID: " + settlementId));
-        if (!splitwiseGroupRepository.isUserMemberOfGroup(settlement.getGroup().getId(), updatedBy)) {
-            throw new UserNotMemberException(updatedBy, settlement.getGroup().getId());
+        log.info("Processing started | operation=updateSettlementStatus | settlementId={} | updatedBy={} | newStatus={}", settlementId, updatedBy, status);
+
+        try {
+            Settlement settlement = settlementRepository.findById(settlementId)
+                    .orElseThrow(() -> new SettlementNotFoundException("Settlement not found with ID: " + settlementId));
+            if (!splitwiseGroupRepository.isUserMemberOfGroup(settlement.getGroup().getId(), updatedBy)) {
+                log.warn("Access denied | operation=updateSettlementStatus | settlementId={} | updatedBy={} | reason=NOT_MEMBER", settlementId, updatedBy);
+                throw new UserNotMemberException(updatedBy, settlement.getGroup().getId());
+            }
+            settlement.setStatus(status != null ? status : settlement.getStatus());
+            settlement = settlementRepository.save(settlement);
+            
+            log.info("Processing completed | operation=updateSettlementStatus | settlementId={} | updatedBy={} | status=SUCCESS", settlementId, updatedBy);
+            return toSettlementResponse(settlement);
+        } catch (SettlementNotFoundException | UserNotMemberException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=updateSettlementStatus | settlementId={} | updatedBy={} | reason={}", settlementId, updatedBy, e.getMessage(), e);
+            throw e;
         }
-        settlement.setStatus(status != null ? status : settlement.getStatus());
-        settlement = settlementRepository.save(settlement);
-        return toSettlementResponse(settlement);
     }
 
     /**
      * Deletes a settlement and reverses balance updates.
      */
     public void deleteSettlement(UUID settlementId, UUID deletedBy) {
-        Settlement settlement = settlementRepository.findById(settlementId)
-                .orElseThrow(() -> new SettlementNotFoundException("Settlement not found with ID: " + settlementId));
-        if (!splitwiseGroupRepository.isUserMemberOfGroup(settlement.getGroup().getId(), deletedBy)) {
-            throw new UserNotMemberException(deletedBy, settlement.getGroup().getId());
+        log.info("Processing started | operation=deleteSettlement | settlementId={} | deletedBy={}", settlementId, deletedBy);
+
+        try {
+            Settlement settlement = settlementRepository.findById(settlementId)
+                    .orElseThrow(() -> new SettlementNotFoundException("Settlement not found with ID: " + settlementId));
+            if (!splitwiseGroupRepository.isUserMemberOfGroup(settlement.getGroup().getId(), deletedBy)) {
+                log.warn("Access denied | operation=deleteSettlement | settlementId={} | deletedBy={} | reason=NOT_MEMBER", settlementId, deletedBy);
+                throw new UserNotMemberException(deletedBy, settlement.getGroup().getId());
+            }
+            BigDecimal amount = settlement.getAmount();
+            SplitwiseGroup group = settlement.getGroup();
+            
+            log.info("Calling external service | service=BalanceService | operation=reverseBalancesForSettlement | settlementId={}", settlementId);
+            balanceService.reverseBalancesForSettlement(settlement);
+            settlementRepository.delete(settlement);
+            
+            log.info("Calling external service | service=ActivityService | operation=logSettlementDeleted | settlementId={}", settlementId);
+            activityService.logSettlementDeleted(deletedBy, group, settlementId, amount);
+            
+            log.info("Processing completed | operation=deleteSettlement | settlementId={} | deletedBy={} | status=SUCCESS", settlementId, deletedBy);
+        } catch (SettlementNotFoundException | UserNotMemberException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=deleteSettlement | settlementId={} | deletedBy={} | reason={}", settlementId, deletedBy, e.getMessage(), e);
+            throw e;
         }
-        BigDecimal amount = settlement.getAmount();
-        SplitwiseGroup group = settlement.getGroup();
-        balanceService.reverseBalancesForSettlement(settlement);
-        settlementRepository.delete(settlement);
-        activityService.logSettlementDeleted(deletedBy, group, settlementId, amount);
-        log.info("Deleted settlement {}", settlementId);
     }
 
     private SettlementResponse toSettlementResponse(Settlement settlement) {
