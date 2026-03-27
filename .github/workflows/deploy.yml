@@ -71,13 +71,17 @@ jobs:
             # -----------------------------
             # Compute image tag
             # -----------------------------
-            # Use short git SHA as tag for traceability
             IMAGE_TAG=$(git rev-parse --short HEAD)
+            GIT_SHA=$IMAGE_TAG        # same SHA for logging
+            NAME=tranzo-user-ms       # friendly app name
+          
             echo "Deploying image tag: $IMAGE_TAG"
-
+            
             export DOCKER_BUILDKIT=0
             export COMPOSE_DOCKER_CLI_BUILD=0
             export IMAGE_TAG=$IMAGE_TAG
+            export GIT_SHA=$GIT_SHA
+            export NAME=$NAME
 
             # -----------------------------
             # Stop old container safely
