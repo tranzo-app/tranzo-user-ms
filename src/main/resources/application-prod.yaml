@@ -81,7 +81,7 @@ twilio :
 
 logging:
   file:
-    name: /var/log/myapp/app.log
+    name: /var/log/tranzo_ms/app.log
   level:
     root: INFO
     com.tranzo: INFO
