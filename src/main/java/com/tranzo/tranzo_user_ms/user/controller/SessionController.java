@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/auth/session")
 @RequiredArgsConstructor
+@Slf4j
 public class SessionController {
 
     private final SessionService sessionService;
@@ -27,7 +29,10 @@ public class SessionController {
             @Valid @RequestBody SessionRequestDto request,
             HttpServletResponse response
     ) {
+        log.info("Incoming request | API=/auth/session/login | method=POST | identifier={}", 
+                request.getEmailId() != null ? request.getEmailId() : request.getMobileNumber());
         SessionResponseDto sessionResponse = sessionService.createSession(request, response);
+        log.info("Session created successfully | status=SUCCESS");
         return ResponseEntity.ok(ResponseDto.success(200, "Session created successfully", sessionResponse));
     }
 
@@ -36,7 +41,9 @@ public class SessionController {
             HttpServletRequest request,
             HttpServletResponse response
     ) throws AuthException {
+        log.info("Incoming request | API=/auth/session/refresh | method=POST");
         SessionResponseDto sessionResponse = sessionService.refreshSession(request, response);
+        log.info("Session refreshed successfully | status=SUCCESS");
         return ResponseEntity.ok(ResponseDto.success(200, "Session refreshed successfully", sessionResponse));
     }
 
@@ -45,7 +52,9 @@ public class SessionController {
             HttpServletRequest request,
             HttpServletResponse response
     ) {
+        log.info("Incoming request | API=/auth/session/logout | method=POST");
         sessionService.logout(request, response);
+        log.info("Session logged out successfully | status=SUCCESS");
         return ResponseEntity.ok(ResponseDto.success(200, "Session logged out successfully", null));
     }
 }

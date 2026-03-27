@@ -84,7 +84,7 @@ class NotificationServiceTest {
         when(userNotificationRepository.findByUserIdOrderByCreatedAtDesc(eq(userId), any(Pageable.class)))
             .thenReturn(page);
 
-        Page<UserNotificationEntity> result = notificationService.getNotificationsForUser(userId, Pageable.unpaged());
+        Page<UserNotificationEntity> result = notificationService.getNotificationsForUser(userId, mock(Pageable.class));
 
         assertSame(page, result);
         verify(userNotificationRepository).findByUserIdOrderByCreatedAtDesc(eq(userId), any(Pageable.class));

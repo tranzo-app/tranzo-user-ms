@@ -48,7 +48,7 @@ public class CreateAndManageChatController {
             @Valid @RequestBody SendMessageRequestDto request
     ) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Sending message to conversation: conversationId={}, userId={}", conversationId, userId);
+        log.info("Incoming request | API=/conversations/{}/send-message | method=POST | userId={}", conversationId, userId);
 
         SendMessageResponseDto sendMessageResponseDto = createAndManageConversationService.sendMessage(
                 conversationId,
@@ -56,6 +56,8 @@ public class CreateAndManageChatController {
                 request
         );
 
+        log.info("Message sent | conversationId={} | userId={} | messageId={} | status=SUCCESS", 
+                conversationId, userId, sendMessageResponseDto.getMessageId());
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ResponseDto.success(201, "Message sent successfully", sendMessageResponseDto)
         );
@@ -73,13 +75,14 @@ public class CreateAndManageChatController {
             @Valid @RequestBody CreateConversationRequestDto request
     ) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Create conversation request by userId={} with otherUserId={}", userId, request.getOtherUserId());
+        log.info("Incoming request | API=/conversations/one-to-one | method=POST | userId={} | otherUserId={}", userId, request.getOtherUserId());
 
         CreateConversationResponseDto response = createAndManageConversationService.createOneToOneConversation(
                 userId,
                 request
         );
 
+        log.info("Conversation created | userId={} | conversationId={} | status=SUCCESS", userId, response.getConversationId());
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ResponseDto.success(201, "Conversation created successfully", response)
         );
@@ -94,10 +97,11 @@ public class CreateAndManageChatController {
     @Operation(summary = "Get chat list", description = "Fetch all conversations for the current user")
     public ResponseEntity<ResponseDto<List<ChatListItemDto>>> getMyConversations() throws AuthException {
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
-        log.info("Fetching chat list for user: {}", currentUserId);
+        log.info("Incoming request | API=/conversations/chat-list | method=GET | userId={}", currentUserId);
 
         List<ChatListItemDto> chatList = conversationService.getMyConversations(currentUserId);
 
+        log.info("Chat list retrieved | userId={} | conversationsCount={} | status=SUCCESS", currentUserId, chatList.size());
         return ResponseEntity.ok(
                 ResponseDto.success("Chat list fetched successfully", chatList)
         );
@@ -121,7 +125,7 @@ public class CreateAndManageChatController {
             @RequestParam(required = false) Integer limit
     ) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Fetching messages for conversation: conversationId={}, userId={}, before={}, limit={}",
+        log.info("Incoming request | API=/conversations/{}/messages | method=GET | userId={} | before={} | limit={}", 
                 conversationId, userId, before, limit);
 
         List<MessageResponseDto> messages = conversationService.fetchMessages(
@@ -131,6 +135,8 @@ public class CreateAndManageChatController {
                 limit
         );
 
+        log.info("Messages fetched | conversationId={} | userId={} | messagesCount={} | status=SUCCESS", 
+                conversationId, userId, messages.size());
         return ResponseEntity.ok(
                 ResponseDto.success("Messages fetched successfully", messages)
         );
@@ -148,10 +154,11 @@ public class CreateAndManageChatController {
             @PathVariable UUID conversationId
     ) throws AuthException {
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
-        log.info("Mark conversation as read: conversationId={}, userId={}", conversationId, currentUserId);
+        log.info("Incoming request | API=/conversations/{}/read | method=PATCH | userId={}", conversationId, currentUserId);
 
         createAndManageConversationService.markConversationAsRead(conversationId, currentUserId);
 
+        log.info("Conversation marked as read | conversationId={} | userId={} | status=SUCCESS", conversationId, currentUserId);
         return ResponseEntity.ok(
                 ResponseDto.success("Conversation marked as read", null)
         );
@@ -169,10 +176,11 @@ public class CreateAndManageChatController {
             @PathVariable UUID conversationId
     ) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Muting conversation: conversationId={}, userId={}", conversationId, userId);
+        log.info("Incoming request | API=/conversations/{}/mute | method=POST | userId={}", conversationId, userId);
 
         createAndManageConversationService.muteConversation(conversationId, userId);
 
+        log.info("Conversation muted | conversationId={} | userId={} | status=SUCCESS", conversationId, userId);
         return ResponseEntity.ok(
                 ResponseDto.success("Conversation muted successfully", null)
         );
@@ -190,10 +198,11 @@ public class CreateAndManageChatController {
             @PathVariable UUID conversationId
     ) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Unmuting conversation: conversationId={}, userId={}", conversationId, userId);
+        log.info("Incoming request | API=/conversations/{}/unmute | method=POST | userId={}", conversationId, userId);
 
         createAndManageConversationService.unmuteConversation(conversationId, userId);
 
+        log.info("Conversation unmuted | conversationId={} | userId={} | status=SUCCESS", conversationId, userId);
         return ResponseEntity.ok(
                 ResponseDto.success("Conversation unmuted successfully", null)
         );
@@ -211,10 +220,11 @@ public class CreateAndManageChatController {
             @PathVariable UUID conversationId
     ) throws AuthException {
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
-        log.info("Blocking conversation: conversationId={}, userId={}", conversationId, currentUserId);
+        log.info("Incoming request | API=/conversations/{}/block | method=POST | userId={}", conversationId, currentUserId);
 
         createAndManageConversationService.blockConversation(conversationId, currentUserId);
 
+        log.info("Conversation blocked | conversationId={} | userId={} | status=SUCCESS", conversationId, currentUserId);
         return ResponseEntity.ok(
                 ResponseDto.success("Conversation blocked successfully", null)
         );
@@ -232,10 +242,11 @@ public class CreateAndManageChatController {
             @PathVariable UUID conversationId
     ) throws AuthException {
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
-        log.info("Unblocking conversation: conversationId={}, userId={}", conversationId, currentUserId);
+        log.info("Incoming request | API=/conversations/{}/unblock | method=POST | userId={}", conversationId, currentUserId);
 
         createAndManageConversationService.unblockConversation(conversationId, currentUserId);
 
+        log.info("Conversation unblocked | conversationId={} | userId={} | status=SUCCESS", conversationId, currentUserId);
         return ResponseEntity.ok(
                 ResponseDto.success("Conversation unblocked successfully", null)
         );

@@ -37,10 +37,23 @@ public class UserController {
      */
     @GetMapping("/user")
     public ResponseEntity<ResponseDto<UserProfileDto>> getUser() throws AuthException {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Fetching user profile for userId: {}", userId);
-        UserProfileDto userProfileDto = userService.getUserProfile(userId);
-        return ResponseEntity.ok(ResponseDto.success(200,"User profile fetched successfully", userProfileDto));
+        log.info("API call started | endpoint=GET:/user");
+
+        try {
+            UUID userId = SecurityUtils.getCurrentUserUuid();
+            log.info("Processing request | operation=getUser | userId={}", userId);
+
+            UserProfileDto userProfileDto = userService.getUserProfile(userId);
+
+            log.info("API call completed | endpoint=GET:/user | userId={} | status=SUCCESS", userId);
+            return ResponseEntity.ok(ResponseDto.success(200,"User profile fetched successfully", userProfileDto));
+        } catch (AuthException e) {
+            log.error("Authentication failed | endpoint=GET:/user | reason={}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("API call failed | endpoint=GET:/user | reason={}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -48,14 +61,28 @@ public class UserController {
      */
     @GetMapping("/user/{userId}/public")
     public ResponseEntity<ResponseDto<PublicUserProfileDto>> getPublicUserProfile(@PathVariable String userId) {
-        UUID id;
+        log.info("API call started | endpoint=GET:/user/{}/public | targetUserId={}", userId, userId);
+
         try {
-            id = UUID.fromString(userId);
-        } catch (IllegalArgumentException e) {
-            throw new BadRequestException("Invalid user id");
+            UUID id;
+            try {
+                id = UUID.fromString(userId);
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid request | endpoint=GET:/user/{}/public | reason=INVALID_UUID", userId);
+                throw new BadRequestException("Invalid user id");
+            }
+
+            log.info("Processing request | operation=getPublicUserProfile | targetUserId={}", id);
+            PublicUserProfileDto dto = userService.getPublicUserProfile(id);
+
+            log.info("API call completed | endpoint=GET:/user/{}/public | targetUserId={} | status=SUCCESS", userId, id);
+            return ResponseEntity.ok(ResponseDto.success(200, "Public profile fetched successfully", dto));
+        } catch (BadRequestException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("API call failed | endpoint=GET:/user/{}/public | reason={}", userId, e.getMessage(), e);
+            throw e;
         }
-        PublicUserProfileDto dto = userService.getPublicUserProfile(id);
-        return ResponseEntity.ok(ResponseDto.success(200, "Public profile fetched successfully", dto));
     }
 
     /**
@@ -65,11 +92,22 @@ public class UserController {
     @PostMapping(value = "/user/register", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ResponseDto<UserProfileDto>> registerUserWithoutFile(
             HttpServletRequest request,
-            @RequestBody @Valid UserProfileDto userProfileDto) throws AuthException, IOException {
-        String identifier = (String) request.getAttribute("registrationIdentifier");
-        UUID userId = userService.createUserProfile(userProfileDto, identifier, null);
-        UserProfileDto createdProfile = userService.getUserProfile(userId);
-        return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", createdProfile));
+            @RequestBody @Valid UserProfileDto userProfileDto) throws IOException {
+        log.info("API call started | endpoint=POST:/user/register | type=JSON");
+
+        try {
+            String identifier = (String) request.getAttribute("registrationIdentifier");
+            log.info("Processing request | operation=registerUserWithoutFile | identifier={}", identifier);
+
+            UUID userId = userService.createUserProfile(userProfileDto, identifier, null);
+            UserProfileDto createdProfile = userService.getUserProfile(userId);
+
+            log.info("API call completed | endpoint=POST:/user/register | type=JSON | userId={} | status=SUCCESS", userId);
+            return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", createdProfile));
+        } catch (Exception e) {
+            log.error("API call failed | endpoint=POST:/user/register | type=JSON | reason={}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -80,11 +118,22 @@ public class UserController {
     public ResponseEntity<ResponseDto<UserProfileDto>> registerUser(
             HttpServletRequest request,
             @RequestPart("profile") @Valid UserProfileDto userProfileDto,
-            @RequestPart(value = "file", required = false) MultipartFile file) throws AuthException, IOException {
-        String identifier = (String) request.getAttribute("registrationIdentifier");
-        UUID userId = userService.createUserProfile(userProfileDto, identifier, file);
-        UserProfileDto createdProfile = userService.getUserProfile(userId);
-        return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", createdProfile));
+            @RequestPart(value = "file", required = false) MultipartFile file) throws IOException {
+        log.info("API call started | endpoint=POST:/user/register | type=MULTIPART | hasFile={}", file != null && !file.isEmpty());
+
+        try {
+            String identifier = (String) request.getAttribute("registrationIdentifier");
+            log.info("Processing request | operation=registerUser | identifier={} | hasFile={}", identifier, file != null && !file.isEmpty());
+
+            UUID userId = userService.createUserProfile(userProfileDto, identifier, file);
+            UserProfileDto createdProfile = userService.getUserProfile(userId);
+
+            log.info("API call completed | endpoint=POST:/user/register | type=MULTIPART | userId={} | status=SUCCESS", userId);
+            return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", createdProfile));
+        } catch (Exception e) {
+            log.error("API call failed | endpoint=POST:/user/register | type=MULTIPART | reason={}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -95,48 +144,132 @@ public class UserController {
     public ResponseEntity<ResponseDto<UserProfileDto>> updateUserProfile(
             @RequestPart("profile") @Valid UserProfileDto userProfileDto,
             @RequestPart(value = "file", required = false) MultipartFile file) throws AuthException, IOException {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        UserProfileDto updatedProfile = userService.updateUserProfile(userId, userProfileDto, file);
-        return ResponseEntity.ok(ResponseDto.success(200, "User profile updated successfully", updatedProfile));
+        log.info("API call started | endpoint=PATCH:/user/update | hasFile={}", file != null && !file.isEmpty());
+
+        try {
+            UUID userId = SecurityUtils.getCurrentUserUuid();
+            log.info("Processing request | operation=updateUserProfile | userId={} | hasFile={}", userId, file != null && !file.isEmpty());
+
+            UserProfileDto updatedProfile = userService.updateUserProfile(userId, userProfileDto, file);
+
+            log.info("API call completed | endpoint=PATCH:/user/update | userId={} | status=SUCCESS", userId);
+            return ResponseEntity.ok(ResponseDto.success(200, "User profile updated successfully", updatedProfile));
+        } catch (AuthException e) {
+            log.error("Authentication failed | endpoint=PATCH:/user/update | reason={}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("API call failed | endpoint=PATCH:/user/update | reason={}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @DeleteMapping("/user/delete-user")
     public ResponseEntity<ResponseDto<Void>> deleteUser() throws AuthException {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        userService.deleteUserProfile(userId);
-        return ResponseEntity.ok(ResponseDto.success(200,"User profile deleted successfully", null));
+        log.info("API call started | endpoint=DELETE:/user/delete-user");
+
+        try {
+            UUID userId = SecurityUtils.getCurrentUserUuid();
+            log.info("Processing request | operation=deleteUser | userId={}", userId);
+
+            userService.deleteUserProfile(userId);
+
+            log.info("API call completed | endpoint=DELETE:/user/delete-user | userId={} | status=SUCCESS", userId);
+            return ResponseEntity.ok(ResponseDto.success(200,"User profile deleted successfully", null));
+        } catch (AuthException e) {
+            log.error("Authentication failed | endpoint=DELETE:/user/delete-user | reason={}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("API call failed | endpoint=DELETE:/user/delete-user | reason={}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @PutMapping("/user/profile-picture")
     public ResponseEntity<ResponseDto<UserProfileDto>> updateProfilePicture(@RequestBody @Valid UrlDto profilePictureUrl) throws AuthException {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        UserProfileDto updatedProfile = userService.updateProfilePicture(userId, profilePictureUrl);
-        return ResponseEntity.ok(ResponseDto.success(200,"Profile picture updated  successfully", updatedProfile));
+        log.info("API call started | endpoint=PUT:/user/profile-picture");
+
+        try {
+            UUID userId = SecurityUtils.getCurrentUserUuid();
+            log.info("Processing request | operation=updateProfilePicture | userId={}", userId);
+
+            UserProfileDto updatedProfile = userService.updateProfilePicture(userId, profilePictureUrl);
+
+            log.info("API call completed | endpoint=PUT:/user/profile-picture | userId={} | status=SUCCESS", userId);
+            return ResponseEntity.ok(ResponseDto.success(200,"Profile picture updated  successfully", updatedProfile));
+        } catch (AuthException e) {
+            log.error("Authentication failed | endpoint=PUT:/user/profile-picture | reason={}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("API call failed | endpoint=PUT:/user/profile-picture | reason={}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @DeleteMapping("/user/profile-picture")
     public ResponseEntity<ResponseDto<UserProfileDto>> deleteProfilePicture() throws AuthException {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        UserProfileDto updatedProfile = userService.deleteProfilePicture(userId);
-        return ResponseEntity.ok(ResponseDto.success(200,"Profile picture deleted successfully", updatedProfile));
+        log.info("API call started | endpoint=DELETE:/user/profile-picture");
+
+        try {
+            UUID userId = SecurityUtils.getCurrentUserUuid();
+            log.info("Processing request | operation=deleteProfilePicture | userId={}", userId);
+
+            UserProfileDto updatedProfile = userService.deleteProfilePicture(userId);
+
+            log.info("API call completed | endpoint=DELETE:/user/profile-picture | userId={} | status=SUCCESS", userId);
+            return ResponseEntity.ok(ResponseDto.success(200,"Profile picture deleted successfully", updatedProfile));
+        } catch (AuthException e) {
+            log.error("Authentication failed | endpoint=DELETE:/user/profile-picture | reason={}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("API call failed | endpoint=DELETE:/user/profile-picture | reason={}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @PatchMapping("/user/social-handles")
     public ResponseEntity<ResponseDto<UserProfileDto>> upsertSocialHandles(@RequestBody @Valid List<SocialHandleDto> socialHandles) throws AuthException {
-        UUID userId = SecurityUtils.getCurrentUserUuid();
-        UserProfileDto updatedProfile = userService.upsertSocialHandles(userId, socialHandles);
-        return ResponseEntity.ok(
-                ResponseDto.success(200, "Social handles updated successfully", updatedProfile)
-        );
+        log.info("API call started | endpoint=PATCH:/user/social-handles | handlesCount={}", socialHandles.size());
+
+        try {
+            UUID userId = SecurityUtils.getCurrentUserUuid();
+            log.info("Processing request | operation=upsertSocialHandles | userId={} | handlesCount={}", userId, socialHandles.size());
+
+            UserProfileDto updatedProfile = userService.upsertSocialHandles(userId, socialHandles);
+
+            log.info("API call completed | endpoint=PATCH:/user/social-handles | userId={} | handlesCount={} | status=SUCCESS", userId, socialHandles.size());
+            return ResponseEntity.ok(
+                    ResponseDto.success(200, "Social handles updated successfully", updatedProfile)
+            );
+        } catch (AuthException e) {
+            log.error("Authentication failed | endpoint=PATCH:/user/social-handles | reason={}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("API call failed | endpoint=PATCH:/user/social-handles | reason={}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @PostMapping("/user/{reportedUserId}/report")
     public ResponseEntity<ResponseDto<Void>> reportUser(@PathVariable String reportedUserId, @RequestBody @Valid UserReportRequestDto userReportRequestDto) throws AuthException {
-        UUID reporterUserId = SecurityUtils.getCurrentUserUuid();
-        userService.reportUser(reportedUserId,reporterUserId, userReportRequestDto);
-        return ResponseEntity.ok(
-                ResponseDto.success(200, "User reported successfully", null)
-        );
+        log.info("API call started | endpoint=POST:/user/{}/report | reportedUserId={}", reportedUserId, reportedUserId);
+
+        try {
+            UUID reporterUserId = SecurityUtils.getCurrentUserUuid();
+            log.info("Processing request | operation=reportUser | reporterUserId={} | reportedUserId={} | reason={}", reporterUserId, reportedUserId, userReportRequestDto.getReportReasonMessage());
+
+            userService.reportUser(reportedUserId,reporterUserId, userReportRequestDto);
+
+            log.info("API call completed | endpoint=POST:/user/{}/report | reporterUserId={} | reportedUserId={} | status=SUCCESS", reportedUserId, reporterUserId, reportedUserId);
+            return ResponseEntity.ok(
+                    ResponseDto.success(200, "User reported successfully", null)
+            );
+        } catch (AuthException e) {
+            log.error("Authentication failed | endpoint=POST:/user/{}/report | reason={}", reportedUserId, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("API call failed | endpoint=POST:/user/{}/report | reason={}", reportedUserId, e.getMessage(), e);
+            throw e;
+        }
     }
 }
 

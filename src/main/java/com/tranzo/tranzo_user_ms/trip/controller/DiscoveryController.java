@@ -101,13 +101,19 @@ public class DiscoveryController {
             @Parameter(description = "Time window for trend analysis: 7d, 14d, or 30d", example = "7d")
             @RequestParam(defaultValue = "7d") String timeWindow
     ) {
-        log.info("GET /trips/trending-destinations - limit: {}, timeWindow: {}", limit, timeWindow);
+        log.info("Incoming request | API=/trips/trending-destinations | method=GET | limit={} | timeWindow={}", limit, timeWindow);
         
-        TrendingDestinationsResponse response = discoveryService.getTrendingDestinations(limit, timeWindow);
-        
-        return ResponseEntity.ok(
-            ResponseDto.success("Trending destinations fetched successfully", response)
-        );
+        try {
+            TrendingDestinationsResponse response = discoveryService.getTrendingDestinations(limit, timeWindow);
+            
+            log.info("Trending destinations retrieved | limit={} | destinationsCount={} | status=SUCCESS", limit, response.getTrendingDestinations().size());
+            return ResponseEntity.ok(
+                ResponseDto.success("Trending destinations fetched successfully", response)
+            );
+        } catch (Exception e) {
+            log.error("Request failed | API=/trips/trending-destinations | method=GET | limit={} | timeWindow={} | reason={}", limit, timeWindow, e.getMessage(), e);
+            throw e;
+        }
     }
 }
 

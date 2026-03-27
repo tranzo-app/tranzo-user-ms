@@ -32,11 +32,11 @@ public class BalanceController {
      */
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<BalanceResponse>> getGroupBalances(@PathVariable UUID groupId) {
-        log.debug("Received request to get balances for group: {}", groupId);
+        log.info("Incoming request | API=/api/splitwise/balances/group/{} | method=GET", groupId);
         
         List<BalanceResponse> response = balanceService.getGroupBalances(groupId);
         
-        log.debug("Retrieved balances for {} users in group {}", response.size(), groupId);
+        log.info("Group balances retrieved | groupId={} | usersCount={} | status=SUCCESS", groupId, response.size());
         return ResponseEntity.ok(response);
     }
     /**
@@ -44,14 +44,12 @@ public class BalanceController {
      */
     @GetMapping("/group/{groupId}/user")
     public ResponseEntity<BalanceResponse> getUserBalanceInGroup(@PathVariable UUID groupId) throws AuthException {
-
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.debug("Received request to get balance for user {} in group: {}", userId, groupId);
+        log.info("Incoming request | API=/api/splitwise/balances/group/{}/user | method=GET | userId={}", groupId, userId);
         
         BalanceResponse response = balanceService.getUserBalanceInGroup(groupId, userId);
         
-        log.debug("Retrieved balance for user {} in group {}: net={}", 
-                 userId, groupId, response.getNetBalance());
+        log.info("User balance retrieved | userId={} | groupId={} | netBalance={} | status=SUCCESS", userId, groupId, response.getNetBalance());
         return ResponseEntity.ok(response);
     }
 
@@ -61,11 +59,11 @@ public class BalanceController {
     @GetMapping("/group/{groupId}/my-balance")
     public ResponseEntity<BalanceResponse> getMyBalanceInGroup(@PathVariable UUID groupId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.debug("Received request to get balance for current user in group: {}", groupId);
+        log.info("Incoming request | API=/api/splitwise/balances/group/{}/my-balance | method=GET | userId={}", groupId, userId);
+        
         BalanceResponse response = balanceService.getUserBalanceInGroup(groupId, userId);
         
-        log.debug("Retrieved balance for current user in group {}: net={}", 
-                 groupId, response.getNetBalance());
+        log.info("My balance retrieved | userId={} | groupId={} | netBalance={} | status=SUCCESS", userId, groupId, response.getNetBalance());
         return ResponseEntity.ok(response);
     }
 }

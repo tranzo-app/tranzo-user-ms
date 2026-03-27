@@ -41,8 +41,7 @@ public class ChatSocketController {
         UUID userId = UUID.fromString(principal.getName());
         UUID conversationId = request.getConversationId();
 
-        log.info("WebSocket message received - conversationId={}, userId={}, content length={}",
-                conversationId, userId, request.getContent().length());
+        log.info("Incoming request | API=/app/chat.send | method=WEBSOCKET | conversationId={} | userId={}", conversationId, userId);
 
         try {
             SendMessageResponseDto response = conversationService.sendMessage(
@@ -51,10 +50,10 @@ public class ChatSocketController {
                     new SendMessageRequestDto(request.getContent())
             );
 
-            log.info("WebSocket message sent successfully - messageId={}, conversationId={}, userId={}",
-                    response.getMessageId(), conversationId, userId);
+            log.info("Message sent via WebSocket | conversationId={} | userId={} | messageId={} | status=SUCCESS", 
+                    conversationId, userId, response.getMessageId());
         } catch (Exception e) {
-            log.error("Error sending WebSocket message - conversationId={}, userId={}, error={}",
+            log.error("WebSocket message failed | operation=sendMessage | conversationId={} | userId={} | reason={}", 
                     conversationId, userId, e.getMessage(), e);
             throw new RuntimeException("Failed to send message", e);
         }

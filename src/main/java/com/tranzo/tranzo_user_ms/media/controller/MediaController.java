@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -32,12 +33,15 @@ public class MediaController {
             return ResponseEntity.badRequest()
                     .body(ResponseDto.failure(400, "No file provided"));
         }
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        log.info("Incoming request | API=/media/upload | method=POST | userId={} | fileName={}", userId, file.getOriginalFilename());
+        
         try {
-            String userId = SecurityUtils.getCurrentUserUuid().toString();
-            UploadResponseDto result = s3MediaService.upload(file, userId);
+            UploadResponseDto result = s3MediaService.upload(file, userId.toString());
+            log.info("File uploaded | userId={} | s3Key={} | status=SUCCESS", userId, result.getKey());
             return ResponseEntity.ok(ResponseDto.success(200, "File uploaded successfully", result));
         } catch (S3MediaNotConfiguredException e) {
-            log.warn("S3 media not configured: {}", e.getMessage());
+            log.warn("Upload failed | operation=upload | userId={} | reason=S3_NOT_CONFIGURED", userId);
             return ResponseEntity.status(503)
                     .body(ResponseDto.failure(503, "Media storage is not configured"));
         }
@@ -55,11 +59,15 @@ public class MediaController {
             return ResponseEntity.badRequest()
                     .body(ResponseDto.failure(400, "Query param 'key' is required"));
         }
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        log.info("Incoming request | API=/media/url | method=GET | userId={} | key={}", userId, key);
+        
         try {
             PresignedUrlResponseDto result = s3MediaService.getPresignedUrl(key, expiryMinutes);
+            log.info("Presigned URL generated | userId={} | key={} | status=SUCCESS", userId, key);
             return ResponseEntity.ok(ResponseDto.success(200, "Presigned URL generated", result));
         } catch (S3MediaNotConfiguredException e) {
-            log.warn("S3 media not configured: {}", e.getMessage());
+            log.warn("Presigned URL failed | operation=getPresignedUrl | userId={} | reason=S3_NOT_CONFIGURED", userId);
             return ResponseEntity.status(503)
                     .body(ResponseDto.failure(503, "Media storage is not configured"));
         }

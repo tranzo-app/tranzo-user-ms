@@ -25,53 +25,116 @@ public class NotificationService {
     private final UserNotificationRepository userNotificationRepository;
 
     public void createNotification(UUID userId, UUID tripId, NotificationType type, String title, String body) {
-        UserNotificationEntity entity = UserNotificationEntity.builder()
-                .userId(userId)
-                .tripId(tripId)
-                .type(type)
-                .title(title)
-                .body(body)
-                .build();
-        userNotificationRepository.save(entity);
-        log.debug("Created notification type={} for user={} trip={}", type, userId, tripId);
+        log.info("Processing started | operation=createNotification | userId={} | tripId={} | type={}", userId, tripId, type);
+        
+        try {
+            UserNotificationEntity entity = UserNotificationEntity.builder()
+                    .userId(userId)
+                    .tripId(tripId)
+                    .type(type)
+                    .title(title)
+                    .body(body)
+                    .build();
+            userNotificationRepository.save(entity);
+            
+            log.info("Processing completed | operation=createNotification | userId={} | tripId={} | type={} | status=SUCCESS", userId, tripId, type);
+        } catch (Exception e) {
+            log.error("Operation failed | operation=createNotification | userId={} | tripId={} | type={} | reason={}", userId, tripId, type, e.getMessage(), e);
+            throw e;
+        }
     }
 
     public void createNotificationsForUsers(List<UUID> userIds, UUID tripId, NotificationType type, String title, String body) {
-        for (UUID userId : userIds) {
-            createNotification(userId, tripId, type, title, body);
+        log.info("Processing started | operation=createNotificationsForUsers | tripId={} | type={} | userCount={}", tripId, type, userIds.size());
+        
+        try {
+            for (UUID userId : userIds) {
+                createNotification(userId, tripId, type, title, body);
+            }
+            
+            log.info("Processing completed | operation=createNotificationsForUsers | tripId={} | type={} | userCount={} | status=SUCCESS", tripId, type, userIds.size());
+        } catch (Exception e) {
+            log.error("Operation failed | operation=createNotificationsForUsers | tripId={} | type={} | userCount={} | reason={}", tripId, type, userIds.size(), e.getMessage(), e);
+            throw e;
         }
     }
 
     public Page<UserNotificationEntity> getNotificationsForUser(UUID userId, Pageable pageable) {
-        return userNotificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        log.info("Processing started | operation=getNotificationsForUser | userId={} | page={} | size={}", userId, pageable.getPageNumber(), pageable.getPageSize());
+        
+        try {
+            Page<UserNotificationEntity> notifications = userNotificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+            
+            log.info("Processing completed | operation=getNotificationsForUser | userId={} | notificationsCount={} | status=SUCCESS", userId, notifications.getTotalElements());
+            return notifications;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=getNotificationsForUser | userId={} | reason={}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     public long getUnreadCount(UUID userId) {
-        return userNotificationRepository.countByUserIdAndReadAtIsNull(userId);
+        log.info("Processing started | operation=getUnreadCount | userId={}", userId);
+        
+        try {
+            long count = userNotificationRepository.countByUserIdAndReadAtIsNull(userId);
+            
+            log.info("Processing completed | operation=getUnreadCount | userId={} | unreadCount={} | status=SUCCESS", userId, count);
+            return count;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=getUnreadCount | userId={} | reason={}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     public void markAsRead(UUID notificationId, UUID userId) {
-        UserNotificationEntity notification = userNotificationRepository.findById(notificationId)
-                .orElseThrow(() -> new NotificationNotFoundException(notificationId));
+        log.info("Processing started | operation=markAsRead | userId={} | notificationId={}", userId, notificationId);
         
-        if (!notification.getUserId().equals(userId)) {
-            throw new NotificationAccessDeniedException("Access denied to notification " + notificationId);
-        }
-        
-        if (notification.getReadAt() == null) {
-            notification.setReadAt(LocalDateTime.now());
-            userNotificationRepository.save(notification);
+        try {
+            UserNotificationEntity notification = userNotificationRepository.findById(notificationId)
+                    .orElseThrow(() -> new NotificationNotFoundException(notificationId));
+            
+            if (!notification.getUserId().equals(userId)) {
+                log.warn("Access denied | operation=markAsRead | userId={} | notificationId={} | reason=NOT_OWNER", userId, notificationId);
+                throw new NotificationAccessDeniedException("Access denied to notification " + notificationId);
+            }
+            
+            if (notification.getReadAt() == null) {
+                notification.setReadAt(LocalDateTime.now());
+                userNotificationRepository.save(notification);
+                log.info("Notification marked as read | userId={} | notificationId={} | status=SUCCESS", userId, notificationId);
+            } else {
+                log.info("Notification already read | userId={} | notificationId={} | status=NOOP", userId, notificationId);
+            }
+            
+            log.info("Processing completed | operation=markAsRead | userId={} | notificationId={} | status=SUCCESS", userId, notificationId);
+        } catch (NotificationNotFoundException | NotificationAccessDeniedException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=markAsRead | userId={} | notificationId={} | reason={}", userId, notificationId, e.getMessage(), e);
+            throw e;
         }
     }
 
     public void markAllAsRead(UUID userId) {
-        userNotificationRepository.findByUserIdOrderByCreatedAtDesc(userId, Pageable.unpaged())
-                .getContent()
-                .stream()
-                .filter(n -> n.getReadAt() == null)
-                .forEach(n -> {
-                    n.setReadAt(LocalDateTime.now());
-                    userNotificationRepository.save(n);
-                });
+        log.info("Processing started | operation=markAllAsRead | userId={}", userId);
+        
+        try {
+            List<UserNotificationEntity> unreadNotifications = userNotificationRepository.findByUserIdOrderByCreatedAtDesc(userId, Pageable.unpaged())
+                    .getContent()
+                    .stream()
+                    .filter(n -> n.getReadAt() == null)
+                    .toList();
+            
+            for (UserNotificationEntity notification : unreadNotifications) {
+                notification.setReadAt(LocalDateTime.now());
+                userNotificationRepository.save(notification);
+            }
+            
+            log.info("Processing completed | operation=markAllAsRead | userId={} | markedCount={} | status=SUCCESS", userId, unreadNotifications.size());
+        } catch (Exception e) {
+            log.error("Operation failed | operation=markAllAsRead | userId={} | reason={}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
 }

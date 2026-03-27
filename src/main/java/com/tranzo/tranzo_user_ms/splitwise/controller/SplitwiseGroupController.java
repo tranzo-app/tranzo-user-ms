@@ -34,11 +34,17 @@ public class SplitwiseGroupController {
     @PostMapping
     public ResponseEntity<GroupResponse> createGroup(@Valid @RequestBody CreateGroupRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Received request to create group: {}", request.getName());
-        GroupResponse response = groupService.createGroup(request, userId);
+        log.info("Incoming request | API=/api/splitwise/groups | method=POST | userId={} | groupName={}", userId, request.getName());
         
-        log.info("Successfully created group with ID: {}", response.getId());
-        return ResponseEntity.ok(response);
+        try {
+            GroupResponse response = groupService.createGroup(request, userId);
+            
+            log.info("Group created | userId={} | groupId={} | status=SUCCESS", userId, response.getId());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Request failed | API=/api/splitwise/groups | method=POST | userId={} | reason={}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -47,12 +53,17 @@ public class SplitwiseGroupController {
     @GetMapping("/{groupId}")
     public ResponseEntity<GroupResponse> getGroup(@PathVariable UUID groupId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.debug("Received request to get group: {}", groupId);
+        log.info("Incoming request | API=/api/splitwise/groups/{} | method=GET | userId={}", groupId, userId);
         
-        GroupResponse response = groupService.getGroup(groupId, userId);
-        
-        log.debug("Successfully retrieved group: {}", response.getName());
-        return ResponseEntity.ok(response);
+        try {
+            GroupResponse response = groupService.getGroup(groupId, userId);
+            
+            log.info("Group retrieved | userId={} | groupId={} | status=SUCCESS", userId, groupId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Request failed | API=/api/splitwise/groups/{} | method=GET | userId={} | reason={}", groupId, userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -61,11 +72,17 @@ public class SplitwiseGroupController {
     @PutMapping("/{groupId}")
     public ResponseEntity<GroupResponse> updateGroup(@PathVariable UUID groupId, @Valid @RequestBody CreateGroupRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Received request to update group: {}", groupId);
-        GroupResponse response = groupService.updateGroup(groupId, request, userId);
+        log.info("Incoming request | API=/api/splitwise/groups/{} | method=PUT | userId={} | groupName={}", groupId, userId, request.getName());
         
-        log.info("Successfully updated group: {}", groupId);
-        return ResponseEntity.ok(response);
+        try {
+            GroupResponse response = groupService.updateGroup(groupId, request, userId);
+            
+            log.info("Group updated | userId={} | groupId={} | status=SUCCESS", userId, groupId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Request failed | API=/api/splitwise/groups/{} | method=PUT | userId={} | reason={}", groupId, userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -74,11 +91,17 @@ public class SplitwiseGroupController {
     @DeleteMapping("/{groupId}")
     public ResponseEntity<Void> deleteGroup(@PathVariable UUID groupId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Received request to delete group: {}", groupId);
-        groupService.deleteGroup(groupId, userId);
+        log.info("Incoming request | API=/api/splitwise/groups/{} | method=DELETE | userId={}", groupId, userId);
         
-        log.info("Successfully deleted group: {}", groupId);
-        return ResponseEntity.noContent().build();
+        try {
+            groupService.deleteGroup(groupId, userId);
+            
+            log.info("Group deleted | userId={} | groupId={} | status=SUCCESS", userId, groupId);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            log.error("Request failed | API=/api/splitwise/groups/{} | method=DELETE | userId={} | reason={}", groupId, userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -87,11 +110,17 @@ public class SplitwiseGroupController {
     @GetMapping("/my-groups")
     public ResponseEntity<List<GroupResponse>> getUserGroups() throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.debug("Received request to get groups for current user");
-        List<GroupResponse> response = groupService.getUserGroups(userId);
+        log.info("Incoming request | API=/api/splitwise/groups/my-groups | method=GET | userId={}", userId);
         
-        log.debug("Retrieved {} groups for user: {}", response.size(), userId);
-        return ResponseEntity.ok(response);
+        try {
+            List<GroupResponse> response = groupService.getUserGroups(userId);
+            
+            log.info("User groups retrieved | userId={} | groupsCount={} | status=SUCCESS", userId, response.size());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Request failed | API=/api/splitwise/groups/my-groups | method=GET | userId={} | reason={}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -100,12 +129,18 @@ public class SplitwiseGroupController {
     @PostMapping("/{groupId}/members")
     public ResponseEntity<GroupResponse> addMembers(@PathVariable UUID groupId, @Valid @RequestBody AddGroupMemberRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Received request to add {} members to group: {}", 
-                 request.getMemberIds().size(), groupId);
-        GroupResponse response = groupService.addMembers(groupId, request, userId);
+        log.info("Incoming request | API=/api/splitwise/groups/{}/members | method=POST | userId={} | membersCount={}", 
+                 groupId, userId, request.getMemberIds().size());
         
-        log.info("Successfully added members to group: {}", groupId);
-        return ResponseEntity.ok(response);
+        try {
+            GroupResponse response = groupService.addMembers(groupId, request, userId);
+            
+            log.info("Members added | userId={} | groupId={} | membersCount={} | status=SUCCESS", userId, groupId, request.getMemberIds().size());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Request failed | API=/api/splitwise/groups/{}/members | method=POST | userId={} | reason={}", groupId, userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -114,11 +149,17 @@ public class SplitwiseGroupController {
     @DeleteMapping("/{groupId}/members/{memberId}")
     public ResponseEntity<GroupResponse> removeMember(@PathVariable UUID groupId, @PathVariable UUID memberId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Received request to remove member {} from group: {}", memberId, groupId);
-        GroupResponse response = groupService.removeMember(groupId, memberId, userId);
+        log.info("Incoming request | API=/api/splitwise/groups/{}/members/{} | method=DELETE | userId={}", groupId, memberId, userId);
         
-        log.info("Successfully removed member {} from group: {}", memberId, groupId);
-        return ResponseEntity.ok(response);
+        try {
+            GroupResponse response = groupService.removeMember(groupId, memberId, userId);
+            
+            log.info("Member removed | userId={} | groupId={} | memberId={} | status=SUCCESS", userId, groupId, memberId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Request failed | API=/api/splitwise/groups/{}/members/{} | method=DELETE | userId={} | reason={}", groupId, memberId, userId, e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -127,11 +168,17 @@ public class SplitwiseGroupController {
     @GetMapping("/{groupId}/members")
     public ResponseEntity<GroupResponse> getGroupMembers(@PathVariable UUID groupId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.debug("Received request to get members for group: {}", groupId);
+        log.info("Incoming request | API=/api/splitwise/groups/{}/members | method=GET | userId={}", groupId, userId);
         
-        GroupResponse group = groupService.getGroup(groupId, userId);
-        
-        log.debug("Retrieved {} members for group: {}", group.getMembers() != null ? group.getMembers().size() : 0, groupId);
-        return ResponseEntity.ok(group);
+        try {
+            GroupResponse group = groupService.getGroup(groupId, userId);
+            
+            int membersCount = group.getMembers() != null ? group.getMembers().size() : 0;
+            log.info("Group members retrieved | userId={} | groupId={} | membersCount={} | status=SUCCESS", userId, groupId, membersCount);
+            return ResponseEntity.ok(group);
+        } catch (Exception e) {
+            log.error("Request failed | API=/api/splitwise/groups/{}/members | method=GET | userId={} | reason={}", groupId, userId, e.getMessage(), e);
+            throw e;
+        }
     }
 }
