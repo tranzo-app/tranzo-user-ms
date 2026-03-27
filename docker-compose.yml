@@ -17,5 +17,5 @@ services:
       options:
         awslogs-region: ap-south-1
         awslogs-group: tranzo-user-ms-logs
-        awslogs-stream: tranzo-user-ms-{{.ContainerID}}
+        awslogs-stream: tranzo-user-ms-${NAME}-${GIT_SHA}
         awslogs-create-group: "true"
