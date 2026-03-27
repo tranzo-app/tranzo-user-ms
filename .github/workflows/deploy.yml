@@ -56,8 +56,8 @@ jobs:
           source: "."
           target: "/home/ec2-user/tranzo-user-ms"
 
-      # 6. Build & Deploy
-      - name: Build Image and Deploy on Server
+          # 6. Build & Deploy
+      - name: Build & Deploy on Server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -65,20 +65,52 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
-  
+
             cd /home/ec2-user/tranzo-user-ms
+
+            # -----------------------------
+            # Compute image tag
+            # -----------------------------
+            # Use short git SHA as tag for traceability
+            IMAGE_TAG=$(git rev-parse --short HEAD)
+            echo "Deploying image tag: $IMAGE_TAG"
+
             export DOCKER_BUILDKIT=0
             export COMPOSE_DOCKER_CLI_BUILD=0
-            
-            # 🔥 Always clean old container (safe)
-            docker stop tranzo-user || true
-            docker rm tranzo-user || true
-            
-            # Clean compose
+            export IMAGE_TAG=$IMAGE_TAG
+
+            # -----------------------------
+            # Stop old container safely
+            # -----------------------------
             docker compose down || true
-            
-            # Build & run
+
+            # -----------------------------
+            # Build & run the new image
+            # -----------------------------
             docker compose build --no-cache app
             docker compose up -d app
-            
-            sudo docker system prune -af
+
+            # -----------------------------
+            # Clean unused Docker resources
+            # -----------------------------
+            docker system prune -f --volumes --filter "label!=keep"
+
+#          script: |
+#            set -e
+#
+#            cd /home/ec2-user/tranzo-user-ms
+#            export DOCKER_BUILDKIT=0
+#            export COMPOSE_DOCKER_CLI_BUILD=0
+#
+#            # 🔥 Always clean old container (safe)
+#            docker stop tranzo-user || true
+#            docker rm tranzo-user || true
+#
+#            # Clean compose
+#            docker compose down || true
+#
+#            # Build & run
+#            docker compose build --no-cache app
+#            docker compose up -d app
+#
+#            sudo docker system prune -af

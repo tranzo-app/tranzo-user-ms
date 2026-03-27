@@ -1,10 +1,21 @@
 services:
   app:
-    build: .
-    image: tranzo-user-ms:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        IMAGE_TAG: ${IMAGE_TAG:-latest}   # default fallback
+    image: tranzo-user-ms:${IMAGE_TAG:-latest}
     container_name: tranzo-user
     ports:
       - "8083:8083"
     env_file:
       - .env
     restart: unless-stopped
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-south-1
+        awslogs-group: tranzo-user-ms-logs
+        awslogs-stream: tranzo-user-ms-{{.ContainerID}}
+        awslogs-create-group: "true"
