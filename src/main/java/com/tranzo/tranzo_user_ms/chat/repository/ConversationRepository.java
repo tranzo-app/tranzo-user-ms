@@ -2,10 +2,12 @@ package com.tranzo.tranzo_user_ms.chat.repository;
 
 import com.tranzo.tranzo_user_ms.chat.dto.ChatListItemDto;
 import com.tranzo.tranzo_user_ms.chat.model.ConversationEntity;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import jakarta.persistence.LockModeType;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +17,7 @@ import java.util.UUID;
 @Repository
 public interface ConversationRepository extends JpaRepository<ConversationEntity, UUID> {
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
     SELECT conversation
     FROM ConversationEntity conversation
@@ -23,7 +26,9 @@ public interface ConversationRepository extends JpaRepository<ConversationEntity
       AND participant.userId IN (:firstUserId, :secondUserId)
       AND participant.leftAt IS NULL
     GROUP BY conversation.conversationId
-    HAVING COUNT(DISTINCT participant.userId) = 2""")
+    HAVING COUNT(DISTINCT participant.userId) = 2
+    ORDER BY conversation.createdAt DESC
+    LIMIT 1""")
     Optional<ConversationEntity> findOneToOneConversationBetweenUsers(
             @Param("firstUserId") UUID firstUserId,
             @Param("secondUserId") UUID secondUserId

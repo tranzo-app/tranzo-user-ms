@@ -1,7 +1,9 @@
 package com.tranzo.tranzo_user_ms.splitwise.controller;
 
+import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.BalanceResponse;
+import com.tranzo.tranzo_user_ms.splitwise.dto.response.UserDashboardResponse;
 import com.tranzo.tranzo_user_ms.splitwise.service.BalanceService;
 import jakarta.security.auth.message.AuthException;
 import lombok.RequiredArgsConstructor;
@@ -65,5 +67,19 @@ public class BalanceController {
         
         log.info("My balance retrieved | userId={} | groupId={} | netBalance={} | status=SUCCESS", userId, groupId, response.getNetBalance());
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Gets user's splitwise dashboard with comprehensive balance summary.
+     */
+    @GetMapping("/dashboard")
+    public ResponseEntity<ResponseDto<UserDashboardResponse>> getUserDashboard() throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        log.info("Incoming request | API=/api/splitwise/balances/dashboard | method=GET | userId={}", userId);
+        
+        UserDashboardResponse response = balanceService.getUserDashboard(userId);
+        
+        log.info("User dashboard retrieved | userId={} | totalBalance={} | status=SUCCESS", userId, response.getTotalOutstandingBalance());
+        return ResponseEntity.ok(ResponseDto.success("Dashboard retrieved successfully", response));
     }
 }

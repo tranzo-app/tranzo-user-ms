@@ -69,6 +69,9 @@ public class TripEntity {
     @Column(name = "trip_full_reason")
     private String tripFullReason;
 
+    @Column(name = "trip_host_name")
+    private String tripHostName;
+
     @Column(name = "full_marked_at")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime fullMarkedAt;

@@ -32,6 +32,7 @@ public class TripViewDto {
     private Boolean isFull;
     private Boolean isTripHost;
     private String tripFullReason;
+    private String hostName;
     private JoinPolicy joinPolicy;
     private VisibilityStatus visibilityStatus;
     private UUID splitWiseGroupId;

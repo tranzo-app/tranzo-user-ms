@@ -8,6 +8,8 @@ import com.tranzo.tranzo_user_ms.trip.events.TripEventPublisher;
 import com.tranzo.tranzo_user_ms.trip.model.*;
 import com.tranzo.tranzo_user_ms.trip.repository.*;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
+import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
+import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +65,9 @@ class TripManagementServiceTest {
     @Mock
     private TravelPalService travelPalService;
 
+    @Mock
+    private UserProfileClient userProfileClient;
+
     @InjectMocks
     private TripManagementService tripManagementService;
 
@@ -88,6 +93,14 @@ class TripManagementServiceTest {
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(tagRepository.save(any(TagEntity.class))).thenReturn(new TagEntity());
+        
+        // Mock UserProfileClient
+        UserNameDto userNameDto = UserNameDto.builder()
+                .userId(userId)
+                .firstName("John")
+                .lastName("Doe")
+                .build();
+        when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
 
         // When
         TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId);
@@ -120,6 +133,14 @@ class TripManagementServiceTest {
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(tagRepository.save(any(TagEntity.class))).thenReturn(new TagEntity());
+        
+        // Mock UserProfileClient
+        UserNameDto userNameDto = UserNameDto.builder()
+                .userId(userId)
+                .firstName("John")
+                .lastName("Doe")
+                .build();
+        when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
 
         TripPolicyDto policyDto = new TripPolicyDto();
         policyDto.setCancellationPolicy("No refund after 7 days");
@@ -141,6 +162,14 @@ class TripManagementServiceTest {
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(tagRepository.save(any(TagEntity.class))).thenReturn(new TagEntity());
+        
+        // Mock UserProfileClient
+        UserNameDto userNameDto = UserNameDto.builder()
+                .userId(userId)
+                .firstName("John")
+                .lastName("Doe")
+                .build();
+        when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
 
         TripMetaDataDto metaDataDto = new TripMetaDataDto();
         metaDataDto.setTripSummary(Map.of("en", "Summer adventure"));
@@ -163,6 +192,14 @@ class TripManagementServiceTest {
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(tagRepository.save(any(TagEntity.class))).thenReturn(new TagEntity());
+        
+        // Mock UserProfileClient
+        UserNameDto userNameDto = UserNameDto.builder()
+                .userId(userId)
+                .firstName("John")
+                .lastName("Doe")
+                .build();
+        when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
 
         TripItineraryDto itineraryDto = new TripItineraryDto();
         itineraryDto.setDayNumber(1);
@@ -189,6 +226,14 @@ class TripManagementServiceTest {
         existingTag.setTagName("Adventure");
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase("Adventure")).thenReturn(Optional.of(existingTag));
+        
+        // Mock UserProfileClient
+        UserNameDto userNameDto = UserNameDto.builder()
+                .userId(userId)
+                .firstName("John")
+                .lastName("Doe")
+                .build();
+        when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
 
         // When
         TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId);

@@ -75,7 +75,7 @@ public class CreateAndManageConversationService {
 
             String conversationName = buildUserName(otherUserName);
 
-            // Check if conversation already exists
+            // Check if conversation already exists (with pessimistic lock to prevent race conditions)
             Optional<ConversationEntity> existingConversation = conversationRepository.findOneToOneConversationBetweenUsers(userId, otherUserId);
             if (existingConversation.isPresent()) {
                 ConversationEntity conversation = existingConversation.get();
