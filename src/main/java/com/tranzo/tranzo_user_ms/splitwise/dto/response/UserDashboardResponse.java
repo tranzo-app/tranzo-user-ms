@@ -71,6 +71,7 @@ public class UserDashboardResponse {
         private String tripTitle;
         private LocalDate tripDate;
         private BigDecimal oweAmount;
+        private BigDecimal owedAmount;
         private String tripDestination;
         private String tripStatus;
         private String currency;
