@@ -351,6 +351,11 @@ public class BalanceService {
             
             BigDecimal amount = balance.getAmount();
             
+            // Skip if amount is exactly zero
+            if (amount.compareTo(BigDecimal.ZERO) == 0) {
+                continue;
+            }
+            
             if (balance.getOwedBy().equals(userId)) {
                 // User owes to other person
                 travelPalsUserOwes.add(createTravelPalOwe(otherUserId, amount));
@@ -412,11 +417,20 @@ public class BalanceService {
         // Get user's total owe amount for this trip
         BigDecimal oweAmount = balanceRepository.getTotalOwedByUserInGroup(group.getId(), userId);
         
+        // Get user's total owed amount for this trip
+        BigDecimal owedAmount = balanceRepository.getTotalOwedToUserInGroup(group.getId(), userId);
+        
+        // Skip adding expense summary if both amounts are exactly zero
+        if (oweAmount.compareTo(BigDecimal.ZERO) == 0 && owedAmount.compareTo(BigDecimal.ZERO) == 0) {
+            return;
+        }
+        
         expenseSummaries.add(UserDashboardResponse.ExpenseSummary.builder()
                 .tripId(trip.getTripId())
                 .tripTitle(trip.getTripTitle())
                 .tripDate(trip.getTripStartDate() != null ? trip.getTripStartDate() : LocalDate.now())
                 .oweAmount(oweAmount)
+                .owedAmount(owedAmount)
                 .tripDestination(trip.getTripDestination() != null ? trip.getTripDestination() : "Unknown Destination")
                 .tripStatus(trip.getTripStatus() != null ? trip.getTripStatus().toString() : "UNKNOWN")
                 .currency("INR") // Changed to INR as requested
