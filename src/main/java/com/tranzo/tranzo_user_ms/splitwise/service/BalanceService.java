@@ -3,24 +3,29 @@ package com.tranzo.tranzo_user_ms.splitwise.service;
 import com.tranzo.tranzo_user_ms.splitwise.dto.SettlementProposal;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.BalanceResponse;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.IndividualBalanceResponse;
+import com.tranzo.tranzo_user_ms.splitwise.dto.response.UserDashboardResponse;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.UserResponse;
 import com.tranzo.tranzo_user_ms.splitwise.entity.Balance;
 import com.tranzo.tranzo_user_ms.splitwise.entity.Expense;
 import com.tranzo.tranzo_user_ms.splitwise.entity.ExpenseSplit;
 import com.tranzo.tranzo_user_ms.splitwise.entity.Settlement;
+import com.tranzo.tranzo_user_ms.splitwise.entity.SplitwiseGroup;
 import com.tranzo.tranzo_user_ms.splitwise.exception.InsufficientBalanceException;
 import com.tranzo.tranzo_user_ms.splitwise.repository.BalanceRepository;
 import com.tranzo.tranzo_user_ms.splitwise.repository.ExpenseRepository;
 import com.tranzo.tranzo_user_ms.splitwise.repository.SplitwiseGroupRepository;
+import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
 import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
+import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,19 +43,25 @@ public class BalanceService {
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
     private final SplitwiseGroupRepository splitwiseGroupRepository;
+    private final TripRepository tripRepository;
+    private final TravelPalService travelPalService;
 
     public BalanceService(BalanceRepository balanceRepository,
                           ExpenseRepository expenseRepository,
                           SettlementOptimizationService settlementOptimizationService,
                           UserRepository userRepository,
                           UserProfileRepository userProfileRepository,
-                          SplitwiseGroupRepository splitwiseGroupRepository) {
+                          SplitwiseGroupRepository splitwiseGroupRepository,
+                          TripRepository tripRepository,
+                          TravelPalService travelPalService) {
         this.balanceRepository = balanceRepository;
         this.expenseRepository = expenseRepository;
         this.settlementOptimizationService = settlementOptimizationService;
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
         this.splitwiseGroupRepository = splitwiseGroupRepository;
+        this.tripRepository = tripRepository;
+        this.travelPalService = travelPalService;
     }
 
     @Transactional(readOnly = true)
@@ -259,5 +270,156 @@ public class BalanceService {
                 .email(user.getEmail())
                 .mobileNumber(user.getMobileNumber())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public UserDashboardResponse getUserDashboard(UUID userId) {
+        log.debug("Generating dashboard for user: {}", userId);
+        
+        // Get all groups user is part of
+        List<SplitwiseGroup> userGroups = splitwiseGroupRepository.findByUserId(userId);
+        
+        // Get user's travel pals (with fallback if travel pal service is not available)
+        List<UUID> travelPalIds = new ArrayList<>();
+        try {
+            if (travelPalService != null) {
+                travelPalIds = travelPalService.getMyTravelPals(userId);
+            }
+        } catch (Exception e) {
+            // Log the error but continue without travel pal filtering
+            log.warn("Travel pal service not available, proceeding without travel pal filtering", e);
+        }
+        
+        // Calculate totals across all groups
+        BigDecimal totalOwed = BigDecimal.ZERO;
+        BigDecimal totalOwing = BigDecimal.ZERO;
+        List<UserDashboardResponse.TravelPalOwe> travelPalsUserOwes = new ArrayList<>();
+        List<UserDashboardResponse.TravelPalOwed> travelPalsOwedToUser = new ArrayList<>();
+        List<UserDashboardResponse.ExpenseSummary> expenseSummaries = new ArrayList<>();
+        
+        for (SplitwiseGroup group : userGroups) {
+            // Get user balance in this group
+            BalanceResponse groupBalance = getUserBalanceInGroup(group.getId(), userId);
+            totalOwed = totalOwed.add(groupBalance.getTotalOwed());
+            totalOwing = totalOwing.add(groupBalance.getTotalOwing());
+            
+            // Process travel pals for this group (only those who are actual travel pals)
+            processTravelPalsForGroup(group, userId, travelPalsUserOwes, travelPalsOwedToUser, travelPalIds);
+            
+            // Add expense summary for this group
+            addExpenseSummaryForGroup(group, expenseSummaries, userId);
+        }
+        
+        // Build travel pal summary
+        UserDashboardResponse.TravelPalSummary travelPalSummary = UserDashboardResponse.TravelPalSummary.builder()
+                .travelPalsUserOwes(travelPalsUserOwes)
+                .travelPalsOwedToUser(travelPalsOwedToUser)
+                .currency("INR") // Changed to INR as requested
+                .totalTravelPals(travelPalsUserOwes.size() + travelPalsOwedToUser.size())
+                .totalOwedAmount(travelPalsUserOwes.stream()
+                        .map(UserDashboardResponse.TravelPalOwe::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add))
+                .totalOweAmount(travelPalsOwedToUser.stream()
+                        .map(UserDashboardResponse.TravelPalOwed::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add))
+                .build();
+        
+        BigDecimal totalOutstandingBalance = totalOwing.subtract(totalOwed);
+        
+        return UserDashboardResponse.builder()
+                .totalAmountUserOwes(totalOwed)
+                .totalAmountOwedToUser(totalOwing)
+                .totalOutstandingBalance(totalOutstandingBalance)
+                .travelPalSummary(travelPalSummary)
+                .expenseSummary(expenseSummaries)
+                .build();
+    }
+    
+    private void processTravelPalsForGroup(SplitwiseGroup group, UUID userId, 
+                                       List<UserDashboardResponse.TravelPalOwe> travelPalsUserOwes,
+                                       List<UserDashboardResponse.TravelPalOwed> travelPalsOwedToUser,
+                                       List<UUID> travelPalIds) {
+        List<Balance> balances = balanceRepository.findBalancesForUserInGroup(group.getId(), userId);
+        
+        for (Balance balance : balances) {
+            UUID otherUserId = balance.getOwedBy().equals(userId) ? balance.getOwedTo() : balance.getOwedBy();
+            
+            // Only process if the other user is an actual travel pal
+            if (!travelPalIds.contains(otherUserId)) {
+                continue;
+            }
+            
+            BigDecimal amount = balance.getAmount();
+            
+            if (balance.getOwedBy().equals(userId)) {
+                // User owes to other person
+                travelPalsUserOwes.add(createTravelPalOwe(otherUserId, amount));
+            } else {
+                // Other person owes to user
+                travelPalsOwedToUser.add(createTravelPalOwed(otherUserId, amount));
+            }
+        }
+    }
+    
+    private UserDashboardResponse.TravelPalOwe createTravelPalOwe(UUID userId, BigDecimal amount) {
+        UsersEntity user = userRepository.findUserByUserUuid(userId).orElse(null);
+        String userName = "";
+        String userEmail = user != null ? user.getEmail() : "";
+        String profilePictureUrl = "";
+        
+        if (user != null && user.getUserProfileEntity() != null) {
+            UserProfileEntity profile = user.getUserProfileEntity();
+            userName = (profile.getFirstName() != null ? profile.getFirstName() : "") + 
+                      " " + (profile.getLastName() != null ? profile.getLastName() : "");
+            profilePictureUrl = profile.getProfilePictureUrl() != null ? profile.getProfilePictureUrl() : "";
+        }
+        
+        return UserDashboardResponse.TravelPalOwe.builder()
+                .userId(userId)
+                .userName(userName.trim())
+                .userEmail(userEmail)
+                .amount(amount)
+                .profilePictureUrl(profilePictureUrl)
+                .build();
+    }
+    
+    private UserDashboardResponse.TravelPalOwed createTravelPalOwed(UUID userId, BigDecimal amount) {
+        UsersEntity user = userRepository.findUserByUserUuid(userId).orElse(null);
+        String userName = "";
+        String userEmail = user != null ? user.getEmail() : "";
+        String profilePictureUrl = "";
+        
+        if (user != null && user.getUserProfileEntity() != null) {
+            UserProfileEntity profile = user.getUserProfileEntity();
+            userName = (profile.getFirstName() != null ? profile.getFirstName() : "") + 
+                      " " + (profile.getLastName() != null ? profile.getLastName() : "");
+            profilePictureUrl = profile.getProfilePictureUrl() != null ? profile.getProfilePictureUrl() : "";
+        }
+        
+        return UserDashboardResponse.TravelPalOwed.builder()
+                .userId(userId)
+                .userName(userName.trim())
+                .userEmail(userEmail)
+                .amount(amount)
+                .profilePictureUrl(profilePictureUrl)
+                .build();
+    }
+    
+    private void addExpenseSummaryForGroup(SplitwiseGroup group, List<UserDashboardResponse.ExpenseSummary> expenseSummaries, UUID userId) {
+        com.tranzo.tranzo_user_ms.trip.model.TripEntity trip = tripRepository.findById(group.getTripId()).orElse(null);
+        if (trip == null) return;
+        
+        // Get user's total owe amount for this trip
+        BigDecimal oweAmount = balanceRepository.getTotalOwedByUserInGroup(group.getId(), userId);
+        
+        expenseSummaries.add(UserDashboardResponse.ExpenseSummary.builder()
+                .tripId(trip.getTripId())
+                .tripTitle(trip.getTripTitle())
+                .tripDate(trip.getTripStartDate() != null ? trip.getTripStartDate() : LocalDate.now())
+                .oweAmount(oweAmount)
+                .tripDestination(trip.getTripDestination() != null ? trip.getTripDestination() : "Unknown Destination")
+                .tripStatus(trip.getTripStatus() != null ? trip.getTripStatus().toString() : "UNKNOWN")
+                .currency("INR") // Changed to INR as requested
+                .build());
     }
 }

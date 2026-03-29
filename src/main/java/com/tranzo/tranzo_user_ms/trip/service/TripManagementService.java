@@ -147,6 +147,17 @@ public class TripManagementService {
         tripEntity.getTripMembers().add(host);
         tripEntity.setCurrentParticipants(1);
 
+        // Set host name
+        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(userId));
+        UserNameDto hostNameDto = namesByUserId.get(userId);
+        if (hostNameDto != null) {
+            String fullName = String.join(" ", 
+                hostNameDto.getFirstName() != null ? hostNameDto.getFirstName() : "",
+                hostNameDto.getMiddleName() != null ? hostNameDto.getMiddleName() : "",
+                hostNameDto.getLastName() != null ? hostNameDto.getLastName() : "").trim();
+            tripEntity.setTripHostName(fullName);
+        }
+
         TripEntity newTrip = tripRepository.save(tripEntity);
         return TripResponseDto.builder()
                 .tripId(newTrip.getTripId())
@@ -266,7 +277,7 @@ public class TripManagementService {
 
     public List<TripViewDto> fetchAllTrips(UUID userId)
     {
-        List<TripEntity> trips = tripRepository.findAllTrips(TripStatus.COMPLETED);
+        List<TripEntity> trips = tripRepository.findAll();
         return trips.stream()
                 .map(trip -> {
                     Boolean isTripHost = null;
@@ -508,6 +519,30 @@ public class TripManagementService {
     {
         int activeMemberCount = tripMemberRepository.countByTrip_TripIdAndStatus(
                 trip.getTripId(), TripMemberStatus.ACTIVE);
+        
+        // Get host name - use stored value if available, otherwise fetch dynamically
+        String hostName = trip.getTripHostName();
+        if (hostName == null) {
+            // Fallback for existing trips without stored host name
+            UUID hostUserId = tripMemberRepository.findByTrip_TripIdAndStatus(trip.getTripId(), TripMemberStatus.ACTIVE)
+                    .stream()
+                    .filter(m -> m.getRole() == TripMemberRole.HOST)
+                    .map(TripMemberEntity::getUserId)
+                    .findFirst()
+                    .orElse(null);
+            
+            if (hostUserId != null) {
+                Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(hostUserId));
+                UserNameDto hostNameDto = namesByUserId.get(hostUserId);
+                if (hostNameDto != null) {
+                    hostName = String.join(" ", 
+                        hostNameDto.getFirstName() != null ? hostNameDto.getFirstName() : "",
+                        hostNameDto.getMiddleName() != null ? hostNameDto.getMiddleName() : "",
+                        hostNameDto.getLastName() != null ? hostNameDto.getLastName() : "").trim();
+                }
+            }
+        }
+        
         return TripViewDto.builder()
                 .tripId(trip.getTripId())
                 .tripDescription(trip.getTripDescription())
@@ -521,6 +556,7 @@ public class TripManagementService {
                 .isFull(trip.getIsFull())
                 .splitWiseGroupId(trip.getSplitwiseGroupId())
                 .isTripHost(isTripHost)
+                .hostName(hostName)
                 .tripStatus(trip.getTripStatus())
                 .tripFullReason(trip.getTripFullReason())
                 .joinPolicy(trip.getJoinPolicy())
