@@ -237,6 +237,7 @@ public class TripManagementService {
                             .firstName(names != null ? names.getFirstName() : null)
                             .middleName(names != null ? names.getMiddleName() : null)
                             .lastName(names != null ? names.getLastName() : null)
+                            .profilePictureUrl(names != null ? names.getProfilePictureUrl() : null)
                             .build();
                 })
                 .toList();
@@ -249,12 +250,12 @@ public class TripManagementService {
                 .build();
     }
 
-    public List<TripViewDto> getMutualCompletedTrips(UUID currentUserId, UUID otherUserId) {
+    public List<TripViewDto> getMutualTrips(UUID currentUserId, UUID otherUserId) {
         if (currentUserId.equals(otherUserId)) {
             return List.of();
         }
-        List<TripEntity> trips = tripRepository.findMutualCompletedTrips(
-                currentUserId, otherUserId, TripStatus.COMPLETED);
+        List<TripStatus> statuses = List.of(TripStatus.PUBLISHED, TripStatus.ONGOING, TripStatus.COMPLETED);
+        List<TripEntity> trips = tripRepository.findMutualTrips(currentUserId, otherUserId, statuses);
         return trips.stream()
                 .map(trip -> {
                     boolean isTripHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(trip.getTripId(), currentUserId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);

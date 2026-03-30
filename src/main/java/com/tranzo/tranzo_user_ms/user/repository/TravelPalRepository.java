@@ -25,4 +25,12 @@ public interface TravelPalRepository extends JpaRepository<TravelPalEntity, UUID
         AND t.requestedBy <> :userId
     """)
     List<TravelPalEntity> findIncomingPending(UUID userId);
+
+    @Query("""
+        SELECT t FROM TravelPalEntity t
+        WHERE (t.userLowId = :userId OR t.userHighId = :userId)
+        AND t.status = 'PENDING'
+        AND t.requestedBy = :userId
+    """)
+    List<TravelPalEntity> findOutgoingPending(UUID userId);
 }

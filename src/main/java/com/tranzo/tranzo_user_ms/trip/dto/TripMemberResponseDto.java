@@ -17,6 +17,7 @@ public class TripMemberResponseDto {
     private String firstName;
     private String middleName;
     private String lastName;
+    private String profilePictureUrl;
     private UUID membershipId;
     private UUID userId;
     private TripMemberRole role;

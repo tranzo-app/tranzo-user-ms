@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
@@ -141,5 +143,19 @@ public class RatingService {
                     memberRatingRepository.save(e);
                     trustScoreService.updateTrustScore(raterUserId);
                 });
+    }
+
+    /**
+     * Gets the average member rating for a user based on all visible member ratings
+     */
+    public BigDecimal getUserAverageRating(UUID userId) {
+        List<MemberRatingEntity> ratings = memberRatingRepository.findByRatedUserIdAndVisibleAtIsNotNullOrderByCreatedAtDesc(userId);
+        if (ratings.isEmpty()) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        BigDecimal sum = ratings.stream()
+                .map(rating -> BigDecimal.valueOf(rating.getRatingScore()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return sum.divide(new BigDecimal(ratings.size()), 2, RoundingMode.HALF_UP);
     }
 }

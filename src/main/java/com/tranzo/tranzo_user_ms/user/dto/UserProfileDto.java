@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
@@ -52,4 +53,11 @@ public class UserProfileDto {
     private List<SocialHandleDto> socialHandleDtoList;
 
     private VerificationStatus verificationStatus;
+
+    // Additional statistics
+    private Integer travelPalsCount;
+    
+    private Integer completedTripsCount;
+    
+    private BigDecimal userRating;
 }

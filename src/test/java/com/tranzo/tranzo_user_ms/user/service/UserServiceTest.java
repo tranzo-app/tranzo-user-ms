@@ -2,7 +2,6 @@ package com.tranzo.tranzo_user_ms.user.service;
 
 import com.tranzo.tranzo_user_ms.commons.exception.UserProfileNotFoundException;
 import com.tranzo.tranzo_user_ms.user.dto.UserProfileDto;
-import com.tranzo.tranzo_user_ms.user.dto.UrlDto;
 import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.user.repository.UserProfileHistoryRepository;
@@ -11,6 +10,7 @@ import com.tranzo.tranzo_user_ms.user.repository.UserReportRepository;
 import com.tranzo.tranzo_user_ms.media.service.S3MediaService;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.user.utility.UserUtility;
+import com.tranzo.tranzo_user_ms.trip.client.TripStatisticsClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +46,15 @@ class UserServiceTest {
 
     @Mock
     private S3MediaService s3MediaService;
+
+    @Mock
+    private TravelPalService travelPalService;
+
+    @Mock
+    private RatingService ratingService;
+
+    @Mock
+    private TripStatisticsClient tripStatisticsClient;
 
     @InjectMocks
     private UserService userService;
@@ -78,6 +86,11 @@ class UserServiceTest {
                 .lastName("User")
                 .emailId("test@example.com")
                 .build();
+
+        // Add lenient stubbings for new dependencies used in some tests
+        lenient().when(travelPalService.getMyTravelPals(userId)).thenReturn(new java.util.ArrayList<>());
+        lenient().when(ratingService.getUserAverageRating(userId)).thenReturn(java.math.BigDecimal.ZERO);
+        lenient().when(tripStatisticsClient.getCompletedTripsCount(userId)).thenReturn(0);
     }
 
     @Test
@@ -90,6 +103,9 @@ class UserServiceTest {
         assertNotNull(result);
         assertEquals("Test", result.getFirstName());
         assertEquals("User", result.getLastName());
+        assertEquals(0, result.getTravelPalsCount());
+        assertEquals(0, result.getCompletedTripsCount());
+        assertEquals(java.math.BigDecimal.ZERO, result.getUserRating());
         verify(userProfileRepository).findAllUserProfileDetailByUserId(userId);
     }
 
