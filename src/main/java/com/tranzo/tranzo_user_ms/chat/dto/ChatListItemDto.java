@@ -19,6 +19,7 @@ public class ChatListItemDto {
     private LocalDateTime lastMessageAt;
     private Boolean muted;
     private Long unreadCount;
+    private String profilePictureUrl;
 
     public ChatListItemDto(
             UUID conversationId,
@@ -27,7 +28,8 @@ public class ChatListItemDto {
             String conversationName,
             LocalDateTime lastMessageAt,
             Boolean muted,
-            Long unreadCount
+            Long unreadCount,
+            String profilePictureUrl
     ) {
         this.conversationId = conversationId;
         this.type = type;
@@ -36,5 +38,6 @@ public class ChatListItemDto {
         this.muted = muted;
         this.unreadCount = unreadCount;
         this.conversationName = conversationName;
+        this.profilePictureUrl = profilePictureUrl;
     }
 }

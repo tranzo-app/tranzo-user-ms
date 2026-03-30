@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -21,5 +22,6 @@ public class SuggestedTravelPalDto {
     private String lastName;
     private String bio;
     private String location;
+    private LocalDate dob;
     private String profilePictureUrl;
 }

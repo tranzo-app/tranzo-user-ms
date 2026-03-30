@@ -88,7 +88,7 @@ class CreateAndManageConversationServiceTest {
         when(conversationRepository.findOneToOneConversationBetweenUsers(userId, otherUserId))
                 .thenReturn(Optional.of(conv));
         
-        UserNameDto otherUserName = new UserNameDto(otherUserId, "John", null, "Doe");
+        UserNameDto otherUserName = new UserNameDto(otherUserId, "John", null, "Doe", null);
         when(userProfileClient.getNamesByUserIds(List.of(otherUserId)))
                 .thenReturn(Map.of(otherUserId, otherUserName));
 

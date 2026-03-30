@@ -78,11 +78,14 @@ public class ConversationService {
                         if (otherUser != null) {
                             String fullName = buildFullName(otherUser.getFirstName(), otherUser.getMiddleName(), otherUser.getLastName());
                             conversation.setConversationName(fullName);
+                            conversation.setProfilePictureUrl(otherUser.getProfilePictureUrl());
                         } else {
                             conversation.setConversationName("Unknown User");
+                            conversation.setProfilePictureUrl(null);
                         }
                     } else {
                         conversation.setConversationName("Unknown");
+                        conversation.setProfilePictureUrl(null);
                     }
                 }
             }

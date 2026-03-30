@@ -358,7 +358,7 @@ class TripManagementControllerTest {
             .tripDestination("Paris")
             .build();
         List<TripViewDto> mutualTrips = List.of(tripDto);
-        when(tripManagementService.getMutualCompletedTrips(eq(userId), eq(otherUserId)))
+        when(tripManagementService.getMutualTrips(eq(userId), eq(otherUserId)))
             .thenReturn(mutualTrips);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
@@ -372,7 +372,7 @@ class TripManagementControllerTest {
             assertNotNull(response.getBody().getData());
             assertEquals(1, response.getBody().getData().size());
             assertEquals("Shared Trip", response.getBody().getData().get(0).getTripTitle());
-            verify(tripManagementService).getMutualCompletedTrips(userId, otherUserId);
+            verify(tripManagementService).getMutualTrips(userId, otherUserId);
         }
     }
 
@@ -380,7 +380,7 @@ class TripManagementControllerTest {
     @DisplayName("Should return empty list when no mutual trips")
     void testGetMutualTrips_EmptyList() throws Exception {
         UUID otherUserId = UUID.randomUUID();
-        when(tripManagementService.getMutualCompletedTrips(eq(userId), eq(otherUserId)))
+        when(tripManagementService.getMutualTrips(eq(userId), eq(otherUserId)))
             .thenReturn(List.of());
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
@@ -400,7 +400,7 @@ class TripManagementControllerTest {
     @DisplayName("Should pass current user and other user to service")
     void testGetMutualTrips_PassesCorrectParams() throws Exception {
         UUID otherUserId = UUID.randomUUID();
-        when(tripManagementService.getMutualCompletedTrips(any(UUID.class), any(UUID.class)))
+        when(tripManagementService.getMutualTrips(any(UUID.class), any(UUID.class)))
             .thenReturn(List.of());
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
@@ -408,7 +408,7 @@ class TripManagementControllerTest {
 
             tripManagementController.getMutualTrips(otherUserId);
 
-            verify(tripManagementService).getMutualCompletedTrips(eq(userId), eq(otherUserId));
+            verify(tripManagementService).getMutualTrips(eq(userId), eq(otherUserId));
         }
     }
 

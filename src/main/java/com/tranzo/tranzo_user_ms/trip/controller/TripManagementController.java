@@ -15,13 +15,11 @@ import jakarta.security.auth.message.AuthException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -74,7 +72,7 @@ public class TripManagementController {
     public ResponseEntity<ResponseDto<List<TripViewDto>>> getMutualTrips(@PathVariable UUID otherUserId) throws AuthException {
         UUID currentUserId = SecurityUtils.getCurrentUserUuid();
         log.info("Incoming request | API=/trips/mutual-with/{} | method=GET | userId={}", otherUserId, currentUserId);
-        List<TripViewDto> trips = tripManagementService.getMutualCompletedTrips(currentUserId, otherUserId);
+        List<TripViewDto> trips = tripManagementService.getMutualTrips(currentUserId, otherUserId);
         log.info("Mutual trips retrieved | userId={} | otherUserId={} | tripsCount={} | status=SUCCESS", currentUserId, otherUserId, trips.size());
         return ResponseEntity.ok(ResponseDto.success("Mutual trips retrieved", trips));
     }

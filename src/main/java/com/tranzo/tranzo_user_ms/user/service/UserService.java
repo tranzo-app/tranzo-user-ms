@@ -1,6 +1,7 @@
 package com.tranzo.tranzo_user_ms.user.service;
 
 import com.tranzo.tranzo_user_ms.commons.exception.*;
+import com.tranzo.tranzo_user_ms.trip.client.TripStatisticsClient;
 import com.tranzo.tranzo_user_ms.user.dto.SocialHandleDto;
 import com.tranzo.tranzo_user_ms.user.dto.UrlDto;
 import com.tranzo.tranzo_user_ms.user.dto.PublicUserProfileDto;
@@ -36,6 +37,9 @@ public class UserService {
     private final UserProfileHistoryRepository userProfileHistoryRepository;
     private final UserUtility userUtility;
     private final S3MediaService s3MediaService;
+    private final TravelPalService travelPalService;
+    private final RatingService ratingService;
+    private final TripStatisticsClient tripStatisticsClient;
 
     public void findUserByUserId(UUID userUuid) {
         userRepository.findUserByUserUuid(userUuid)
@@ -79,6 +83,9 @@ public class UserService {
                 .profilePictureUrl(profilePictureUrl)
                 .socialHandleDtoList(socialHandleDtos)
                 .verificationStatus(profileEntity.getVerificationStatus())
+                .travelPalsCount(travelPalService.getMyTravelPals(user.getUserUuid()).size())
+                .completedTripsCount(tripStatisticsClient.getCompletedTripsCount(user.getUserUuid()))
+                .userRating(ratingService.getUserAverageRating(user.getUserUuid()))
                 .build();
     }
 
@@ -159,6 +166,9 @@ public class UserService {
                 .profilePictureUrl(profilePictureUrl)
                 .socialHandleDtoList(socialHandleDtos)
                 .verificationStatus(profileEntity.getVerificationStatus())
+                .travelPalsCount(travelPalService.getMyTravelPals(user.getUserUuid()).size())
+                .completedTripsCount(tripStatisticsClient.getCompletedTripsCount(user.getUserUuid()))
+                .userRating(ratingService.getUserAverageRating(user.getUserUuid()))
                 .build();
     }
 

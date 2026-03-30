@@ -82,7 +82,10 @@ public interface ConversationRepository extends JpaRepository<ConversationEntity
                   WHERE cp.conversation.conversationId = c.conversationId
                     AND cp.userId = :currentUserId
               )
-        )
+        ),
+        
+        /* Profile picture URL - null for group chats, will be set later for one-on-one */
+        null
     )
     FROM ConversationEntity c
     WHERE EXISTS (

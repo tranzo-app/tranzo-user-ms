@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.math.BigDecimal;
 
 /**
  * Public view of a user profile (no email or phone).
@@ -28,4 +29,11 @@ public class PublicUserProfileDto {
     private String profilePictureUrl;
     private List<SocialHandleDto> socialHandleDtoList;
     private VerificationStatus verificationStatus;
+
+    // Additional statistics
+    private Integer travelPalsCount;
+    
+    private Integer completedTripsCount;
+    
+    private BigDecimal userRating;
 }

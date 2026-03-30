@@ -49,6 +49,15 @@ public interface TripRepository extends JpaRepository<TripEntity, UUID>, JpaSpec
             @Param("userId2") UUID userId2,
             @Param("status") TripStatus status);
 
+    @Query("SELECT t FROM TripEntity t WHERE t.tripStatus IN :statuses " +
+            "AND EXISTS (SELECT 1 FROM TripMemberEntity m1 WHERE m1.trip.tripId = t.tripId AND m1.userId = :userId1) " +
+            "AND EXISTS (SELECT 1 FROM TripMemberEntity m2 WHERE m2.trip.tripId = t.tripId AND m2.userId = :userId2) " +
+            "ORDER BY t.tripEndDate DESC")
+    List<TripEntity> findMutualTrips(
+            @Param("userId1") UUID userId1,
+            @Param("userId2") UUID userId2,
+            @Param("statuses") List<TripStatus> statuses);
+
     Page<TripEntity> findAll(Specification<TripEntity> spec, Pageable pageable);
 
     @Query("SELECT t.tripTitle FROM TripEntity t WHERE t.tripId = :tripId")

@@ -9,10 +9,13 @@ import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.user.repository.TravelPalRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
+import com.tranzo.tranzo_user_ms.commons.exception.ConflictException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.List;
 
@@ -43,9 +46,10 @@ public class TravelPalService {
         UserPair pair = normalize(requesterId, receiverId);
         repository.findByUserLowIdAndUserHighId(pair.low(), pair.high())
                 .ifPresent(existing -> {
-                    if (existing.getStatus() == TravelPalStatus.ACCEPTED)
-                    {
+                    if (existing.getStatus() == TravelPalStatus.ACCEPTED) {
                         throw new IllegalStateException("Connection already exists");
+                    } else if (existing.getStatus() == TravelPalStatus.PENDING) {
+                        throw new ConflictException("Travel pal request already pending");
                     }
                 });
         TravelPalEntity entity = new TravelPalEntity();
@@ -116,10 +120,35 @@ public class TravelPalService {
     }
 
     public List<SuggestedTravelPalDto> getSuggestedTravelPals(UUID currentUserId) {
-        // Get all active users except the current user
+        // Get existing travel pals
+        List<UUID> existingPals = getMyTravelPals(currentUserId);
+        
+        // Get incoming pending requests
+        List<UUID> incomingPending = repository.findIncomingPending(currentUserId)
+                .stream()
+                .map(entity -> entity.getUserLowId().equals(currentUserId)
+                        ? entity.getUserHighId()
+                        : entity.getUserLowId())
+                .toList();
+        
+        // Get outgoing pending requests
+        List<UUID> outgoingPending = repository.findOutgoingPending(currentUserId)
+                .stream()
+                .map(entity -> entity.getUserLowId().equals(currentUserId)
+                        ? entity.getUserHighId()
+                        : entity.getUserLowId())
+                .toList();
+        
+        // Combine all excluded user IDs
+        Set<UUID> excludedUserIds = new HashSet<>();
+        excludedUserIds.add(currentUserId);
+        excludedUserIds.addAll(existingPals);
+        excludedUserIds.addAll(incomingPending);
+        excludedUserIds.addAll(outgoingPending);
+        // Get all active users except excluded ones
         List<UsersEntity> allUsers = userRepository.findAll().stream()
                 .filter(user -> user.getAccountStatus() == AccountStatus.ACTIVE)
-                .filter(user -> !user.getUserUuid().equals(currentUserId))
+                .filter(user -> !excludedUserIds.contains(user.getUserUuid()))
                 .toList();
 
         // Get user profiles for these users
@@ -137,6 +166,7 @@ public class TravelPalService {
                         .middleName(profile.getMiddleName())
                         .lastName(profile.getLastName())
                         .bio(profile.getBio())
+                        .dob(profile.getDob())
                         .location(profile.getLocation())
                         .profilePictureUrl(profile.getProfilePictureUrl())
                         .build())
