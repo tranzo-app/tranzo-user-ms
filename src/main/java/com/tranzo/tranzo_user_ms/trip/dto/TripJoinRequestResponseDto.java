@@ -21,6 +21,7 @@ public class TripJoinRequestResponseDto {
     private String firstName;
     private String middleName;
     private String lastName;
+    private String profilePictureUrl;
     private JoinRequestStatus status;
     private JoinRequestSource requestedChannel;
     private LocalDateTime createdAt;

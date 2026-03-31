@@ -22,18 +22,18 @@ public class UserDashboardResponse {
     private BigDecimal totalAmountUserOwes;
     private BigDecimal totalAmountOwedToUser;
     private BigDecimal totalOutstandingBalance;
-    private TravelPalSummary travelPalSummary;
+    private IndividualBalanceSummary individualBalanceSummary;
     private List<ExpenseSummary> expenseSummary;
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class TravelPalSummary {
-        private List<TravelPalOwe> travelPalsUserOwes;
-        private List<TravelPalOwed> travelPalsOwedToUser;
+    public static class IndividualBalanceSummary {
+        private List<IndividualOwe> userOwesList;
+        private List<IndividualOwed> owedToUserList;
     private String currency;
-    private int totalTravelPals;
+    private int totalIndividuals;
     private BigDecimal totalOwedAmount;
         private BigDecimal totalOweAmount;
     }
@@ -42,7 +42,7 @@ public class UserDashboardResponse {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class TravelPalOwe {
+    public static class IndividualOwe {
         private UUID userId;
         private String userName;
         private String userEmail;
@@ -54,7 +54,7 @@ public class UserDashboardResponse {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class TravelPalOwed {
+    public static class IndividualOwed {
         private UUID userId;
         private String userName;
         private String userEmail;

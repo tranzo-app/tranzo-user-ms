@@ -16,6 +16,7 @@ import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
 import com.tranzo.tranzo_user_ms.commons.events.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +31,7 @@ import jakarta.persistence.criteria.Predicate;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class TripManagementService {
     private final TripRepository tripRepository;
     private final TagRepository tagRepository;
@@ -384,25 +386,37 @@ public class TripManagementService {
 
     @Transactional
     public void autoMarkTripsAsOngoing() {
+        log.info("Auto-marking trips as ongoing started");
         List<TripEntity> trips = tripRepository
                 .findByTripStatusAndTripStartDateLessThanEqual(
                         TripStatus.PUBLISHED, LocalDate.now());
 
+        log.info("Found {} PUBLISHED trips with start date <= today", trips.size());
+        
         trips.forEach(trip -> {
             if (trip.getTripStatus().canAutomaticallyTransitionTo(TripStatus.ONGOING)) {
+                log.info("Marking trip {} ({}) as ONGOING - start date was {}", 
+                        trip.getTripId(), trip.getTripTitle(), trip.getTripStartDate());
                 trip.setTripStatus(TripStatus.ONGOING);
             }
         });
+        
+        log.info("Auto-marking trips as ongoing completed - processed {} trips", trips.size());
     }
 
     @Transactional
     public void autoMarkTripsAsCompleted() {
+        log.info("Auto-marking trips as completed started");
         List<TripEntity> trips = tripRepository
                 .findByTripStatusAndTripEndDateBefore(
                         TripStatus.ONGOING, LocalDate.now());
 
+        log.info("Found {} ONGOING trips with end date < today", trips.size());
+
         trips.forEach(trip -> {
             if (trip.getTripStatus().canAutomaticallyTransitionTo(TripStatus.COMPLETED)) {
+                log.info("Marking trip {} ({}) as COMPLETED - end date was {}", 
+                        trip.getTripId(), trip.getTripTitle(), trip.getTripEndDate());
                 trip.setTripStatus(TripStatus.COMPLETED);
                 List<UUID> memberUserIds = tripMemberRepository
                         .findByTrip_TripIdAndStatus(trip.getTripId(), TripMemberStatus.ACTIVE)
@@ -411,8 +425,12 @@ public class TripManagementService {
                         .toList();
                 applicationEventPublisher.publishEvent(
                         new TripCompletedEvent(trip.getTripId(), trip.getTripTitle(), memberUserIds));
+                log.info("Published TripCompletedEvent for trip {} with {} members", 
+                        trip.getTripId(), memberUserIds.size());
             }
         });
+        
+        log.info("Auto-marking trips as completed completed - processed {} trips", trips.size());
     }
 
     private static void setTripItineraryEntity(TripItineraryDto tripItineraryDto, TripEntity tripEntity, TripItineraryEntity tripItineraryEntity) {
@@ -716,12 +734,14 @@ public class TripManagementService {
                 .askedByFirstName(askedByNames != null ? askedByNames.getFirstName() : null)
                 .askedByMiddleName(askedByNames != null ? askedByNames.getMiddleName() : null)
                 .askedByLastName(askedByNames != null ? askedByNames.getLastName() : null)
+                .authorProfilePictureUrl(askedByNames != null ? askedByNames.getProfilePictureUrl() : null)
                 .question(tripQueryEntity.getQuestion())
                 .answer(tripQueryEntity.getAnswer())
                 .answeredBy(tripQueryEntity.getAnsweredBy())
                 .answeredByFirstName(answeredByNames != null ? answeredByNames.getFirstName() : null)
                 .answeredByMiddleName(answeredByNames != null ? answeredByNames.getMiddleName() : null)
                 .answeredByLastName(answeredByNames != null ? answeredByNames.getLastName() : null)
+                .answeredByProfilePictureUrl(answeredByNames != null ? answeredByNames.getProfilePictureUrl() : null)
                 .answeredAt(tripQueryEntity.getAnsweredAt())
                 .createdAt(tripQueryEntity.getCreatedAt())
                 .build();

@@ -24,7 +24,7 @@ class BalanceControllerDashboardTest extends ApiTestBase {
                 .andExpect(jsonPath("$.data.totalAmountUserOwes").exists())
                 .andExpect(jsonPath("$.data.totalAmountOwedToUser").exists())
                 .andExpect(jsonPath("$.data.totalOutstandingBalance").exists())
-                .andExpect(jsonPath("$.data.travelPalSummary").exists())
+                .andExpect(jsonPath("$.data.individualBalanceSummary").exists())
                 .andExpect(jsonPath("$.data.expenseSummary").exists());
     }
 
