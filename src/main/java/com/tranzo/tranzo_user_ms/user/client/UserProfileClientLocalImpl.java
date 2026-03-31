@@ -37,6 +37,9 @@ public class UserProfileClientLocalImpl implements UserProfileClient {
                                 .firstName(p.getFirstName())
                                 .middleName(p.getMiddleName())
                                 .lastName(p.getLastName())
+                                .dob(p.getDob())
+                                .bio(p.getBio())
+                                .location(p.getLocation())
                                 .profilePictureUrl(p.getProfilePictureUrl() != null ? resolveProfilePictureUrl(p.getProfilePictureUrl()) : null)
                                 .build(),
                         (a, b) -> a

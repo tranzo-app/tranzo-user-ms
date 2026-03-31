@@ -2,6 +2,7 @@ package com.tranzo.tranzo_user_ms.user.controller;
 
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
+import com.tranzo.tranzo_user_ms.user.dto.SuggestedTravelPalDto;
 import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,11 +33,17 @@ class TravelPalControllerTest {
 
     private UUID userId;
     private UUID otherId;
+    private SuggestedTravelPalDto suggestedDto;
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
         otherId = UUID.randomUUID();
+        suggestedDto = SuggestedTravelPalDto.builder()
+                .userId(otherId)
+                .firstName("Test")
+                .lastName("User")
+                .build();
     }
 
     @Test
@@ -97,10 +104,9 @@ class TravelPalControllerTest {
     void myPals_Success() throws Exception {
         try (MockedStatic<SecurityUtils> security = mockStatic(SecurityUtils.class)) {
             security.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
-            when(service.getMyTravelPals(userId)).thenReturn(List.of(otherId));
+            when(service.getMyTravelPalsWithDetails(userId)).thenReturn(List.of(suggestedDto));
 
-
-            ResponseEntity<ResponseDto<List<UUID>>> res = controller.myPals();
+            ResponseEntity<ResponseDto<List<SuggestedTravelPalDto>>> res = controller.myPals();
 
             assertEquals(HttpStatus.OK, res.getStatusCode());
             assertNotNull(res.getBody());

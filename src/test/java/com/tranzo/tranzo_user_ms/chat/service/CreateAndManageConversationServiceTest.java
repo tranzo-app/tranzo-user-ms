@@ -88,7 +88,11 @@ class CreateAndManageConversationServiceTest {
         when(conversationRepository.findOneToOneConversationBetweenUsers(userId, otherUserId))
                 .thenReturn(Optional.of(conv));
         
-        UserNameDto otherUserName = new UserNameDto(otherUserId, "John", null, "Doe", null);
+        UserNameDto otherUserName = UserNameDto.builder()
+                .userId(otherUserId)
+                .firstName("John")
+                .lastName("Doe")
+                .build();
         when(userProfileClient.getNamesByUserIds(List.of(otherUserId)))
                 .thenReturn(Map.of(otherUserId, otherUserName));
 
@@ -108,9 +112,10 @@ class CreateAndManageConversationServiceTest {
         when(conversationRepository.findOneToOneConversationBetweenUsers(userId, otherUserId))
                 .thenReturn(Optional.empty());
 
-        when(conversationRepository.save(any(ConversationEntity.class)))
+        when(conversationRepository.saveAndFlush(any(ConversationEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
+        
         when(messageRepository.save(any(MessageEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         
@@ -127,7 +132,7 @@ class CreateAndManageConversationServiceTest {
         assertNotNull(resp);
         assertFalse(resp.isExisting());
         assertNotNull(resp.getConversationId());
-        verify(conversationRepository, times(1)).save(any(ConversationEntity.class));
+        verify(conversationRepository, times(1)).saveAndFlush(any(ConversationEntity.class));
         verify(messageRepository, times(1)).save(any(MessageEntity.class));
     }
 

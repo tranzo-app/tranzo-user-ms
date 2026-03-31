@@ -31,19 +31,14 @@ public class TripScheduler {
     }
 
     @Transactional
-    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.HOURS)
     public void updateToOngoing() {
-        log.info("=== updateToOngoing scheduler started ===");
-        log.info("Trip scheduler: Checking for trips to mark as ongoing");
         long now = System.currentTimeMillis();
-        long rate = Duration.of(1, ChronoUnit.MINUTES).toMillis();
-        log.info("Current time: {}, Rate: {}, Threshold: {}", now, rate, now - rate);
+        long rate = Duration.of(1, ChronoUnit.HOURS).toMillis();
 
         var ongoingTaskLock = taskLockRepository.findByTaskIdAndLastExecutionLessThan(
                 UPDATE_ONGOING_TASK, now - rate
         );
-        
-        log.info("Ongoing task lock found: {}", ongoingTaskLock.isPresent());
         
         ongoingTaskLock.ifPresent(lock -> {
             log.info("Trip scheduler: Executing auto-mark trips as ongoing");
@@ -51,33 +46,23 @@ public class TripScheduler {
                 tripManagementService.autoMarkTripsAsOngoing();
                 lock.setLastExecution(now);
                 taskLockRepository.save(lock);
-                log.info("Trip scheduler: Completed auto-mark trips as ongoing - updated last_execution to {}", now);
+                log.info("Trip scheduler: Completed auto-mark trips as ongoing");
             } catch (Exception e) {
                 log.error("Trip scheduler: Failed to auto-mark trips as ongoing", e);
-                throw e; // Re-throw to match test expectations
+                throw e;
             }
         });
-        
-        if (ongoingTaskLock.isEmpty()) {
-            log.debug("Trip scheduler: No task lock found for ongoing trips or not yet time to execute");
-        }
-        log.info("=== updateToOngoing scheduler completed ===");
     }
 
     @Transactional
-    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.HOURS)
     public void updateToCompleted() {
-        log.info("=== updateToCompleted scheduler started ===");
-        log.info("Trip scheduler: Checking for trips to mark as completed");
         long now = System.currentTimeMillis();
-        long rate = Duration.of(1, ChronoUnit.MINUTES).toMillis();
-        log.info("Current time: {}, Rate: {}, Threshold: {}", now, rate, now - rate);
+        long rate = Duration.of(1, ChronoUnit.HOURS).toMillis();
 
         var completedTaskLock = taskLockRepository.findByTaskIdAndLastExecutionLessThan(
                 UPDATE_COMPLETED_TASK, now - rate
         );
-        
-        log.info("Completed task lock found: {}", completedTaskLock.isPresent());
         
         completedTaskLock.ifPresent(lock -> {
             log.info("Trip scheduler: Executing auto-mark trips as completed");
@@ -85,17 +70,12 @@ public class TripScheduler {
                 tripManagementService.autoMarkTripsAsCompleted();
                 lock.setLastExecution(now);
                 taskLockRepository.save(lock);
-                log.info("Trip scheduler: Completed auto-mark trips as completed - updated last_execution to {}", now);
+                log.info("Trip scheduler: Completed auto-mark trips as completed");
             } catch (Exception e) {
                 log.error("Trip scheduler: Failed to auto-mark trips as completed", e);
-                throw e; // Re-throw to match test expectations
+                throw e;
             }
         });
-        
-        if (completedTaskLock.isEmpty()) {
-            log.debug("Trip scheduler: No task lock found for completed trips or not yet time to execute");
-        }
-        log.info("=== updateToCompleted scheduler completed ===");
     }
 }
 

@@ -4,20 +4,18 @@ import com.tranzo.tranzo_user_ms.user.dto.SuggestedTravelPalDto;
 import com.tranzo.tranzo_user_ms.user.enums.AccountStatus;
 import com.tranzo.tranzo_user_ms.user.enums.TravelPalStatus;
 import com.tranzo.tranzo_user_ms.user.model.TravelPalEntity;
-import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.user.repository.TravelPalRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
+import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
+import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import com.tranzo.tranzo_user_ms.commons.exception.ConflictException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
-import java.util.List;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +23,7 @@ import java.util.List;
 public class TravelPalService {
     private final TravelPalRepository repository;
     private final UserRepository userRepository;
-    private final UserProfileRepository userProfileRepository;
+    private final UserProfileClient userProfileClient;
 
     /* ================= NORMALIZE ================= */
 
@@ -113,6 +111,36 @@ public class TravelPalService {
                 .toList();
     }
 
+    public List<SuggestedTravelPalDto> getMyTravelPalsWithDetails(UUID userId) {
+        // Get existing travel pal IDs
+        List<UUID> palIds = getMyTravelPals(userId);
+        
+        if (palIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // Get user names using UserProfileClient
+        Map<UUID, UserNameDto> userNames = userProfileClient.getNamesByUserIds(palIds);
+        
+        // Convert to DTOs using available data from client
+        return palIds.stream()
+                .filter(userNames::containsKey) // Only include users found in client response
+                .map(palId -> {
+                    UserNameDto userName = userNames.get(palId);
+                    return SuggestedTravelPalDto.builder()
+                            .userId(userName.getUserId())
+                            .firstName(userName.getFirstName())
+                            .middleName(userName.getMiddleName())
+                            .lastName(userName.getLastName())
+                            .bio(userName.getBio()) // Not available from UserProfileClient
+                            .location(userName.getLocation()) // Not available from UserProfileClient
+                            .dob(userName.getDob()) // Not available from UserProfileClient
+                            .profilePictureUrl(userName.getProfilePictureUrl())
+                            .build();
+                })
+                .toList();
+    }
+
     /* ================= INCOMING REQUESTS ================= */
 
     public List<TravelPalEntity> getIncomingPendingRequests(UUID userId) {
@@ -145,31 +173,32 @@ public class TravelPalService {
         excludedUserIds.addAll(existingPals);
         excludedUserIds.addAll(incomingPending);
         excludedUserIds.addAll(outgoingPending);
-        // Get all active users except excluded ones
-        List<UsersEntity> allUsers = userRepository.findAll().stream()
+        // Get user IDs of all active users except excluded ones
+        List<UUID> suggestedUserIds = userRepository.findAll().stream()
                 .filter(user -> user.getAccountStatus() == AccountStatus.ACTIVE)
                 .filter(user -> !excludedUserIds.contains(user.getUserUuid()))
-                .toList();
-
-        // Get user profiles for these users
-        List<UUID> userIds = allUsers.stream()
                 .map(UsersEntity::getUserUuid)
                 .toList();
 
-        List<UserProfileEntity> profiles = userProfileRepository.findByUser_UserUuidIn(userIds);
+        // Get user details using UserProfileClient
+        Map<UUID, UserNameDto> userDetails = userProfileClient.getNamesByUserIds(suggestedUserIds);
 
-        // Convert to DTOs
-        return profiles.stream()
-                .map(profile -> SuggestedTravelPalDto.builder()
-                        .userId(profile.getUser().getUserUuid())
-                        .firstName(profile.getFirstName())
-                        .middleName(profile.getMiddleName())
-                        .lastName(profile.getLastName())
-                        .bio(profile.getBio())
-                        .dob(profile.getDob())
-                        .location(profile.getLocation())
-                        .profilePictureUrl(profile.getProfilePictureUrl())
-                        .build())
+        // Convert to DTOs using available data from client
+        return suggestedUserIds.stream()
+                .filter(userDetails::containsKey) // Only include users found in client response
+                .map(userId -> {
+                    UserNameDto userName = userDetails.get(userId);
+                    return SuggestedTravelPalDto.builder()
+                            .userId(userName.getUserId())
+                            .firstName(userName.getFirstName())
+                            .middleName(userName.getMiddleName())
+                            .lastName(userName.getLastName())
+                            .bio(userName.getBio())
+                            .dob(userName.getDob())
+                            .location(userName.getLocation())
+                            .profilePictureUrl(userName.getProfilePictureUrl())
+                            .build();
+                })
                 .toList();
     }
 }
