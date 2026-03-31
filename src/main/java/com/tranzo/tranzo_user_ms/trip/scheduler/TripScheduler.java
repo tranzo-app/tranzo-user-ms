@@ -34,10 +34,10 @@ public class TripScheduler {
     @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
     public void updateToOngoing() {
         log.info("=== updateToOngoing scheduler started ===");
-        log.debug("Trip scheduler: Checking for trips to mark as ongoing");
+        log.info("Trip scheduler: Checking for trips to mark as ongoing");
         long now = System.currentTimeMillis();
-        long rate = Duration.of(1, ChronoUnit.HOURS).toMillis();
-        log.debug("Current time: {}, Rate: {}, Threshold: {}", now, rate, now - rate);
+        long rate = Duration.of(1, ChronoUnit.MINUTES).toMillis();
+        log.info("Current time: {}, Rate: {}, Threshold: {}", now, rate, now - rate);
 
         var ongoingTaskLock = taskLockRepository.findByTaskIdAndLastExecutionLessThan(
                 UPDATE_ONGOING_TASK, now - rate
@@ -68,10 +68,10 @@ public class TripScheduler {
     @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.MINUTES)
     public void updateToCompleted() {
         log.info("=== updateToCompleted scheduler started ===");
-        log.debug("Trip scheduler: Checking for trips to mark as completed");
+        log.info("Trip scheduler: Checking for trips to mark as completed");
         long now = System.currentTimeMillis();
-        long rate = Duration.of(1, ChronoUnit.HOURS).toMillis();
-        log.debug("Current time: {}, Rate: {}, Threshold: {}", now, rate, now - rate);
+        long rate = Duration.of(1, ChronoUnit.MINUTES).toMillis();
+        log.info("Current time: {}, Rate: {}, Threshold: {}", now, rate, now - rate);
 
         var completedTaskLock = taskLockRepository.findByTaskIdAndLastExecutionLessThan(
                 UPDATE_COMPLETED_TASK, now - rate
