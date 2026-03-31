@@ -17,7 +17,6 @@ import com.tranzo.tranzo_user_ms.splitwise.repository.SplitwiseGroupRepository;
 import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
 import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
-import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import lombok.extern.slf4j.Slf4j;
@@ -41,8 +40,8 @@ public class BalanceService {
     private final ExpenseRepository expenseRepository;
     private final SettlementOptimizationService settlementOptimizationService;
     private final UserRepository userRepository;
-    private final UserProfileRepository userProfileRepository;
     private final SplitwiseGroupRepository splitwiseGroupRepository;
+    private final SplitwiseGroupService splitwiseGroupService;
     private final TripRepository tripRepository;
     private final TravelPalService travelPalService;
 
@@ -50,16 +49,16 @@ public class BalanceService {
                           ExpenseRepository expenseRepository,
                           SettlementOptimizationService settlementOptimizationService,
                           UserRepository userRepository,
-                          UserProfileRepository userProfileRepository,
                           SplitwiseGroupRepository splitwiseGroupRepository,
+                          SplitwiseGroupService splitwiseGroupService,
                           TripRepository tripRepository,
                           TravelPalService travelPalService) {
         this.balanceRepository = balanceRepository;
         this.expenseRepository = expenseRepository;
         this.settlementOptimizationService = settlementOptimizationService;
         this.userRepository = userRepository;
-        this.userProfileRepository = userProfileRepository;
         this.splitwiseGroupRepository = splitwiseGroupRepository;
+        this.splitwiseGroupService = splitwiseGroupService;
         this.tripRepository = tripRepository;
         this.travelPalService = travelPalService;
     }
@@ -276,25 +275,20 @@ public class BalanceService {
     public UserDashboardResponse getUserDashboard(UUID userId) {
         log.debug("Generating dashboard for user: {}", userId);
         
-        // Get all groups user is part of
-        List<SplitwiseGroup> userGroups = splitwiseGroupRepository.findByUserId(userId);
+        // Get all valid groups user is part of (using the fixed logic from SplitwiseGroupService)
+        List<com.tranzo.tranzo_user_ms.splitwise.dto.response.GroupResponse> userGroupResponses = splitwiseGroupService.getUserGroups(userId);
+        List<SplitwiseGroup> userGroups = userGroupResponses.stream()
+                .map(groupResponse -> splitwiseGroupRepository.findById(groupResponse.getId()).orElse(null))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
         
-        // Get user's travel pals (with fallback if travel pal service is not available)
-        List<UUID> travelPalIds = new ArrayList<>();
-        try {
-            if (travelPalService != null) {
-                travelPalIds = travelPalService.getMyTravelPals(userId);
-            }
-        } catch (Exception e) {
-            // Log the error but continue without travel pal filtering
-            log.warn("Travel pal service not available, proceeding without travel pal filtering", e);
-        }
+        log.debug("Found {} valid groups for user dashboard", userGroups.size());
         
         // Calculate totals across all groups
         BigDecimal totalOwed = BigDecimal.ZERO;
         BigDecimal totalOwing = BigDecimal.ZERO;
-        List<UserDashboardResponse.TravelPalOwe> travelPalsUserOwes = new ArrayList<>();
-        List<UserDashboardResponse.TravelPalOwed> travelPalsOwedToUser = new ArrayList<>();
+        List<UserDashboardResponse.IndividualOwe> userOwesList = new ArrayList<>();
+        List<UserDashboardResponse.IndividualOwed> owedToUserList = new ArrayList<>();
         List<UserDashboardResponse.ExpenseSummary> expenseSummaries = new ArrayList<>();
         
         for (SplitwiseGroup group : userGroups) {
@@ -303,52 +297,50 @@ public class BalanceService {
             totalOwed = totalOwed.add(groupBalance.getTotalOwed());
             totalOwing = totalOwing.add(groupBalance.getTotalOwing());
             
-            // Process travel pals for this group (only those who are actual travel pals)
-            processTravelPalsForGroup(group, userId, travelPalsUserOwes, travelPalsOwedToUser, travelPalIds);
+            // Process individual balances for this group (all users, not just travel pals)
+            processIndividualBalancesForGroup(group, userId, userOwesList, owedToUserList);
             
-            // Add expense summary for this group
+            // Add expense summary for this group (only if user has non-zero balance)
             addExpenseSummaryForGroup(group, expenseSummaries, userId);
         }
         
-        // Build travel pal summary
-        UserDashboardResponse.TravelPalSummary travelPalSummary = UserDashboardResponse.TravelPalSummary.builder()
-                .travelPalsUserOwes(travelPalsUserOwes)
-                .travelPalsOwedToUser(travelPalsOwedToUser)
+        // Build individual balance summary (now includes all users, not just travel pals)
+        UserDashboardResponse.IndividualBalanceSummary individualBalanceSummary = UserDashboardResponse.IndividualBalanceSummary.builder()
+                .userOwesList(userOwesList)
+                .owedToUserList(owedToUserList)
                 .currency("INR") // Changed to INR as requested
-                .totalTravelPals(travelPalsUserOwes.size() + travelPalsOwedToUser.size())
-                .totalOwedAmount(travelPalsUserOwes.stream()
-                        .map(UserDashboardResponse.TravelPalOwe::getAmount)
+                .totalIndividuals(userOwesList.size() + owedToUserList.size())
+                .totalOwedAmount(userOwesList.stream()
+                        .map(UserDashboardResponse.IndividualOwe::getAmount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add))
-                .totalOweAmount(travelPalsOwedToUser.stream()
-                        .map(UserDashboardResponse.TravelPalOwed::getAmount)
+                .totalOweAmount(owedToUserList.stream()
+                        .map(UserDashboardResponse.IndividualOwed::getAmount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add))
                 .build();
         
         BigDecimal totalOutstandingBalance = totalOwing.subtract(totalOwed);
         
+        log.debug("Dashboard generated for user: {} | groups: {} | totalOwed: {} | totalOwing: {} | expenseSummaries: {}", 
+                userId, userGroups.size(), totalOwed, totalOwing, expenseSummaries.size());
+        
         return UserDashboardResponse.builder()
                 .totalAmountUserOwes(totalOwed)
                 .totalAmountOwedToUser(totalOwing)
                 .totalOutstandingBalance(totalOutstandingBalance)
-                .travelPalSummary(travelPalSummary)
+                .individualBalanceSummary(individualBalanceSummary)
                 .expenseSummary(expenseSummaries)
                 .build();
     }
     
-    private void processTravelPalsForGroup(SplitwiseGroup group, UUID userId, 
-                                       List<UserDashboardResponse.TravelPalOwe> travelPalsUserOwes,
-                                       List<UserDashboardResponse.TravelPalOwed> travelPalsOwedToUser,
-                                       List<UUID> travelPalIds) {
+    private void processIndividualBalancesForGroup(SplitwiseGroup group, UUID userId, 
+                                       List<UserDashboardResponse.IndividualOwe> userOwesList,
+                                       List<UserDashboardResponse.IndividualOwed> owedToUserList) {
         List<Balance> balances = balanceRepository.findBalancesForUserInGroup(group.getId(), userId);
         
         for (Balance balance : balances) {
             UUID otherUserId = balance.getOwedBy().equals(userId) ? balance.getOwedTo() : balance.getOwedBy();
             
-            // Only process if the other user is an actual travel pal
-            if (!travelPalIds.contains(otherUserId)) {
-                continue;
-            }
-            
+            // Include all individual summaries regardless of travel pal status
             BigDecimal amount = balance.getAmount();
             
             // Skip if amount is exactly zero
@@ -358,15 +350,15 @@ public class BalanceService {
             
             if (balance.getOwedBy().equals(userId)) {
                 // User owes to other person
-                travelPalsUserOwes.add(createTravelPalOwe(otherUserId, amount));
+                userOwesList.add(createIndividualOwe(otherUserId, amount));
             } else {
                 // Other person owes to user
-                travelPalsOwedToUser.add(createTravelPalOwed(otherUserId, amount));
+                owedToUserList.add(createIndividualOwed(otherUserId, amount));
             }
         }
     }
     
-    private UserDashboardResponse.TravelPalOwe createTravelPalOwe(UUID userId, BigDecimal amount) {
+    private UserDashboardResponse.IndividualOwe createIndividualOwe(UUID userId, BigDecimal amount) {
         UsersEntity user = userRepository.findUserByUserUuid(userId).orElse(null);
         String userName = "";
         String userEmail = user != null ? user.getEmail() : "";
@@ -379,7 +371,7 @@ public class BalanceService {
             profilePictureUrl = profile.getProfilePictureUrl() != null ? profile.getProfilePictureUrl() : "";
         }
         
-        return UserDashboardResponse.TravelPalOwe.builder()
+        return UserDashboardResponse.IndividualOwe.builder()
                 .userId(userId)
                 .userName(userName.trim())
                 .userEmail(userEmail)
@@ -388,7 +380,7 @@ public class BalanceService {
                 .build();
     }
     
-    private UserDashboardResponse.TravelPalOwed createTravelPalOwed(UUID userId, BigDecimal amount) {
+    private UserDashboardResponse.IndividualOwed createIndividualOwed(UUID userId, BigDecimal amount) {
         UsersEntity user = userRepository.findUserByUserUuid(userId).orElse(null);
         String userName = "";
         String userEmail = user != null ? user.getEmail() : "";
@@ -401,7 +393,7 @@ public class BalanceService {
             profilePictureUrl = profile.getProfilePictureUrl() != null ? profile.getProfilePictureUrl() : "";
         }
         
-        return UserDashboardResponse.TravelPalOwed.builder()
+        return UserDashboardResponse.IndividualOwed.builder()
                 .userId(userId)
                 .userName(userName.trim())
                 .userEmail(userEmail)

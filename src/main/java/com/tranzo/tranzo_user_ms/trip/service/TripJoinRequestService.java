@@ -311,6 +311,7 @@ public class TripJoinRequestService {
                     .firstName(names != null ? names.getFirstName() : null)
                     .middleName(names != null ? names.getMiddleName() : null)
                     .lastName(names != null ? names.getLastName() : null)
+                    .profilePictureUrl(names != null ? names.getProfilePictureUrl() : null)
                     .status(joinRequest.getStatus())
                     .requestedChannel(joinRequest.getSource())
                     .createdAt(joinRequest.getCreatedAt())

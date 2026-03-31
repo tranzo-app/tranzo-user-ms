@@ -9,7 +9,10 @@ import com.tranzo.tranzo_user_ms.splitwise.entity.SplitwiseGroup;
 import com.tranzo.tranzo_user_ms.splitwise.exception.GroupNotFoundException;
 import com.tranzo.tranzo_user_ms.splitwise.exception.UserNotMemberException;
 import com.tranzo.tranzo_user_ms.splitwise.repository.SplitwiseGroupRepository;
+import com.tranzo.tranzo_user_ms.trip.enums.TripMemberStatus;
+import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
+import com.tranzo.tranzo_user_ms.trip.repository.TripMemberRepository;
 import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
 import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
@@ -34,15 +37,18 @@ public class SplitwiseGroupService {
 
     private final SplitwiseGroupRepository splitwiseGroupRepository;
     private final TripRepository tripRepository;
+    private final TripMemberRepository tripMemberRepository;
     private final UserRepository userRepository;
     private final ActivityService activityService;
 
     public SplitwiseGroupService(SplitwiseGroupRepository splitwiseGroupRepository,
                                 TripRepository tripRepository,
+                                TripMemberRepository tripMemberRepository,
                                 UserRepository userRepository,
                                 ActivityService activityService) {
         this.splitwiseGroupRepository = splitwiseGroupRepository;
         this.tripRepository = tripRepository;
+        this.tripMemberRepository = tripMemberRepository;
         this.userRepository = userRepository;
         this.activityService = activityService;
     }
@@ -322,17 +328,48 @@ public class SplitwiseGroupService {
     }
 
     /**
-     * Lists groups where the current user is a member.
+     * Lists groups where the current user is a member of valid published trips.
+     * Only includes groups for trips with PUBLISHED, ONGOING, or COMPLETED status
+     * and where user is an active trip member.
      */
     @Transactional(readOnly = true)
     public List<GroupResponse> getUserGroups(UUID currentUserId) {
         log.info("Processing started | operation=getUserGroups | userId={}", currentUserId);
 
         try {
-            List<SplitwiseGroup> groups = splitwiseGroupRepository.findByUserId(currentUserId);
-            List<GroupResponse> response = groups.stream().map(this::toGroupResponse).collect(Collectors.toList());
+            // Get trips where user is an active member and trip is published/ongoing/completed
+            List<TripStatus> validTripStatuses = List.of(TripStatus.PUBLISHED, TripStatus.ONGOING, TripStatus.COMPLETED);
+            List<TripEntity> userTrips = tripMemberRepository.findTripsByUserIdAndStatusIn(currentUserId, validTripStatuses);
             
-            log.info("Processing completed | operation=getUserGroups | userId={} | groupsCount={} | status=SUCCESS", currentUserId, response.size());
+            // Filter trips that have splitwise group ID and get corresponding groups
+            List<SplitwiseGroup> validGroups = new ArrayList<>();
+            for (TripEntity trip : userTrips) {
+                if (trip.getSplitwiseGroupId() != null) {
+                    // Check if user is actually a member of the splitwise group
+                    if (splitwiseGroupRepository.isUserMemberOfGroup(trip.getSplitwiseGroupId(), currentUserId)) {
+                        splitwiseGroupRepository.findById(trip.getSplitwiseGroupId())
+                                .ifPresent(validGroups::add);
+                    }
+                }
+            }
+            
+            // Also include manually created groups (synthetic trip IDs) where user is member
+            List<SplitwiseGroup> userGroups = splitwiseGroupRepository.findByUserId(currentUserId);
+            for (SplitwiseGroup group : userGroups) {
+                // Skip if this is a trip-linked group (already handled above)
+                if (tripRepository.existsById(group.getTripId())) {
+                    continue;
+                }
+                // Include manually created groups
+                validGroups.add(group);
+            }
+            
+            List<GroupResponse> response = validGroups.stream()
+                    .map(this::toGroupResponse)
+                    .collect(Collectors.toList());
+            
+            log.info("Processing completed | operation=getUserGroups | userId={} | groupsCount={} | status=SUCCESS", 
+                    currentUserId, response.size());
             return response;
         } catch (Exception e) {
             log.error("Operation failed | operation=getUserGroups | userId={} | reason={}", currentUserId, e.getMessage(), e);
