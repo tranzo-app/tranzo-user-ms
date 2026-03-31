@@ -47,9 +47,9 @@ public class TravelPalController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<ResponseDto<List<UUID>>> myPals() throws AuthException {
+    public ResponseEntity<ResponseDto<List<SuggestedTravelPalDto>>> myPals() throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        return ResponseEntity.ok(ResponseDto.success("Travel pals retrieved", service.getMyTravelPals(userId)));
+        return ResponseEntity.ok(ResponseDto.success("Travel pals retrieved", service.getMyTravelPalsWithDetails(userId)));
     }
 
     @GetMapping("/pending")

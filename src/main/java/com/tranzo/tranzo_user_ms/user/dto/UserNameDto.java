@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 /**
@@ -20,5 +21,8 @@ public class UserNameDto {
     private String firstName;
     private String middleName;
     private String lastName;
+    private String bio;
+    private LocalDate dob;
+    private String location;
     private String profilePictureUrl;
 }

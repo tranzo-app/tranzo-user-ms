@@ -17,6 +17,7 @@ import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -87,26 +88,49 @@ public class CreateAndManageConversationService {
                         .build();
             }
 
-            // Create new one-to-one conversation
-            ConversationEntity newConversation = ConversationEntity.createOneToOneChat(userId);
-            newConversation.addParticipant(userId, ConversationRole.MEMBER);
-            newConversation.addParticipant(otherUserId, ConversationRole.MEMBER);
-            newConversation.setConversationName(conversationName);
+            // Try to create new conversation with race condition handling
+            try {
+                ConversationEntity newConversation = ConversationEntity.createOneToOneChat(userId);
+                newConversation.addParticipant(userId, ConversationRole.MEMBER);
+                newConversation.addParticipant(otherUserId, ConversationRole.MEMBER);
+                newConversation.setConversationName(conversationName);
 
-            MessageEntity systemMessage = MessageEntity.systemMessage(
-                    newConversation,
-                    "You are now connected"
-            );
+                MessageEntity systemMessage = MessageEntity.systemMessage(
+                        newConversation,
+                        "You are now connected"
+                );
 
-            conversationRepository.save(newConversation);
-            messageRepository.save(systemMessage);
-            
-            log.info("Processing completed | operation=createOneToOneConversation | userId={} | otherUserId={} | conversationId={} | status=CREATED", userId, otherUserId, newConversation.getConversationId());
-            return CreateConversationResponseDto.builder()
-                    .conversationId(newConversation.getConversationId())
-                    .createdAt(newConversation.getCreatedAt())
-                    .existing(false)
-                    .build();
+                // Use saveAndFlush to force immediate DB write and detect any constraint violations
+                conversationRepository.saveAndFlush(newConversation);
+                messageRepository.save(systemMessage);
+                
+                log.info("Processing completed | operation=createOneToOneConversation | userId={} | otherUserId={} | conversationId={} | status=CREATED", userId, otherUserId, newConversation.getConversationId());
+                return CreateConversationResponseDto.builder()
+                        .conversationId(newConversation.getConversationId())
+                        .createdAt(newConversation.getCreatedAt())
+                        .existing(false)
+                        .build();
+                        
+            } catch (DataIntegrityViolationException e) {
+                // If constraint violation occurred, another transaction likely created the conversation
+                log.warn("Potential race condition detected | operation=createOneToOneConversation | userId={} | otherUserId={} | action=RETRY_FETCH", userId, otherUserId);
+                
+                // Retry fetching the existing conversation
+                Optional<ConversationEntity> retryConversation = conversationRepository.findOneToOneConversationBetweenUsers(userId, otherUserId);
+                if (retryConversation.isPresent()) {
+                    ConversationEntity conversation = retryConversation.get();
+                    log.info("Processing completed | operation=createOneToOneConversation | userId={} | otherUserId={} | conversationId={} | status=EXISTING_AFTER_RACE", userId, otherUserId, conversation.getConversationId());
+                    return CreateConversationResponseDto.builder()
+                            .conversationId(conversation.getConversationId())
+                            .createdAt(conversation.getCreatedAt())
+                            .existing(true)
+                            .build();
+                } else {
+                    // If still not found, re-throw the original exception
+                    log.error("Race condition handling failed | operation=createOneToOneConversation | userId={} | otherUserId={} | reason=CONVERSATION_NOT_FOUND_AFTER_RETRY", userId, otherUserId);
+                    throw e;
+                }
+            }
         } catch (ConversationNotFoundException e) {
             throw e;
         } catch (Exception e) {

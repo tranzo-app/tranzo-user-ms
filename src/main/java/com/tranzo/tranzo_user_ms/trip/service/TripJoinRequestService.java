@@ -389,4 +389,16 @@ public class TripJoinRequestService {
                     new MemberLeftOrRemovedTripEvent(tripId, trip.getTripTitle(), removalParticipantUserId, otherMemberUserIds, removedByHost));
         }
     }
+    
+    public JoinRequestStatus getJoinRequestStatus(UUID tripId, UUID userId) {
+        // Validate trip exists
+        tripRepository.findById(tripId)
+                .orElseThrow(TripNotFoundException::new);
+        
+        // Find join request for this trip and user
+        Optional<TripJoinRequestEntity> joinRequest = tripJoinRequestRepository.findByTrip_TripIdAndUserId(tripId, userId);
+        
+        // Return status if found, null if not found
+        return joinRequest.map(TripJoinRequestEntity::getStatus).orElse(null);
+    }
 }

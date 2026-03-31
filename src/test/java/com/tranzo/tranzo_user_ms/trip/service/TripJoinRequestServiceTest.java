@@ -98,7 +98,13 @@ class TripJoinRequestServiceTest {
         when(tripJoinRequestRepository.save(any(TripJoinRequestEntity.class))).thenReturn(joinRequestEntity);
         when(tripMemberRepository.save(any(TripMemberEntity.class))).thenReturn(new TripMemberEntity());
         when(userProfileClient.getNamesByUserIds(List.of(userId)))
-            .thenReturn(Map.of(userId, new UserNameDto(userId, "John", null, "Doe", null)));
+            .thenReturn(Map.of(userId, UserNameDto.builder()
+                .userId(userId)
+                .firstName("John")
+                .middleName(null)
+                .lastName("Doe")
+                .bio(null)
+                .build()));
 
         // When
         TripJoinRequestResponseDto response = tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId);
@@ -122,7 +128,13 @@ class TripJoinRequestServiceTest {
             .thenReturn(false);
         when(tripJoinRequestRepository.save(any(TripJoinRequestEntity.class))).thenReturn(joinRequestEntity);
         when(userProfileClient.getNamesByUserIds(List.of(userId)))
-            .thenReturn(Map.of(userId, new UserNameDto(userId, "John", null, "Doe", null)));
+            .thenReturn(Map.of(userId, UserNameDto.builder()
+                .userId(userId)
+                .firstName("John")
+                .middleName(null)
+                .lastName("Doe")
+                .bio(null)
+                .build()));
 
         // When
         TripJoinRequestResponseDto response = tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId);
@@ -262,7 +274,13 @@ class TripJoinRequestServiceTest {
         when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
             .thenReturn(Collections.singletonList(hostMember));
         when(userProfileClient.getNamesByUserIds(List.of(userId)))
-            .thenReturn(Map.of(userId, new UserNameDto(userId, "John", null, "Doe", null)));
+            .thenReturn(Map.of(userId, UserNameDto.builder()
+                .userId(userId)
+                .firstName("John")
+                .middleName(null)
+                .lastName("Doe")
+                .bio(null)
+                .build()));
 
         tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId);
 
@@ -288,7 +306,13 @@ class TripJoinRequestServiceTest {
         when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
             .thenReturn(Collections.singletonList(existingMember));
         when(userProfileClient.getNamesByUserIds(List.of(userId)))
-            .thenReturn(Map.of(userId, new UserNameDto(userId, "John", null, "Doe", null)));
+            .thenReturn(Map.of(userId, UserNameDto.builder()
+                .userId(userId)
+                .firstName("John")
+                .middleName(null)
+                .lastName("Doe")
+                .bio(null)
+                .build()));
 
         tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId);
 
@@ -323,7 +347,13 @@ class TripJoinRequestServiceTest {
         when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
             .thenReturn(java.util.List.of(hostMember, newMember));
         when(userProfileClient.getNamesByUserIds(List.of(requestorUserId)))
-            .thenReturn(Map.of(requestorUserId, new UserNameDto(requestorUserId, "John", null, "Doe", null)));
+            .thenReturn(Map.of(requestorUserId, UserNameDto.builder()
+                .userId(requestorUserId)
+                .firstName("John")
+                .middleName(null)
+                .lastName("Doe")
+                .bio(null)
+                .build()));
 
         tripJoinRequestService.approveJoinRequest(joinRequestId, userId);
 
@@ -348,7 +378,13 @@ class TripJoinRequestServiceTest {
             .thenReturn(true);
         when(tripJoinRequestRepository.save(any(TripJoinRequestEntity.class))).thenReturn(joinRequest);
         when(userProfileClient.getNamesByUserIds(List.of(requestorUserId)))
-            .thenReturn(Map.of(requestorUserId, new UserNameDto(requestorUserId, "John", null, "Doe", null)));
+            .thenReturn(Map.of(requestorUserId, UserNameDto.builder()
+                .userId(requestorUserId)
+                .firstName("John")
+                .middleName(null)
+                .lastName("Doe")
+                .bio(null)
+                .build()));
 
         tripJoinRequestService.rejectJoinRequest(joinRequestId, userId);
 

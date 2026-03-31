@@ -5,6 +5,7 @@ import com.tranzo.tranzo_user_ms.trip.model.TripJoinRequestEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -14,4 +15,6 @@ public interface TripJoinRequestRepository extends JpaRepository<TripJoinRequest
     List<TripJoinRequestEntity> findByTrip_TripIdAndStatus(UUID tripId, JoinRequestStatus status);
 
     boolean existsByTrip_TripIdAndUserIdAndStatusIn(UUID tripId, UUID userUuid, Set<JoinRequestStatus> statusSet);
+    
+    Optional<TripJoinRequestEntity> findByTrip_TripIdAndUserId(UUID tripId, UUID userId);
 }
