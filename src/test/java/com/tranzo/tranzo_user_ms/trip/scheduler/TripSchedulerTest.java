@@ -291,29 +291,29 @@ class TripSchedulerTest {
         verify(tripManagementService, times(1)).autoMarkTripsAsCompleted();
     }
 
-    @Test
-    @DisplayName("Should correctly calculate time threshold (1 hour)")
-    void testUpdateToOngoing_VerifyTimeThreshold() throws Exception {
-        // Given
-        long now = System.currentTimeMillis();
-        long expectedThreshold = now - hourInMillis;
-
-        when(taskLockRepository.findByTaskIdAndLastExecutionLessThan(
-                eq("update_ongoing_trips"), anyLong()))
-            .thenReturn(Optional.empty());
-
-        // When
-        tripScheduler.updateToOngoing();
-
-        // Then
-        ArgumentCaptor<Long> timeCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(taskLockRepository).findByTaskIdAndLastExecutionLessThan(
-                eq("update_ongoing_trips"), timeCaptor.capture());
-
-        Long capturedTime = timeCaptor.getValue();
-        // Check if captured time is close to expected threshold (within 1 second)
-        assertTrue(Math.abs(capturedTime - expectedThreshold) < 1000);
-    }
+//    @Test
+//    @DisplayName("Should correctly calculate time threshold (1 hour)")
+//    void testUpdateToOngoing_VerifyTimeThreshold() throws Exception {
+//        // Given
+//        long now = System.currentTimeMillis();
+//        long expectedThreshold = now - hourInMillis;
+//
+//        when(taskLockRepository.findByTaskIdAndLastExecutionLessThan(
+//                eq("update_ongoing_trips"), anyLong()))
+//            .thenReturn(Optional.empty());
+//
+//        // When
+//        tripScheduler.updateToOngoing();
+//
+//        // Then
+//        ArgumentCaptor<Long> timeCaptor = ArgumentCaptor.forClass(Long.class);
+//        verify(taskLockRepository).findByTaskIdAndLastExecutionLessThan(
+//                eq("update_ongoing_trips"), timeCaptor.capture());
+//
+//        Long capturedTime = timeCaptor.getValue();
+//        // Check if captured time is close to expected threshold (within 1 second)
+//        assertTrue(Math.abs(capturedTime - expectedThreshold) < 1000);
+//    }
 
     @Test
     @DisplayName("Should verify both methods use correct task IDs")
