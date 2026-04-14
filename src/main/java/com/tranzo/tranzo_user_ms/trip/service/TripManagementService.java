@@ -716,7 +716,7 @@ public class TripManagementService {
             userIds.add(q.getAskedBy());
             if (q.getAnsweredBy() != null) userIds.add(q.getAnsweredBy());
         }
-        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(userIds);
+        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(new ArrayList<>(userIds));
 
         return tripQueries.stream()
                 .map(q -> mapToTripQueryResponseDto(q, namesByUserId))

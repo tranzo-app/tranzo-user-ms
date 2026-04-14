@@ -12,30 +12,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
-@RequiredArgsConstructor
-public class UserProfileClient {
-
-    private final UserProfileRepository userProfileRepository;
-
-    public Map<UUID, UserNameDto> getNamesByUserIds(List<UUID> userIds) {
-        return userIds.stream()
-                .collect(Collectors.toMap(
-                        userId -> userId,
-                        userId -> {
-                            UserNameDto dto = new UserNameDto();
-                            dto.setUserId(userId);
-                            userProfileRepository.findAllUserProfileDetailByUserId(userId)
-                                    .ifPresent(profile -> {
-                                        dto.setFirstName(profile.getFirstName());
-                                        dto.setMiddleName(profile.getMiddleName());
-                                        dto.setLastName(profile.getLastName());
-                                        dto.setProfilePictureUrl(profile.getProfilePictureUrl());
-                                        dto.setBio(profile.getBio());
-                                        dto.setDob(profile.getDob());
-                                        dto.setLocation(profile.getLocation());
-                                    });
-                            return dto;
-                        }
-                ));
-    }
+public interface UserProfileClient {
+    Map<UUID, UserNameDto> getNamesByUserIds(List<UUID> userIds);
 }
