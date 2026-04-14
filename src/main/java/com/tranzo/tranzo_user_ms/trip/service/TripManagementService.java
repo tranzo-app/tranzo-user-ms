@@ -3,7 +3,7 @@ package com.tranzo.tranzo_user_ms.trip.service;
 import com.tranzo.tranzo_user_ms.commons.exception.*;
 import com.tranzo.tranzo_user_ms.trip.dto.*;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
-import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
+import com.tranzo.tranzo_user_ms.trip.exception.*;
 import com.tranzo.tranzo_user_ms.trip.events.TripEventPublisher;
 import com.tranzo.tranzo_user_ms.trip.events.TripPublishedEventPayloadDto;
 import com.tranzo.tranzo_user_ms.trip.model.*;
@@ -11,8 +11,12 @@ import com.tranzo.tranzo_user_ms.trip.repository.*;
 import com.tranzo.tranzo_user_ms.trip.specification.SpecificationBuilder;
 import com.tranzo.tranzo_user_ms.trip.utility.PageableBuilder;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
+import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
+import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
+import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
 import com.tranzo.tranzo_user_ms.commons.events.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,9 +30,8 @@ import java.util.*;
 import jakarta.persistence.criteria.Predicate;
 import java.util.stream.Collectors;
 
-import static com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode.*;
-
 @Service
+@Slf4j
 public class TripManagementService {
     private final TripRepository tripRepository;
     private final TagRepository tagRepository;
@@ -40,6 +43,8 @@ public class TripManagementService {
     private final TripEventPublisher tripEventPublisher;
     private final UserUtil userUtil;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final TravelPalService travelPalService;
+    private final UserProfileClient userProfileClient;
 
     public TripManagementService(TripMemberRepository tripMemberRepository,
                                  TripRepository tripRepository,
@@ -50,7 +55,9 @@ public class TripManagementService {
                                  TripPublishEligibilityValidator tripPublishEligibilityValidator,
                                  TripEventPublisher tripEventPublisher,
                                  UserUtil userUtil,
-                                 ApplicationEventPublisher applicationEventPublisher) {
+                                 ApplicationEventPublisher applicationEventPublisher,
+                                 TravelPalService travelPalService,
+                                 UserProfileClient userProfileClient) {
         this.tripMemberRepository = tripMemberRepository;
         this.tripRepository = tripRepository;
         this.tagRepository = tagRepository;
@@ -61,6 +68,8 @@ public class TripManagementService {
         this.tripEventPublisher = tripEventPublisher;
         this.userUtil = userUtil;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.travelPalService = travelPalService;
+        this.userProfileClient = userProfileClient;
     }
 
 
@@ -76,7 +85,7 @@ public class TripManagementService {
         if (tripDto.getTripStartDate() != null &&
                 tripDto.getTripEndDate() != null && tripDto.getTripStartDate().isAfter(tripDto.getTripEndDate()))
         {
-            throw new TripPublishException(INVALID_DATE_RANGE);
+            throw new TripValidationException(TripErrorCode.INVALID_DATE_RANGE);
         }
         tripEntity.setTripStartDate(tripDto.getTripStartDate());
         tripEntity.setTripEndDate(tripDto.getTripEndDate());
@@ -138,6 +147,18 @@ public class TripManagementService {
         host.setUserId(userId);
         host.setTrip(tripEntity);
         tripEntity.getTripMembers().add(host);
+        tripEntity.setCurrentParticipants(1);
+
+        // Set host name
+        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(userId));
+        UserNameDto hostNameDto = namesByUserId.get(userId);
+        if (hostNameDto != null) {
+            String fullName = String.join(" ", 
+                hostNameDto.getFirstName() != null ? hostNameDto.getFirstName() : "",
+                hostNameDto.getMiddleName() != null ? hostNameDto.getMiddleName() : "",
+                hostNameDto.getLastName() != null ? hostNameDto.getLastName() : "").trim();
+            tripEntity.setTripHostName(fullName);
+        }
 
         TripEntity newTrip = tripRepository.save(tripEntity);
         return TripResponseDto.builder()
@@ -150,10 +171,10 @@ public class TripManagementService {
     public TripResponseDto updateDraftTrip(TripDto tripDto, UUID tripId, UUID userId)
     {
         TripEntity trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+                .orElseThrow(() -> new TripNotFoundException());
         if (trip.getTripStatus() != TripStatus.DRAFT)
         {
-            throw new ConflictException("Only trips with DRAFT status can be updated");
+            throw new TripValidationException(TripErrorCode.INVALID_TRIP_STATUS_TRANSITION, "Only trips with DRAFT status can be updated");
         }
         userUtil.validateUserIsHost(tripId, userId);
         updateDraftTripBasicInfo(trip, tripDto);
@@ -171,33 +192,104 @@ public class TripManagementService {
     public TripViewDto fetchTrip(UUID tripId, UUID userId)
     {
         TripEntity trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+                .orElseThrow(() -> new TripNotFoundException());
         boolean isTripHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(tripId, userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
         if (trip.getTripStatus() == TripStatus.CANCELLED && !isTripHost) {
-            throw new ForbiddenException("Cancelled trip is not accessible for anyone except the host of the trip");
+            throw new TripAccessDeniedException("Cancelled trip is not accessible for anyone except the host of the trip");
         }
-        if (trip.getVisibilityStatus() == VisibilityStatus.PRIVATE)
-        {
-            tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE)
-                    .orElseThrow(() -> new ForbiddenException("User is not allowed to view this private trip as the user is not the member of the trip"));
-        }
-        return mapTripEntityToDto(trip);
+//        if (trip.getVisibilityStatus() == VisibilityStatus.PRIVATE)
+//        {
+//            tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE)
+//                    .orElseThrow(() -> new TripAccessDeniedException("User is not allowed to view this private trip as the user is not the member of the trip"));
+//        }
+        return mapTripEntityToDto(trip, isTripHost);
     }
 
-    public List<TripViewDto> fetchTripForUser(UUID userId)
-    {
+    public TripMembersListResponseDto getTripMembers(UUID tripId, UUID userId) {
+        TripEntity trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new TripNotFoundException());
+        boolean isTripHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(tripId, userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+        if (trip.getTripStatus() == TripStatus.CANCELLED && !isTripHost) {
+            throw new TripAccessDeniedException("Cancelled trip is not accessible for anyone except the host of the trip");
+        }
+        if (trip.getVisibilityStatus() == VisibilityStatus.PRIVATE) {
+            tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE)
+                    .orElseThrow(() -> new TripAccessDeniedException("User is not allowed to view this private trip as the user is not the member of the trip"));
+        }
+        List<TripMemberEntity> activeMembers = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE);
+        UUID hostUserId = activeMembers.stream()
+                .filter(m -> m.getRole() == TripMemberRole.HOST)
+                .map(TripMemberEntity::getUserId)
+                .findFirst()
+                .orElse(null);
+        List<UUID> coHostUserIds = activeMembers.stream()
+                .filter(m -> m.getRole() == TripMemberRole.CO_HOST)
+                .map(TripMemberEntity::getUserId)
+                .toList();
+        List<UUID> memberUserIds = activeMembers.stream().map(TripMemberEntity::getUserId).toList();
+        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(memberUserIds);
+        List<TripMemberResponseDto> memberDtos = activeMembers.stream()
+                .map(m -> {
+                    UserNameDto names = namesByUserId.get(m.getUserId());
+                    return TripMemberResponseDto.builder()
+                            .membershipId(m.getMembershipId())
+                            .userId(m.getUserId())
+                            .role(m.getRole())
+                            .joinedAt(m.getJoinedAt())
+                            .firstName(names != null ? names.getFirstName() : null)
+                            .middleName(names != null ? names.getMiddleName() : null)
+                            .lastName(names != null ? names.getLastName() : null)
+                            .profilePictureUrl(names != null ? names.getProfilePictureUrl() : null)
+                            .build();
+                })
+                .toList();
+        return TripMembersListResponseDto.builder()
+                .tripId(tripId)
+                .hostUserId(hostUserId)
+                .coHostUserIds(coHostUserIds)
+                .members(memberDtos)
+                .totalJoined(activeMembers.size())
+                .build();
+    }
+
+    public List<TripViewDto> getMutualTrips(UUID currentUserId, UUID otherUserId) {
+        if (currentUserId.equals(otherUserId)) {
+            return List.of();
+        }
         List<TripStatus> statuses = List.of(TripStatus.PUBLISHED, TripStatus.ONGOING, TripStatus.COMPLETED);
-        List<TripEntity> trips = tripMemberRepository.findTripsByUserIdAndStatusIn(userId, statuses);
+        List<TripEntity> trips = tripRepository.findMutualTrips(currentUserId, otherUserId, statuses);
         return trips.stream()
-                .map(this::mapTripEntityToDto)
+                .map(trip -> {
+                    boolean isTripHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(trip.getTripId(), currentUserId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+                    return mapTripEntityToDto(trip, isTripHost);
+                })
                 .toList();
     }
 
-    public List<TripViewDto> fetchAllTrips()
+    public List<TripViewDto> fetchTripForUser(final UUID userId)
     {
-        List<TripEntity> trips = tripRepository.findAllTrips(TripStatus.COMPLETED);
+        List<TripStatus> statuses = List.of(TripStatus.DRAFT, TripStatus.PUBLISHED, TripStatus.ONGOING, TripStatus.COMPLETED);
+        List<TripEntity> trips = tripMemberRepository.findTripsByUserIdAndStatusIn(userId, statuses);
         return trips.stream()
-                .map(this::mapTripEntityToDto)
+                .map(trip -> {
+                    boolean isTripHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+                    return mapTripEntityToDto(trip, isTripHost);
+                })
+                .toList();
+    }
+
+    public List<TripViewDto> fetchAllTrips(UUID userId)
+    {
+        List<TripEntity> trips = tripRepository.findAll();
+        return trips.stream()
+                .map(trip -> {
+                    Boolean isTripHost = null;
+                    if (userId != null)
+                    {
+                        isTripHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+                    }
+                    return mapTripEntityToDto(trip, isTripHost);
+                })
                 .toList();
     }
 
@@ -205,10 +297,10 @@ public class TripManagementService {
     public void cancelTrip(UUID tripId, UUID userId)
     {
         TripEntity trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+                .orElseThrow(() -> new TripNotFoundException());
         if (!trip.getTripStatus().canManuallyTransitionTo(TripStatus.CANCELLED))
         {
-            throw new ConflictException("Only trips in a valid status can be cancelled");
+            throw new TripValidationException(TripErrorCode.INVALID_TRIP_STATUS_TRANSITION, "Only trips in a valid status can be cancelled");
         }
         userUtil.validateUserIsHost(tripId, userId);
         trip.setTripStatus(TripStatus.CANCELLED);
@@ -225,7 +317,7 @@ public class TripManagementService {
     public TripResponseDto publishTrip(UUID tripId, UUID userId)
     {
         TripEntity trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+                .orElseThrow(() -> new TripNotFoundException());
         userUtil.validateUserIsHost(tripId, userId);
         tripPublishEligibilityValidator.validate(trip);
         trip.setTripStatus(TripStatus.PUBLISHED);
@@ -252,9 +344,9 @@ public class TripManagementService {
     public TripResponseDto updateTrip(TripDto tripDto, UUID tripId, UUID userId)
     {
         TripEntity trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new TripPublishException(TRIP_NOT_FOUND));
+                .orElseThrow(() -> new TripNotFoundException());
         if (trip.getTripStatus() != TripStatus.PUBLISHED && trip.getTripStatus() != TripStatus.ONGOING) {
-            throw new ConflictException("Only published or ongoing trips can be updated");
+            throw new TripValidationException(TripErrorCode.INVALID_TRIP_STATUS_TRANSITION, "Only published or ongoing trips can be updated");
         }
         userUtil.validateUserIsHost(tripId, userId);
         updatePublishedTripBasicInfo(trip, tripDto);
@@ -282,7 +374,7 @@ public class TripManagementService {
         if (tripDto.getTripStartDate() != null) trip.setTripStartDate(tripDto.getTripStartDate());
         if (tripDto.getTripEndDate() != null) {
             if (tripDto.getTripStartDate() != null && tripDto.getTripStartDate().isAfter(tripDto.getTripEndDate())) {
-                throw new TripPublishException(INVALID_DATE_RANGE);
+                throw new TripValidationException(TripErrorCode.INVALID_DATE_RANGE);
             }
             trip.setTripEndDate(tripDto.getTripEndDate());
         }
@@ -294,25 +386,37 @@ public class TripManagementService {
 
     @Transactional
     public void autoMarkTripsAsOngoing() {
+        log.info("Auto-marking trips as ongoing started");
         List<TripEntity> trips = tripRepository
                 .findByTripStatusAndTripStartDateLessThanEqual(
                         TripStatus.PUBLISHED, LocalDate.now());
 
+        log.info("Found {} PUBLISHED trips with start date <= today", trips.size());
+        
         trips.forEach(trip -> {
             if (trip.getTripStatus().canAutomaticallyTransitionTo(TripStatus.ONGOING)) {
+                log.info("Marking trip {} ({}) as ONGOING - start date was {}", 
+                        trip.getTripId(), trip.getTripTitle(), trip.getTripStartDate());
                 trip.setTripStatus(TripStatus.ONGOING);
             }
         });
+        
+        log.info("Auto-marking trips as ongoing completed - processed {} trips", trips.size());
     }
 
     @Transactional
     public void autoMarkTripsAsCompleted() {
+        log.info("Auto-marking trips as completed started");
         List<TripEntity> trips = tripRepository
                 .findByTripStatusAndTripEndDateBefore(
                         TripStatus.ONGOING, LocalDate.now());
 
+        log.info("Found {} ONGOING trips with end date < today", trips.size());
+
         trips.forEach(trip -> {
             if (trip.getTripStatus().canAutomaticallyTransitionTo(TripStatus.COMPLETED)) {
+                log.info("Marking trip {} ({}) as COMPLETED - end date was {}", 
+                        trip.getTripId(), trip.getTripTitle(), trip.getTripEndDate());
                 trip.setTripStatus(TripStatus.COMPLETED);
                 List<UUID> memberUserIds = tripMemberRepository
                         .findByTrip_TripIdAndStatus(trip.getTripId(), TripMemberStatus.ACTIVE)
@@ -321,8 +425,12 @@ public class TripManagementService {
                         .toList();
                 applicationEventPublisher.publishEvent(
                         new TripCompletedEvent(trip.getTripId(), trip.getTripTitle(), memberUserIds));
+                log.info("Published TripCompletedEvent for trip {} with {} members", 
+                        trip.getTripId(), memberUserIds.size());
             }
         });
+        
+        log.info("Auto-marking trips as completed completed - processed {} trips", trips.size());
     }
 
     private static void setTripItineraryEntity(TripItineraryDto tripItineraryDto, TripEntity tripEntity, TripItineraryEntity tripItineraryEntity) {
@@ -343,7 +451,7 @@ public class TripManagementService {
         if (tripDto.getTripStartDate() != null &&
                 tripDto.getTripEndDate() != null && tripDto.getTripStartDate().isAfter(tripDto.getTripEndDate()))
         {
-            throw new TripPublishException(INVALID_DATE_RANGE);
+            throw new TripValidationException(TripErrorCode.INVALID_DATE_RANGE);
         }
         trip.setTripStartDate(tripDto.getTripStartDate());
         trip.setTripEndDate(tripDto.getTripEndDate());
@@ -426,8 +534,34 @@ public class TripManagementService {
         trip.getTripItineraries().addAll(updatedTripItineraries);
     }
 
-    private TripViewDto mapTripEntityToDto(TripEntity trip)
+    private TripViewDto mapTripEntityToDto(TripEntity trip, Boolean isTripHost)
     {
+        int activeMemberCount = tripMemberRepository.countByTrip_TripIdAndStatus(
+                trip.getTripId(), TripMemberStatus.ACTIVE);
+        
+        // Get host name - use stored value if available, otherwise fetch dynamically
+        String hostName = trip.getTripHostName();
+        if (hostName == null) {
+            // Fallback for existing trips without stored host name
+            UUID hostUserId = tripMemberRepository.findByTrip_TripIdAndStatus(trip.getTripId(), TripMemberStatus.ACTIVE)
+                    .stream()
+                    .filter(m -> m.getRole() == TripMemberRole.HOST)
+                    .map(TripMemberEntity::getUserId)
+                    .findFirst()
+                    .orElse(null);
+            
+            if (hostUserId != null) {
+                Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(hostUserId));
+                UserNameDto hostNameDto = namesByUserId.get(hostUserId);
+                if (hostNameDto != null) {
+                    hostName = String.join(" ", 
+                        hostNameDto.getFirstName() != null ? hostNameDto.getFirstName() : "",
+                        hostNameDto.getMiddleName() != null ? hostNameDto.getMiddleName() : "",
+                        hostNameDto.getLastName() != null ? hostNameDto.getLastName() : "").trim();
+                }
+            }
+        }
+        
         return TripViewDto.builder()
                 .tripId(trip.getTripId())
                 .tripDescription(trip.getTripDescription())
@@ -437,7 +571,12 @@ public class TripManagementService {
                 .tripEndDate(trip.getTripEndDate())
                 .estimatedBudget(trip.getEstimatedBudget())
                 .maxParticipants(trip.getMaxParticipants())
+                .currentParticipants(activeMemberCount)
                 .isFull(trip.getIsFull())
+                .splitWiseGroupId(trip.getSplitwiseGroupId())
+                .isTripHost(isTripHost)
+                .hostName(hostName)
+                .tripStatus(trip.getTripStatus())
                 .tripFullReason(trip.getTripFullReason())
                 .joinPolicy(trip.getJoinPolicy())
                 .visibilityStatus(trip.getVisibilityStatus())
@@ -499,12 +638,12 @@ public class TripManagementService {
 
     public void addTripQnA(UUID userID, CreateQnaRequestDto createQnaRequestDto, UUID tripId){
             TripEntity trip = tripRepository.findById(tripId)
-                    .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+                    .orElseThrow(() -> new TripNotFoundException());
 
-            userUtil.validateUserIsHost(tripId, userID);
+//            userUtil.validateUserIsHost(tripId, userID);
 
             if(createQnaRequestDto.getQuestion() == null || createQnaRequestDto.getQuestion().trim().isEmpty()){
-                throw new BadRequestException("Question cannot be empty");
+                throw new TripQnaException(TripErrorCode.QUESTION_EMPTY);
             }
 
             if(trip.getTripStatus().equals(TripStatus.PUBLISHED)){
@@ -513,6 +652,7 @@ public class TripManagementService {
                         .answer(null)
                         .askedBy(userID)
                         .trip(trip)
+                        .visibility(TripQueryVisibility.ALL_TRIP_MEMBER)
                         .build();
 
                 tripQueryRepository.save(tripQueryEntity);
@@ -527,31 +667,32 @@ public class TripManagementService {
                 }
             }
             else {
-                throw new ConflictException("QnA can be added only to published trips");
+                throw new TripQnaException(TripErrorCode.INVALID_QNA_STATUS, "QnA can be added only to published trips");
             }
     }
 
     public void answerTripQnA(UUID userID, UUID tripId, UUID qnaId,AnswerQnaRequestDto answerQnaRequestDto){
             TripEntity trip = tripRepository.findById(tripId)
-                    .orElseThrow(()-> new EntityNotFoundException("Trip not found"));
+                    .orElseThrow(()-> new TripNotFoundException());
 
             // giving flexibilty  to answer open question in ongoing and completed state
 
             if(trip.getTripStatus() == TripStatus.CANCELLED){
-                throw new ConflictException("QnA cannot be answered for cancelled or Completed trips");
+                throw new TripQnaException(TripErrorCode.INVALID_QNA_STATUS, "QnA cannot be answered for cancelled or Completed trips");
             }
 
            // userUtil.validateUserIsHost(tripId, userID);
 
             TripQueryEntity tripQuery = tripQueryRepository.findByQueryIdAndTrip_TripId(qnaId,tripId)
-                    .orElseThrow(()-> new EntityNotFoundException("QnA not found for the given trip"));
+                    .orElseThrow(()-> new TripQnaException(TripErrorCode.QNA_NOT_FOUND));
 
             // are we keeping edit answer as seperate api ? if not then we have to remove this validation
             if(tripQuery.getAnswer() != null){
-                throw new ConflictException("QnA has already been answered");
+                throw new TripQnaException(TripErrorCode.QNA_ALREADY_ANSWERED);
             }
             tripQuery.setAnswer(answerQnaRequestDto.getAnswer());
             tripQuery.setAnsweredAt(LocalDateTime.now());
+            tripQuery.setAnsweredBy(userID);
             tripQueryRepository.save(tripQuery);
 
             applicationEventPublisher.publishEvent(
@@ -561,27 +702,46 @@ public class TripManagementService {
     // what about question answer visibility : joined as well as not joined users
     public List<TripQnaResponseDto> getTripQna(UUID tripId,UUID userId){
         TripEntity trip = tripRepository.findById(tripId)
-                .orElseThrow(()-> new EntityNotFoundException("Trip not found"));
+                .orElseThrow(()-> new TripNotFoundException());
 
         if(trip.getVisibilityStatus()== VisibilityStatus.PRIVATE &&
                 !tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(tripId,userId,TripMemberStatus.ACTIVE)){
-            throw new ForbiddenException("User is not allowed to fetch QnA of this trip");
+            throw new TripAccessDeniedException("User is not allowed to fetch QnA of this trip");
         }
 
         List<TripQueryEntity> tripQueries = tripQueryRepository.findByTrip_TripIdOrderByCreatedAtDesc(tripId);
 
+        Set<UUID> userIds = new HashSet<>();
+        for (TripQueryEntity q : tripQueries) {
+            userIds.add(q.getAskedBy());
+            if (q.getAnsweredBy() != null) userIds.add(q.getAnsweredBy());
+        }
+        Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(userIds);
+
         return tripQueries.stream()
-                .map(this::mapToTripQueryResponseDto)
+                .map(q -> mapToTripQueryResponseDto(q, namesByUserId))
                 .toList();
     }
 
-    private TripQnaResponseDto mapToTripQueryResponseDto(TripQueryEntity tripQueryEntity){
+    private TripQnaResponseDto mapToTripQueryResponseDto(TripQueryEntity tripQueryEntity, Map<UUID, UserNameDto> namesByUserId){
+        UserNameDto askedByNames = namesByUserId != null ? namesByUserId.get(tripQueryEntity.getAskedBy()) : null;
+        UserNameDto answeredByNames = tripQueryEntity.getAnsweredBy() != null && namesByUserId != null
+                ? namesByUserId.get(tripQueryEntity.getAnsweredBy()) : null;
         return TripQnaResponseDto.builder()
                 .qnaId(tripQueryEntity.getQueryId())
                 .tripId(tripQueryEntity.getTrip().getTripId())
                 .authorUserId(tripQueryEntity.getAskedBy())
+                .askedByFirstName(askedByNames != null ? askedByNames.getFirstName() : null)
+                .askedByMiddleName(askedByNames != null ? askedByNames.getMiddleName() : null)
+                .askedByLastName(askedByNames != null ? askedByNames.getLastName() : null)
+                .authorProfilePictureUrl(askedByNames != null ? askedByNames.getProfilePictureUrl() : null)
                 .question(tripQueryEntity.getQuestion())
                 .answer(tripQueryEntity.getAnswer())
+                .answeredBy(tripQueryEntity.getAnsweredBy())
+                .answeredByFirstName(answeredByNames != null ? answeredByNames.getFirstName() : null)
+                .answeredByMiddleName(answeredByNames != null ? answeredByNames.getMiddleName() : null)
+                .answeredByLastName(answeredByNames != null ? answeredByNames.getLastName() : null)
+                .answeredByProfilePictureUrl(answeredByNames != null ? answeredByNames.getProfilePictureUrl() : null)
                 .answeredAt(tripQueryEntity.getAnsweredAt())
                 .createdAt(tripQueryEntity.getCreatedAt())
                 .build();
@@ -589,19 +749,19 @@ public class TripManagementService {
 
     public void reportTrip(UUID reportingUserId,UUID tripId, ReportTripRequestDto reportTripRequestDto) {
              TripEntity trip = tripRepository.findById(tripId)
-                    .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+                    .orElseThrow(() -> new TripNotFoundException());
 
              if(trip.getVisibilityStatus()== VisibilityStatus.PRIVATE &&
                 !tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(tripId,reportingUserId,TripMemberStatus.ACTIVE)){
-                throw new ForbiddenException("User is not allowed to report this private trip");
+                throw new TripAccessDeniedException("User is not allowed to report this private trip");
              }
 
              if(tripReportRepository.existsByReportedByAndTrip_TripId(reportingUserId,tripId)) {
-                throw new ConflictException("User has already reported this trip");
+                throw new TripValidationException(TripErrorCode.TRIP_ALREADY_REPORTED);
              }
 
              if(reportTripRequestDto.getReportReason()==null || reportTripRequestDto.getReportReason().trim().isEmpty()){
-                throw new BadRequestException("Report reason cannot be empty");
+                throw new TripValidationException(TripErrorCode.REPORT_REASON_EMPTY);
              }
 
             TripReportEntity tripReportEntity = TripReportEntity.builder()
@@ -615,24 +775,24 @@ public class TripManagementService {
     @Transactional
     public void promoteToCoHost(UUID userId, UUID tripId, UUID participantUserId) {
         TripEntity trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+                .orElseThrow(() -> new TripNotFoundException());
 
         userUtil.validateUserIsHost(tripId, userId);
         // Do I need to make seprate exception for this one
         if(userId.equals(participantUserId)){
-            throw new BadRequestException("Host can make itself as cohost");
+            throw new TripMemberException(TripErrorCode.HOST_CANNOT_BE_CO_HOST);
         }
 
         TripMemberEntity participant = tripMemberRepository
                 .findByTrip_TripIdAndUserIdAndStatus(tripId, participantUserId, TripMemberStatus.ACTIVE)
-                .orElseThrow(() -> new EntityNotFoundException("Participant not found or not active in the trip"));
+                .orElseThrow(() -> new TripMemberException(TripErrorCode.PARTICIPANT_NOT_FOUND));
 
         if (participant.getRole() == TripMemberRole.CO_HOST) {
-            throw new ConflictException("Participant is already a CO-HOST");
+            throw new TripMemberException(TripErrorCode.USER_ALREADY_CO_HOST);
         }
 
         if (participant.getRole() != TripMemberRole.MEMBER) {
-            throw new ConflictException("Only participants with MEMBER role can be promoted to CO-HOST");
+            throw new TripMemberException(TripErrorCode.ONLY_MEMBER_CAN_BE_PROMOTED);
         }
 
         participant.setRole(TripMemberRole.CO_HOST);
@@ -651,12 +811,20 @@ public class TripManagementService {
     @Transactional
     public void markTripFull(UUID userId, UUID tripId) {
         TripEntity trip = tripRepository.findById(tripId)
-                .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+                .orElseThrow(() -> new TripNotFoundException());
         userUtil.validateUserIsHost(tripId, userId);
-        if (Boolean.TRUE.equals(trip.getIsFull())) {
-            throw new ConflictException("Trip is already marked full");
+//        if (Boolean.TRUE.equals(trip.getIsFull())) {
+//            throw new TripValidationException(TripErrorCode.TRIP_ALREADY_MARKED_FULL);
+//        }
+        boolean wasFull = Boolean.TRUE.equals(trip.getIsFull());
+        trip.setIsFull(!wasFull);
+        if (!wasFull) {
+            // Trip is being marked as full - set status to COMPLETED
+            trip.setTripStatus(TripStatus.COMPLETED);
+        } else {
+            // Trip is being unmarked as full - set status to PUBLISHED
+            trip.setTripStatus(TripStatus.PUBLISHED);
         }
-        trip.setIsFull(true);
         tripRepository.save(trip);
 
         UUID hostUserId = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
@@ -671,8 +839,35 @@ public class TripManagementService {
                 .filter(id -> !id.equals(hostUserId))
                 .toList();
         if (!membersExcludingHost.isEmpty()) {
+            if (!wasFull) {
+                // Trip is being marked as full
+                applicationEventPublisher.publishEvent(
+                        new TripMarkedFullByHostEvent(tripId, trip.getTripTitle(), membersExcludingHost));
+            } else {
+                // Trip is being unmarked as full
+                applicationEventPublisher.publishEvent(
+                        new TripUnmarkedFullByHostEvent(tripId, trip.getTripTitle(), membersExcludingHost));
+            }
+        }
+    }
+
+    @Transactional
+    public void broadcastTripToTravelPals(UUID userId, UUID tripId) {
+        TripEntity trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new TripNotFoundException());
+        userUtil.validateUserIsHost(tripId, userId);
+        if (trip.getTripStatus() != TripStatus.PUBLISHED) {
+            throw new TripValidationException(TripErrorCode.TRIP_NOT_BROADCASTABLE, "Can only broadcast published trips");
+        }
+
+        List<UUID> travelPals = travelPalService.getMyTravelPals(userId);
+        List<UUID> broadcastToUserIds = travelPals.stream()
+                .filter(palId -> !tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(tripId, palId, TripMemberStatus.ACTIVE))
+                .toList();
+
+        if (!broadcastToUserIds.isEmpty()) {
             applicationEventPublisher.publishEvent(
-                    new TripMarkedFullByHostEvent(tripId, trip.getTripTitle(), membersExcludingHost));
+                    new TripBroadcastEvent(tripId, trip.getTripTitle(), userId, broadcastToUserIds));
         }
     }
 
@@ -689,7 +884,9 @@ public class TripManagementService {
         }
         Pageable pageable = PageableBuilder.build(request);
         Page<TripEntity> trips = tripRepository.findAll(spec, pageable);
-        return trips.map(this::mapTripEntityToDto);
+        return trips.map(trip -> {
+            return mapTripEntityToDto(trip, null);
+        });
     }
 
     private Specification<TripEntity> buildGlobalSearch(

@@ -1,6 +1,8 @@
 package com.tranzo.tranzo_user_ms.user.controller;
 
+import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
+import com.tranzo.tranzo_user_ms.user.dto.SuggestedTravelPalDto;
 import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import jakarta.security.auth.message.AuthException;
 import lombok.RequiredArgsConstructor;
@@ -45,14 +47,21 @@ public class TravelPalController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<UUID>> myPals() throws AuthException {
+    public ResponseEntity<ResponseDto<List<SuggestedTravelPalDto>>> myPals() throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        return ResponseEntity.ok(service.getMyTravelPals(userId));
+        return ResponseEntity.ok(ResponseDto.success("Travel pals retrieved", service.getMyTravelPalsWithDetails(userId)));
     }
 
     @GetMapping("/pending")
-    public ResponseEntity<?> pending() throws AuthException {
+    public ResponseEntity<ResponseDto<List<SuggestedTravelPalDto>>> pending() throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        return ResponseEntity.ok(service.getIncomingPendingRequests(userId));
+        return ResponseEntity.ok(ResponseDto.success("Pending requests retrieved", service.getIncomingPendingRequestsWithDetails(userId)));
+    }
+
+    @GetMapping("/suggested")
+    public ResponseEntity<ResponseDto<List<SuggestedTravelPalDto>>> suggested() throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        List<SuggestedTravelPalDto> suggestedPals = service.getSuggestedTravelPals(userId);
+        return ResponseEntity.ok(ResponseDto.success("Suggested travel pals retrieved", suggestedPals));
     }
 }
