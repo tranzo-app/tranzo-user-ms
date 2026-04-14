@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -23,6 +24,7 @@ public class TripPolicyEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
     @JoinColumn(name = "trip_id")
+    @JsonIgnore
     private TripEntity trip;
 
     @Column(name = "cancellation_policy", length = 500)

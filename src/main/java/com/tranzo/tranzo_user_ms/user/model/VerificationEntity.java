@@ -48,8 +48,7 @@ public class VerificationEntity {
     @Column(name = "verification_status", nullable = false)
     private VerificationStatus verificationStatus;
 
-    @Lob
-    @Column(name = "verification_remarks")
+    @Column(name = "verification_remarks", columnDefinition = "TEXT")
     private String verificationRemarks;
 
     @Column(name = "verified_at")

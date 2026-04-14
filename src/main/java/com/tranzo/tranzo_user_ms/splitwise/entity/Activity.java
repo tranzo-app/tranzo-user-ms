@@ -24,8 +24,8 @@ import java.util.UUID;
 public class Activity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id")
@@ -42,7 +42,7 @@ public class Activity {
     private String description;
 
     @Column(name = "related_id")
-    private String relatedId; // expense_id, settlement_id, group_id, user_id, etc.
+    private UUID relatedId; // expense_id, settlement_id, group_id, user_id, etc.
 
     @Column(name = "related_type", length = 50)
     private String relatedType; // "EXPENSE", "SETTLEMENT", "GROUP", "USER"
@@ -90,14 +90,14 @@ public class Activity {
      * Creates an activity for expense-related actions.
      */
     public static Activity createExpenseActivity(ActivityType activityType, UsersEntity user,
-                                               SplitwiseGroup group, Long expenseId, 
+                                               SplitwiseGroup group, UUID expenseId,
                                                String description) {
         return Activity.builder()
                 .group(group)
                 .userId(user != null ? user.getUserUuid() : null)
                 .activityType(activityType)
                 .description(description)
-                .relatedId(expenseId != null ? expenseId.toString() : null)
+                .relatedId(expenseId != null ? expenseId : null)
                 .relatedType("EXPENSE")
                 .build();
     }
@@ -106,14 +106,14 @@ public class Activity {
      * Creates an activity for settlement-related actions.
      */
     public static Activity createSettlementActivity(ActivityType activityType, UsersEntity user, 
-                                                   SplitwiseGroup group, Long settlementId, 
+                                                   SplitwiseGroup group, UUID settlementId,
                                                    String description) {
         return Activity.builder()
                 .group(group)
                 .userId(user != null ? user.getUserUuid() : null)
                 .activityType(activityType)
                 .description(description)
-                .relatedId(settlementId != null ? settlementId.toString() : null)
+                .relatedId(settlementId != null ? settlementId : null)
                 .relatedType("SETTLEMENT")
                 .build();
     }
@@ -128,7 +128,7 @@ public class Activity {
                 .userId(user != null ? user.getUserUuid() : null)
                 .activityType(activityType)
                 .description(description)
-                .relatedId(group != null ? group.getId().toString() : null)
+                .relatedId(group != null ? group.getId() : null)
                 .relatedType("GROUP")
                 .build();
     }
@@ -137,14 +137,14 @@ public class Activity {
      * Creates an activity for member-related actions.
      */
     public static Activity createMemberActivity(ActivityType activityType, UsersEntity user, 
-                                               SplitwiseGroup group, Long memberId, 
+                                               SplitwiseGroup group, UUID memberId,
                                                String description) {
         return Activity.builder()
                 .group(group)
                 .userId(user != null ? user.getUserUuid() : null)
                 .activityType(activityType)
                 .description(description)
-                .relatedId(memberId != null ? memberId.toString() : null)
+                .relatedId(memberId != null ? memberId: null)
                 .relatedType("USER")
                 .build();
     }

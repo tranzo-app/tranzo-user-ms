@@ -1,6 +1,7 @@
 package com.tranzo.tranzo_user_ms.trip.dto;
 
 import com.tranzo.tranzo_user_ms.trip.enums.JoinPolicy;
+import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,10 +26,16 @@ public class TripViewDto {
     private LocalDate tripEndDate;
     private Double estimatedBudget;
     private Integer maxParticipants;
+    private TripStatus tripStatus;
+    /** Active joined count (host + co-hosts + members); kept in sync on join/leave. */
+    private Integer currentParticipants;
     private Boolean isFull;
+    private Boolean isTripHost;
     private String tripFullReason;
+    private String hostName;
     private JoinPolicy joinPolicy;
     private VisibilityStatus visibilityStatus;
+    private UUID splitWiseGroupId;
     private TripPolicyViewDto tripPolicy;
     private TripMetaDataViewDto tripMetaData;
     private Set<TripTagViewDto> tripTags = new HashSet<>();

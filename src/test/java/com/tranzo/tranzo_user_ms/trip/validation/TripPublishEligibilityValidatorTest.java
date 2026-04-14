@@ -1,10 +1,10 @@
 package com.tranzo.tranzo_user_ms.trip.validation;
 
 import com.tranzo.tranzo_user_ms.trip.enums.JoinPolicy;
-import com.tranzo.tranzo_user_ms.trip.enums.TripPublishErrorCode;
+import com.tranzo.tranzo_user_ms.trip.enums.TripErrorCode;
 import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus;
-import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
+import com.tranzo.tranzo_user_ms.trip.exception.TripValidationException;
 import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
 import com.tranzo.tranzo_user_ms.trip.model.TripItineraryEntity;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,9 +46,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripStatus(TripStatus.PUBLISHED);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.TRIP_ALREADY_PUBLISHED, exception.getErrorCode());
+        assertEquals(TripErrorCode.TRIP_ALREADY_PUBLISHED, exception.getErrorCode());
     }
 
     // ============== TITLE VALIDATION TESTS ==============
@@ -60,9 +60,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripTitle(null);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.TITLE_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.TITLE_MISSING, exception.getErrorCode());
     }
 
     @Test
@@ -72,9 +72,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripTitle("   ");
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.TITLE_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.TITLE_MISSING, exception.getErrorCode());
     }
 
     @Test
@@ -84,9 +84,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripTitle("");
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.TITLE_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.TITLE_MISSING, exception.getErrorCode());
     }
 
     // ============== DESCRIPTION VALIDATION TESTS ==============
@@ -98,9 +98,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripDescription(null);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.DESCRIPTION_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.DESCRIPTION_MISSING, exception.getErrorCode());
     }
 
     @Test
@@ -110,9 +110,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripDescription("   ");
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.DESCRIPTION_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.DESCRIPTION_MISSING, exception.getErrorCode());
     }
 
     // ============== DESTINATION VALIDATION TESTS ==============
@@ -124,9 +124,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripDestination(null);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.DESTINATION_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.DESTINATION_MISSING, exception.getErrorCode());
     }
 
     @Test
@@ -136,9 +136,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripDestination("   ");
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.DESTINATION_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.DESTINATION_MISSING, exception.getErrorCode());
     }
 
     // ============== DATE VALIDATION TESTS ==============
@@ -150,9 +150,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripStartDate(null);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.START_DATE_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.START_DATE_MISSING, exception.getErrorCode());
     }
 
     @Test
@@ -162,9 +162,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripEndDate(null);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.END_DATE_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.END_DATE_MISSING, exception.getErrorCode());
     }
 
     @Test
@@ -175,9 +175,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripEndDate(LocalDate.of(2026, 6, 1));
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.INVALID_DATE_RANGE, exception.getErrorCode());
+        assertEquals(TripErrorCode.INVALID_DATE_RANGE, exception.getErrorCode());
     }
 
     @Test
@@ -213,9 +213,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setEstimatedBudget(null);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.ESTIMATED_BUDGET_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.ESTIMATED_BUDGET_MISSING, exception.getErrorCode());
     }
 
     @Test
@@ -225,9 +225,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setEstimatedBudget(0.0);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.INVALID_ESTIMATED_BUDGET, exception.getErrorCode());
+        assertEquals(TripErrorCode.INVALID_ESTIMATED_BUDGET, exception.getErrorCode());
     }
 
     @Test
@@ -237,9 +237,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setEstimatedBudget(-100.0);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.INVALID_ESTIMATED_BUDGET, exception.getErrorCode());
+        assertEquals(TripErrorCode.INVALID_ESTIMATED_BUDGET, exception.getErrorCode());
     }
 
     @Test
@@ -261,9 +261,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setMaxParticipants(null);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.MAX_PARTICIPANTS_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.MAX_PARTICIPANTS_MISSING, exception.getErrorCode());
     }
 
     @Test
@@ -273,9 +273,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setMaxParticipants(0);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.INVALID_MAX_PARTICIPANTS, exception.getErrorCode());
+        assertEquals(TripErrorCode.INVALID_MAX_PARTICIPANTS, exception.getErrorCode());
     }
 
     @Test
@@ -285,9 +285,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setMaxParticipants(-5);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.INVALID_MAX_PARTICIPANTS, exception.getErrorCode());
+        assertEquals(TripErrorCode.INVALID_MAX_PARTICIPANTS, exception.getErrorCode());
     }
 
     @Test
@@ -309,9 +309,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setJoinPolicy(null);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.JOIN_POLICY_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.JOIN_POLICY_MISSING, exception.getErrorCode());
     }
 
     @Test
@@ -333,9 +333,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripItineraries(null);
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.ITINERARY_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.ITINERARY_MISSING, exception.getErrorCode());
     }
 
     @Test
@@ -345,9 +345,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripItineraries(new HashSet<>());
 
         // When & Then
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.ITINERARY_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.ITINERARY_MISSING, exception.getErrorCode());
     }
 
     @Test
@@ -455,9 +455,9 @@ class TripPublishEligibilityValidatorTest {
         validTrip.setTripDestination(null); // Also invalid
 
         // When & Then - Should fail on title, not description
-        TripPublishException exception = assertThrows(TripPublishException.class,
+        TripValidationException exception = assertThrows(TripValidationException.class,
             () -> validator.validate(validTrip));
-        assertEquals(TripPublishErrorCode.TITLE_MISSING, exception.getErrorCode());
+        assertEquals(TripErrorCode.TITLE_MISSING, exception.getErrorCode());
     }
 
     // ============== HELPER METHODS ==============

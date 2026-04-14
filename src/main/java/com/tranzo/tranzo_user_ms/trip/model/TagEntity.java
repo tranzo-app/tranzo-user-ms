@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,5 +27,6 @@ public class TagEntity {
     private String tagName;
 
     @ManyToMany(mappedBy = "tripTags", fetch = FetchType.LAZY)
+    @JsonIgnore
     private Set<TripEntity> trips = new HashSet<>();
 }

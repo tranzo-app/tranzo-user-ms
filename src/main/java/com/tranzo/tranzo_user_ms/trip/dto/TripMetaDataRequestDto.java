@@ -7,7 +7,7 @@ import java.util.Map;
 
 
 
-// think on thse lines of trip summary, whats included, whats excluded, essentials etc.
+// think on these lines of trip summary, whats included, whats excluded, essentials etc.
 
 @Getter
 @Setter
@@ -25,5 +25,5 @@ public class TripMetaDataRequestDto {
     private Map<String, Object> whatsExcluded;*/
 
     @Size(max = 20)
-    private Map<String, Object> essentials;
+    private Map<String, Object> thingsToPack;
 }

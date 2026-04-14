@@ -15,7 +15,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "social_handle")
+@Table(name = "social_handle", indexes = {
+        @Index(name = "idx_social_handle_user", columnList = "user_uuid")
+})
 @Getter
 @Setter
 @NoArgsConstructor

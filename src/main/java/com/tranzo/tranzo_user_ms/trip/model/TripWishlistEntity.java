@@ -13,6 +13,9 @@ import java.util.UUID;
         name = "trip_wishlists",
         uniqueConstraints = {
                 @UniqueConstraint(columnNames = {"trip_id", "user_id"})
+        },
+        indexes = {
+                @Index(name = "idx_wishlist_user_created", columnList = "user_id, created_at")
         }
 )
 @Getter

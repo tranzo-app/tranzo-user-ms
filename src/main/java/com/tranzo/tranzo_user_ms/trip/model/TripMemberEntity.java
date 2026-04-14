@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.tranzo.tranzo_user_ms.trip.enums.TripMemberRole;
 import com.tranzo.tranzo_user_ms.trip.enums.TripMemberStatus;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
@@ -17,7 +18,8 @@ import java.util.UUID;
                 @UniqueConstraint(columnNames = {"trip_id", "user_id"})
         },
         indexes = {
-                @Index(name = "idx_members_trip_status", columnList = "trip_id, status")
+                @Index(name = "idx_members_trip_status", columnList = "trip_id, status"),
+                @Index(name = "idx_members_user_id", columnList = "user_id")
         }
 )
 @Getter
@@ -39,6 +41,7 @@ public class TripMemberEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "trip_id", nullable = false)
+    @JsonBackReference
     private TripEntity trip;
 
     @Enumerated(EnumType.STRING)

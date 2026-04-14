@@ -15,6 +15,10 @@ public class MessageResponseDto {
     private UUID messageId;
     private UUID conversationId;
     private UUID senderId;
+    private String firstName;
+    private String middleName;
+    private String lastName;
     private String content;
+    private Boolean isSender;
     private LocalDateTime createdAt;
 }

@@ -1,6 +1,7 @@
 package com.tranzo.tranzo_user_ms.notification.service;
 
 import com.tranzo.tranzo_user_ms.notification.enums.NotificationType;
+import com.tranzo.tranzo_user_ms.notification.exception.NotificationAccessDeniedException;
 import com.tranzo.tranzo_user_ms.notification.model.UserNotificationEntity;
 import com.tranzo.tranzo_user_ms.notification.repository.UserNotificationRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,7 +84,7 @@ class NotificationServiceTest {
         when(userNotificationRepository.findByUserIdOrderByCreatedAtDesc(eq(userId), any(Pageable.class)))
             .thenReturn(page);
 
-        Page<UserNotificationEntity> result = notificationService.getNotificationsForUser(userId, Pageable.unpaged());
+        Page<UserNotificationEntity> result = notificationService.getNotificationsForUser(userId, mock(Pageable.class));
 
         assertSame(page, result);
         verify(userNotificationRepository).findByUserIdOrderByCreatedAtDesc(eq(userId), any(Pageable.class));
@@ -135,9 +136,9 @@ class NotificationServiceTest {
             .build();
         when(userNotificationRepository.findById(notificationId)).thenReturn(Optional.of(entity));
 
-        notificationService.markAsRead(notificationId, userId);
-
-        verify(userNotificationRepository, never()).save(any());
+        assertThrows(NotificationAccessDeniedException.class, () ->
+            notificationService.markAsRead(notificationId, userId)
+        );
     }
 
     @Test

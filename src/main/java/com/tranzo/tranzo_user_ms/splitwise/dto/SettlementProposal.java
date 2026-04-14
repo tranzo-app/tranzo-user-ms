@@ -20,12 +20,12 @@ public class SettlementProposal {
     /**
      * ID of the user who should pay (debtor).
      */
-    private UUID from;
+    private String from;
     
     /**
      * ID of the user who should receive payment (creditor).
      */
-    private UUID to;
+    private String to;
     
     /**
      * Amount to be settled, always positive.
@@ -35,7 +35,7 @@ public class SettlementProposal {
     /**
      * Constructor with automatic amount scaling.
      */
-    public SettlementProposal(UUID from, UUID to, BigDecimal amount) {
+    public SettlementProposal(String from, String to, BigDecimal amount) {
         this.from = from;
         this.to = to;
         this.amount = amount != null ? 
@@ -60,7 +60,7 @@ public class SettlementProposal {
      * Returns a human-readable description of the settlement.
      */
     public String getDescription() {
-        return String.format("User %s pays User %s: $%.2f", from, to, amount);
+        return String.format("%s has to pay %s: Rs. %.2f", from, to, amount);
     }
     
     @Override

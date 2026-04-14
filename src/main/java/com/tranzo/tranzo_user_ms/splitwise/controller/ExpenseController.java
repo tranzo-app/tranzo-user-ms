@@ -34,13 +34,12 @@ public class ExpenseController {
      * Creates a new expense.
      */
     @PostMapping
-    public ResponseEntity<ExpenseResponse> createExpense(
-            @Valid @RequestBody CreateExpenseRequest request) throws AuthException {
+    public ResponseEntity<ExpenseResponse> createExpense(@Valid @RequestBody CreateExpenseRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Received request to create expense: {}", request.getName());
+        log.info("Incoming request | API=/api/splitwise/expenses | method=POST | userId={} | expenseName={}", userId, request.getName());
         ExpenseResponse response = expenseService.createExpense(request, userId);
         
-        log.info("Successfully created expense with ID: {}", response.getId());
+        log.info("Expense created | userId={} | expenseId={} | status=SUCCESS", userId, response.getId());
         return ResponseEntity.ok(response);
     }
 
@@ -48,13 +47,12 @@ public class ExpenseController {
      * Gets an expense by ID.
      */
     @GetMapping("/{expenseId}")
-    public ResponseEntity<ExpenseResponse> getExpense(
-            @PathVariable Long expenseId) throws AuthException {
+    public ResponseEntity<ExpenseResponse> getExpense(@PathVariable UUID expenseId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.debug("Received request to get expense: {}", expenseId);
+        log.info("Incoming request | API=/api/splitwise/expenses/{} | method=GET | userId={}", expenseId, userId);
         ExpenseResponse response = expenseService.getExpense(expenseId, userId);
         
-        log.debug("Successfully retrieved expense: {}", response.getName());
+        log.info("Expense retrieved | userId={} | expenseId={} | status=SUCCESS", userId, expenseId);
         return ResponseEntity.ok(response);
     }
 
@@ -62,14 +60,12 @@ public class ExpenseController {
      * Updates an existing expense.
      */
     @PutMapping("/{expenseId}")
-    public ResponseEntity<ExpenseResponse> updateExpense(
-            @PathVariable Long expenseId,
-            @Valid @RequestBody UpdateExpenseRequest request) throws AuthException {
+    public ResponseEntity<ExpenseResponse> updateExpense(@PathVariable UUID expenseId, @Valid @RequestBody UpdateExpenseRequest request) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Received request to update expense: {}", expenseId);
+        log.info("Incoming request | API=/api/splitwise/expenses/{} | method=PUT | userId={}", expenseId, userId);
         ExpenseResponse response = expenseService.updateExpense(expenseId, request, userId);
         
-        log.info("Successfully updated expense: {}", expenseId);
+        log.info("Expense updated | userId={} | expenseId={} | status=SUCCESS", userId, expenseId);
         return ResponseEntity.ok(response);
     }
 
@@ -77,13 +73,12 @@ public class ExpenseController {
      * Deletes an expense.
      */
     @DeleteMapping("/{expenseId}")
-    public ResponseEntity<Void> deleteExpense(
-            @PathVariable Long expenseId) throws AuthException {
+    public ResponseEntity<Void> deleteExpense(@PathVariable UUID expenseId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Received request to delete expense: {}", expenseId);
+        log.info("Incoming request | API=/api/splitwise/expenses/{} | method=DELETE | userId={}", expenseId, userId);
         expenseService.deleteExpense(expenseId, userId);
         
-        log.info("Successfully deleted expense: {}", expenseId);
+        log.info("Expense deleted | userId={} | expenseId={} | status=SUCCESS", userId, expenseId);
         return ResponseEntity.noContent().build();
     }
 
@@ -91,13 +86,12 @@ public class ExpenseController {
      * Gets all expenses for a group.
      */
     @GetMapping("/group/{groupId}")
-    public ResponseEntity<List<ExpenseResponse>> getGroupExpenses(
-            @PathVariable Long groupId) throws AuthException {
+    public ResponseEntity<List<ExpenseResponse>> getGroupExpenses(@PathVariable UUID groupId) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.debug("Received request to get expenses for group: {}", groupId);
+        log.info("Incoming request | API=/api/splitwise/expenses/group/{} | method=GET | userId={}", groupId, userId);
         List<ExpenseResponse> response = expenseService.getGroupExpenses(groupId, userId);
         
-        log.debug("Retrieved {} expenses for group: {}", response.size(), groupId);
+        log.info("Group expenses retrieved | userId={} | groupId={} | expensesCount={} | status=SUCCESS", userId, groupId, response.size());
         return ResponseEntity.ok(response);
     }
 
@@ -107,10 +101,10 @@ public class ExpenseController {
     @GetMapping("/my-expenses")
     public ResponseEntity<List<ExpenseResponse>> getUserExpenses() throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.debug("Received request to get expenses for current user");
+        log.info("Incoming request | API=/api/splitwise/expenses/my-expenses | method=GET | userId={}", userId);
         List<ExpenseResponse> response = expenseService.getUserExpenses(userId);
         
-        log.debug("Retrieved {} expenses for user: {}", response.size(), userId);
+        log.info("User expenses retrieved | userId={} | expensesCount={} | status=SUCCESS", userId, response.size());
         return ResponseEntity.ok(response);
     }
 }

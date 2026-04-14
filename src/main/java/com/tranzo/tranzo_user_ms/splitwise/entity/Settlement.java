@@ -28,8 +28,8 @@ import java.util.UUID;
 public class Settlement {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id", nullable = false)
@@ -50,7 +50,7 @@ public class Settlement {
     private String paymentMethod;
 
     @Column(name = "transaction_id", length = 100)
-    private String transactionId;
+    private UUID transactionId;
 
     @Column(name = "notes", length = 500)
     private String notes;

@@ -2,6 +2,7 @@ package com.tranzo.tranzo_user_ms.trip.scheduler;
 
 import com.tranzo.tranzo_user_ms.trip.repository.TaskLockRepository;
 import com.tranzo.tranzo_user_ms.trip.service.TripManagementService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -11,6 +12,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Configuration
 @EnableScheduling
 public class TripScheduler {
@@ -25,6 +27,7 @@ public class TripScheduler {
                          TripManagementService tripManagementService) {
         this.taskLockRepository = taskLockRepository;
         this.tripManagementService = tripManagementService;
+        log.info("TripScheduler initialized - auto-marking trips as ongoing/completed is enabled");
     }
 
     @Transactional
@@ -33,12 +36,21 @@ public class TripScheduler {
         long now = System.currentTimeMillis();
         long rate = Duration.of(1, ChronoUnit.HOURS).toMillis();
 
-        taskLockRepository.findByTaskIdAndLastExecutionLessThan(
+        var ongoingTaskLock = taskLockRepository.findByTaskIdAndLastExecutionLessThan(
                 UPDATE_ONGOING_TASK, now - rate
-        ).ifPresent(lock -> {
-            tripManagementService.autoMarkTripsAsOngoing();
-            lock.setLastExecution(now);
-            taskLockRepository.save(lock);
+        );
+        
+        ongoingTaskLock.ifPresent(lock -> {
+            log.info("Trip scheduler: Executing auto-mark trips as ongoing");
+            try {
+                tripManagementService.autoMarkTripsAsOngoing();
+                lock.setLastExecution(now);
+                taskLockRepository.save(lock);
+                log.info("Trip scheduler: Completed auto-mark trips as ongoing");
+            } catch (Exception e) {
+                log.error("Trip scheduler: Failed to auto-mark trips as ongoing", e);
+                throw e;
+            }
         });
     }
 
@@ -48,12 +60,21 @@ public class TripScheduler {
         long now = System.currentTimeMillis();
         long rate = Duration.of(1, ChronoUnit.HOURS).toMillis();
 
-        taskLockRepository.findByTaskIdAndLastExecutionLessThan(
+        var completedTaskLock = taskLockRepository.findByTaskIdAndLastExecutionLessThan(
                 UPDATE_COMPLETED_TASK, now - rate
-        ).ifPresent(lock -> {
-            tripManagementService.autoMarkTripsAsCompleted();
-            lock.setLastExecution(now);
-            taskLockRepository.save(lock);
+        );
+        
+        completedTaskLock.ifPresent(lock -> {
+            log.info("Trip scheduler: Executing auto-mark trips as completed");
+            try {
+                tripManagementService.autoMarkTripsAsCompleted();
+                lock.setLastExecution(now);
+                taskLockRepository.save(lock);
+                log.info("Trip scheduler: Completed auto-mark trips as completed");
+            } catch (Exception e) {
+                log.error("Trip scheduler: Failed to auto-mark trips as completed", e);
+                throw e;
+            }
         });
     }
 }

@@ -3,25 +3,20 @@ package com.tranzo.tranzo_user_ms.user.controller;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
 import com.tranzo.tranzo_user_ms.user.dto.AadharNumberDto;
-import com.tranzo.tranzo_user_ms.user.dto.RequestOtpDto;
-import com.tranzo.tranzo_user_ms.user.dto.VerifyOtpDto;
-import com.tranzo.tranzo_user_ms.user.dto.VerifyOtpResponseDto;
 import com.tranzo.tranzo_user_ms.user.service.AadharService;
 import jakarta.security.auth.message.AuthException;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/aadhaar/otp")
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "aadhar.enabled", havingValue = "true")
 public class AadharController {
     private final AadharService aadharService;
 
@@ -38,4 +33,7 @@ public class AadharController {
     //     VerifyOtpResponseDto response = aadharService.verifyOtp(verifyOtpDto, httpServletResponse);
     //     return ResponseEntity.ok(ResponseDto.success(200, "OTP has been verified successfully", response));
     // }
+
+
+
 }

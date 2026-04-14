@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -14,6 +15,7 @@ import java.util.*;
 @Entity
 @Table(name = "conversation")
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ConversationEntity {
 
@@ -31,8 +33,8 @@ public class ConversationEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "name")
-    private String name; // only used if type = GROUP
+    @Column(name = "conversation_name")
+    private String conversationName; // only used if type = GROUP
 
     /**
      * IMPORTANT:

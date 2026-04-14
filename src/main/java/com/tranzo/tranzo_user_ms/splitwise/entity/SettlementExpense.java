@@ -28,8 +28,8 @@ import java.util.UUID;
 public class SettlementExpense {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "settlement_id", nullable = false)
@@ -53,9 +53,9 @@ public class SettlementExpense {
      */
     public BigDecimal getSettlementPercentage() {
         if (expense != null && expense.getAmount().compareTo(BigDecimal.ZERO) > 0) {
-            return amount.divide(expense.getAmount(), 4, BigDecimal.ROUND_HALF_UP)
+            return amount.divide(expense.getAmount(), 4, RoundingMode.HALF_UP)
                        .multiply(new BigDecimal("100"))
-                       .setScale(2, BigDecimal.ROUND_HALF_UP);
+                       .setScale(2, RoundingMode.HALF_UP);
         }
         return BigDecimal.ZERO;
     }
@@ -65,9 +65,9 @@ public class SettlementExpense {
      */
     public BigDecimal getSettlementPortionPercentage() {
         if (settlement != null && settlement.getAmount().compareTo(BigDecimal.ZERO) > 0) {
-            return amount.divide(settlement.getAmount(), 4, BigDecimal.ROUND_HALF_UP)
+            return amount.divide(settlement.getAmount(), 4, RoundingMode.HALF_UP)
                        .multiply(new BigDecimal("100"))
-                       .setScale(2, BigDecimal.ROUND_HALF_UP);
+                       .setScale(2, RoundingMode.HALF_UP);
         }
         return BigDecimal.ZERO;
     }

@@ -30,7 +30,7 @@ public class TripQueryEntity {
     private UUID queryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "trip_id", nullable = false, insertable = false, updatable = false)
+    @JoinColumn(name = "trip_id", nullable = false)
     private TripEntity trip;
 
     @Column(name = "asked_by", nullable = false)
@@ -52,4 +52,7 @@ public class TripQueryEntity {
 
     @Column(name = "answered_at")
     private LocalDateTime answeredAt;
+
+    @Column(name = "answered_by")
+    private UUID answeredBy;
 }

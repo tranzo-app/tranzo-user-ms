@@ -16,6 +16,9 @@ import java.util.UUID;
 public interface TripMemberRepository extends JpaRepository<TripMemberEntity, UUID> {
 
     List<TripMemberEntity> findByTrip_TripIdAndStatus(UUID tripId, TripMemberStatus status);
+
+    Optional<TripMemberEntity> findFirstByTrip_TripIdAndRoleAndStatus(UUID tripId, TripMemberRole role, TripMemberStatus status);
+
     Optional<TripMemberEntity> findByTrip_TripIdAndUserIdAndRole(UUID tripId, UUID userUuid, TripMemberRole role);
 
     Optional<TripMemberEntity> findByTrip_TripIdAndUserIdAndStatus(UUID tripId, UUID userUuid, TripMemberStatus status);
@@ -23,6 +26,8 @@ public interface TripMemberRepository extends JpaRepository<TripMemberEntity, UU
     boolean existsByTrip_TripIdAndUserIdAndRoleAndStatus(UUID tripId, UUID userId, TripMemberRole role, TripMemberStatus status);
 
     boolean existsByTrip_TripIdAndUserIdAndStatus(UUID tripId, UUID userId, TripMemberStatus status);
+
+    int countByTrip_TripIdAndStatus(UUID tripId, TripMemberStatus status);
 
     @Query("""
         SELECT tm.trip

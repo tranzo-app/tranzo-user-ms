@@ -153,7 +153,7 @@ public class TripManagementService {
         Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(userId));
         UserNameDto hostNameDto = namesByUserId.get(userId);
         if (hostNameDto != null) {
-            String fullName = String.join(" ", 
+            String fullName = String.join(" ",
                 hostNameDto.getFirstName() != null ? hostNameDto.getFirstName() : "",
                 hostNameDto.getMiddleName() != null ? hostNameDto.getMiddleName() : "",
                 hostNameDto.getLastName() != null ? hostNameDto.getLastName() : "").trim();
@@ -392,15 +392,15 @@ public class TripManagementService {
                         TripStatus.PUBLISHED, LocalDate.now());
 
         log.info("Found {} PUBLISHED trips with start date <= today", trips.size());
-        
+
         trips.forEach(trip -> {
             if (trip.getTripStatus().canAutomaticallyTransitionTo(TripStatus.ONGOING)) {
-                log.info("Marking trip {} ({}) as ONGOING - start date was {}", 
+                log.info("Marking trip {} ({}) as ONGOING - start date was {}",
                         trip.getTripId(), trip.getTripTitle(), trip.getTripStartDate());
                 trip.setTripStatus(TripStatus.ONGOING);
             }
         });
-        
+
         log.info("Auto-marking trips as ongoing completed - processed {} trips", trips.size());
     }
 
@@ -415,7 +415,7 @@ public class TripManagementService {
 
         trips.forEach(trip -> {
             if (trip.getTripStatus().canAutomaticallyTransitionTo(TripStatus.COMPLETED)) {
-                log.info("Marking trip {} ({}) as COMPLETED - end date was {}", 
+                log.info("Marking trip {} ({}) as COMPLETED - end date was {}",
                         trip.getTripId(), trip.getTripTitle(), trip.getTripEndDate());
                 trip.setTripStatus(TripStatus.COMPLETED);
                 List<UUID> memberUserIds = tripMemberRepository
@@ -425,11 +425,11 @@ public class TripManagementService {
                         .toList();
                 applicationEventPublisher.publishEvent(
                         new TripCompletedEvent(trip.getTripId(), trip.getTripTitle(), memberUserIds));
-                log.info("Published TripCompletedEvent for trip {} with {} members", 
+                log.info("Published TripCompletedEvent for trip {} with {} members",
                         trip.getTripId(), memberUserIds.size());
             }
         });
-        
+
         log.info("Auto-marking trips as completed completed - processed {} trips", trips.size());
     }
 
@@ -538,7 +538,7 @@ public class TripManagementService {
     {
         int activeMemberCount = tripMemberRepository.countByTrip_TripIdAndStatus(
                 trip.getTripId(), TripMemberStatus.ACTIVE);
-        
+
         // Get host name - use stored value if available, otherwise fetch dynamically
         String hostName = trip.getTripHostName();
         if (hostName == null) {
@@ -549,19 +549,19 @@ public class TripManagementService {
                     .map(TripMemberEntity::getUserId)
                     .findFirst()
                     .orElse(null);
-            
+
             if (hostUserId != null) {
                 Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(hostUserId));
                 UserNameDto hostNameDto = namesByUserId.get(hostUserId);
                 if (hostNameDto != null) {
-                    hostName = String.join(" ", 
+                    hostName = String.join(" ",
                         hostNameDto.getFirstName() != null ? hostNameDto.getFirstName() : "",
                         hostNameDto.getMiddleName() != null ? hostNameDto.getMiddleName() : "",
                         hostNameDto.getLastName() != null ? hostNameDto.getLastName() : "").trim();
                 }
             }
         }
-        
+
         return TripViewDto.builder()
                 .tripId(trip.getTripId())
                 .tripDescription(trip.getTripDescription())

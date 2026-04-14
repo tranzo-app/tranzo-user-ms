@@ -1,6 +1,7 @@
 package com.tranzo.tranzo_user_ms.trip.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.tranzo.tranzo_user_ms.trip.enums.JoinPolicy;
 import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus;
@@ -16,7 +17,11 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "core_trip_details")
+@Table(name = "core_trip_details", indexes = {
+        @Index(name = "idx_trip_status", columnList = "trip_status"),
+        @Index(name = "idx_trip_status_start_date", columnList = "trip_status, trip_start_date"),
+        @Index(name = "idx_trip_status_end_date", columnList = "trip_status, trip_end_date")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -64,6 +69,9 @@ public class TripEntity {
     @Column(name = "trip_full_reason")
     private String tripFullReason;
 
+    @Column(name = "trip_host_name")
+    private String tripHostName;
+
     @Column(name = "full_marked_at")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime fullMarkedAt;
@@ -88,6 +96,10 @@ public class TripEntity {
 
     @Column(name = "conversation_id")
     private UUID conversationID;
+
+    /** Set when trip is published and Splitwise group is created (event-based). */
+    @Column(name = "splitwise_group_id")
+    private UUID splitwiseGroupId;
 
     @OneToOne(
             mappedBy = "trip",
@@ -127,6 +139,7 @@ public class TripEntity {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
+    @JsonManagedReference
     private Set<TripMemberEntity> tripMembers = new HashSet<>();
 
     @OneToMany(mappedBy = "trip", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)

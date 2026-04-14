@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 /**
  * DTO for expense split response data.
@@ -17,7 +18,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ExpenseSplitResponse {
 
-    private Long id;
+    private UUID id;
     private UserResponse user;
     private BigDecimal amount;
     private BigDecimal percentage;

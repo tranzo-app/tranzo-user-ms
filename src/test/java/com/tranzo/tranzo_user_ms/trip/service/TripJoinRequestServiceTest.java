@@ -5,14 +5,18 @@ import com.tranzo.tranzo_user_ms.trip.dto.RemoveParticipantRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripJoinRequestResponseDto;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
-import com.tranzo.tranzo_user_ms.trip.exception.TripPublishException;
 import com.tranzo.tranzo_user_ms.trip.events.TripEventPublisher;
+import com.tranzo.tranzo_user_ms.trip.exception.TripException;
+import com.tranzo.tranzo_user_ms.trip.exception.TripJoinRequestException;
+import com.tranzo.tranzo_user_ms.trip.exception.TripValidationException;
 import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
 import com.tranzo.tranzo_user_ms.trip.model.TripJoinRequestEntity;
 import com.tranzo.tranzo_user_ms.trip.model.TripMemberEntity;
 import com.tranzo.tranzo_user_ms.trip.repository.TripJoinRequestRepository;
 import com.tranzo.tranzo_user_ms.trip.repository.TripMemberRepository;
 import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
+import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
+import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +28,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -51,6 +58,9 @@ class TripJoinRequestServiceTest {
 
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
+
+    @Mock
+    private UserProfileClient userProfileClient;
 
     @InjectMocks
     private TripJoinRequestService tripJoinRequestService;
@@ -87,6 +97,14 @@ class TripJoinRequestServiceTest {
             .thenReturn(false);
         when(tripJoinRequestRepository.save(any(TripJoinRequestEntity.class))).thenReturn(joinRequestEntity);
         when(tripMemberRepository.save(any(TripMemberEntity.class))).thenReturn(new TripMemberEntity());
+        when(userProfileClient.getNamesByUserIds(List.of(userId)))
+            .thenReturn(Map.of(userId, UserNameDto.builder()
+                .userId(userId)
+                .firstName("John")
+                .middleName(null)
+                .lastName("Doe")
+                .bio(null)
+                .build()));
 
         // When
         TripJoinRequestResponseDto response = tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId);
@@ -109,6 +127,14 @@ class TripJoinRequestServiceTest {
         when(tripJoinRequestRepository.existsByTrip_TripIdAndUserIdAndStatusIn(eq(tripId), eq(userId), anySet()))
             .thenReturn(false);
         when(tripJoinRequestRepository.save(any(TripJoinRequestEntity.class))).thenReturn(joinRequestEntity);
+        when(userProfileClient.getNamesByUserIds(List.of(userId)))
+            .thenReturn(Map.of(userId, UserNameDto.builder()
+                .userId(userId)
+                .firstName("John")
+                .middleName(null)
+                .lastName("Doe")
+                .bio(null)
+                .build()));
 
         // When
         TripJoinRequestResponseDto response = tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId);
@@ -125,7 +151,7 @@ class TripJoinRequestServiceTest {
         when(tripRepository.findByIdForUpdate(tripId)).thenReturn(Optional.empty());
 
         // When & Then
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripException.class, () ->
             tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId)
         );
     }
@@ -138,7 +164,7 @@ class TripJoinRequestServiceTest {
         when(tripRepository.findByIdForUpdate(tripId)).thenReturn(Optional.of(tripEntity));
 
         // When & Then
-        assertThrows(TripPublishException.class, () ->
+        assertThrows(TripException.class, () ->
             tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId)
         );
     }
@@ -151,7 +177,7 @@ class TripJoinRequestServiceTest {
         when(tripRepository.findByIdForUpdate(tripId)).thenReturn(Optional.of(tripEntity));
 
         // When & Then
-        assertThrows(BadRequestException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId)
         );
     }
@@ -170,7 +196,7 @@ class TripJoinRequestServiceTest {
             .thenReturn(Optional.of(hostMember));
 
         // When & Then
-        assertThrows(BadRequestException.class, () ->
+        assertThrows(TripJoinRequestException.class, () ->
             tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId)
         );
     }
@@ -189,7 +215,7 @@ class TripJoinRequestServiceTest {
             .thenReturn(Optional.of(member));
 
         // When & Then
-        assertThrows(BadRequestException.class, () ->
+        assertThrows(TripJoinRequestException.class, () ->
             tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId)
         );
     }
@@ -205,7 +231,7 @@ class TripJoinRequestServiceTest {
             .thenReturn(true);
 
         // When & Then
-        assertThrows(ConflictException.class, () ->
+        assertThrows(TripJoinRequestException.class, () ->
             tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId)
         );
     }
@@ -225,7 +251,7 @@ class TripJoinRequestServiceTest {
             .thenReturn(false);
 
         // When & Then
-        assertThrows(BadRequestException.class, () ->
+        assertThrows(TripValidationException.class, () ->
             tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId)
         );
     }
@@ -247,6 +273,14 @@ class TripJoinRequestServiceTest {
         when(tripJoinRequestRepository.save(any(TripJoinRequestEntity.class))).thenReturn(joinRequestEntity);
         when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
             .thenReturn(Collections.singletonList(hostMember));
+        when(userProfileClient.getNamesByUserIds(List.of(userId)))
+            .thenReturn(Map.of(userId, UserNameDto.builder()
+                .userId(userId)
+                .firstName("John")
+                .middleName(null)
+                .lastName("Doe")
+                .bio(null)
+                .build()));
 
         tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId);
 
@@ -271,6 +305,14 @@ class TripJoinRequestServiceTest {
         when(tripMemberRepository.save(any(TripMemberEntity.class))).thenReturn(new TripMemberEntity());
         when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
             .thenReturn(Collections.singletonList(existingMember));
+        when(userProfileClient.getNamesByUserIds(List.of(userId)))
+            .thenReturn(Map.of(userId, UserNameDto.builder()
+                .userId(userId)
+                .firstName("John")
+                .middleName(null)
+                .lastName("Doe")
+                .bio(null)
+                .build()));
 
         tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId);
 
@@ -304,6 +346,14 @@ class TripJoinRequestServiceTest {
         when(tripMemberRepository.save(any(TripMemberEntity.class))).thenReturn(newMember);
         when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE))
             .thenReturn(java.util.List.of(hostMember, newMember));
+        when(userProfileClient.getNamesByUserIds(List.of(requestorUserId)))
+            .thenReturn(Map.of(requestorUserId, UserNameDto.builder()
+                .userId(requestorUserId)
+                .firstName("John")
+                .middleName(null)
+                .lastName("Doe")
+                .bio(null)
+                .build()));
 
         tripJoinRequestService.approveJoinRequest(joinRequestId, userId);
 
@@ -327,6 +377,14 @@ class TripJoinRequestServiceTest {
         when(tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(tripId, userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE))
             .thenReturn(true);
         when(tripJoinRequestRepository.save(any(TripJoinRequestEntity.class))).thenReturn(joinRequest);
+        when(userProfileClient.getNamesByUserIds(List.of(requestorUserId)))
+            .thenReturn(Map.of(requestorUserId, UserNameDto.builder()
+                .userId(requestorUserId)
+                .firstName("John")
+                .middleName(null)
+                .lastName("Doe")
+                .bio(null)
+                .build()));
 
         tripJoinRequestService.rejectJoinRequest(joinRequestId, userId);
 

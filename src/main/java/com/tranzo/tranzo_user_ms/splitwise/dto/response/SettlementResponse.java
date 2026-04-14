@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * DTO for settlement response data.
@@ -18,13 +19,13 @@ import java.util.List;
 @AllArgsConstructor
 public class SettlementResponse {
 
-    private Long id;
+    private UUID id;
     private GroupResponse group;
     private UserResponse paidBy;
     private UserResponse paidTo;
     private BigDecimal amount;
     private String paymentMethod;
-    private String transactionId;
+    private UUID transactionId;
     private String notes;
     private LocalDateTime settledAt;
     private List<ExpenseResponse> settledExpenses;

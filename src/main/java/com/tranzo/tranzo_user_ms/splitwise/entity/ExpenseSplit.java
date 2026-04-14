@@ -27,8 +27,8 @@ import java.util.List;
 public class ExpenseSplit {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "expense_id", nullable = false)
@@ -51,7 +51,7 @@ public class ExpenseSplit {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    public Long getExpenseId() {
+    public UUID getExpenseId() {
         return expense != null ? expense.getId() : null;
     }
 

@@ -12,6 +12,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,7 +37,7 @@ public class CreateExpenseRequest {
     private BigDecimal amount;
 
     @NotNull(message = "Group ID is required")
-    private Long groupId;
+    private UUID groupId;
 
     @NotNull(message = "Paid by user ID is required")
     private UUID paidById;
@@ -47,7 +48,7 @@ public class CreateExpenseRequest {
     @Size(max = 50, message = "Category must not exceed 50 characters")
     private String category;
 
-    private String expenseDate;
+    private LocalDate expenseDate;
 
     @Size(max = 500, message = "Receipt URL must not exceed 500 characters")
     private String receiptUrl;

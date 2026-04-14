@@ -3,12 +3,14 @@ package com.tranzo.tranzo_user_ms.chat.service;
 import com.tranzo.tranzo_user_ms.chat.dto.CreateConversationRequestDto;
 import com.tranzo.tranzo_user_ms.chat.dto.CreateConversationResponseDto;
 import com.tranzo.tranzo_user_ms.chat.dto.SendMessageRequestDto;
-import com.tranzo.tranzo_user_ms.chat.dto.SendMessageResponseDto;
 import com.tranzo.tranzo_user_ms.chat.enums.ConversationRole;
 import com.tranzo.tranzo_user_ms.chat.exception.ConversationNotFoundException;
+import com.tranzo.tranzo_user_ms.chat.exception.UserLeftConversationException;
+import com.tranzo.tranzo_user_ms.chat.exception.ConversationMutedException;
 import com.tranzo.tranzo_user_ms.chat.model.*;
 import com.tranzo.tranzo_user_ms.chat.repository.*;
-import com.tranzo.tranzo_user_ms.commons.exception.ForbiddenException;
+import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
+import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,7 +19,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,6 +47,9 @@ class CreateAndManageConversationServiceTest {
     @Mock
     private ConversationMuteRepository muteRepository;
 
+    @Mock
+    private UserProfileClient userProfileClient;
+
     @InjectMocks
     private CreateAndManageConversationService service;
 
@@ -64,7 +70,7 @@ class CreateAndManageConversationServiceTest {
         CreateConversationRequestDto req = new CreateConversationRequestDto();
         req.setOtherUserId(userId);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        ConversationNotFoundException ex = assertThrows(ConversationNotFoundException.class,
                 () -> service.createOneToOneConversation(userId, req));
         assertTrue(ex.getMessage().contains("Cannot create a conversation with yourself"));
     }
@@ -81,6 +87,14 @@ class CreateAndManageConversationServiceTest {
 
         when(conversationRepository.findOneToOneConversationBetweenUsers(userId, otherUserId))
                 .thenReturn(Optional.of(conv));
+        
+        UserNameDto otherUserName = UserNameDto.builder()
+                .userId(otherUserId)
+                .firstName("John")
+                .lastName("Doe")
+                .build();
+        when(userProfileClient.getNamesByUserIds(List.of(otherUserId)))
+                .thenReturn(Map.of(otherUserId, otherUserName));
 
         CreateConversationResponseDto resp = service.createOneToOneConversation(userId, req);
 
@@ -98,18 +112,27 @@ class CreateAndManageConversationServiceTest {
         when(conversationRepository.findOneToOneConversationBetweenUsers(userId, otherUserId))
                 .thenReturn(Optional.empty());
 
-        when(conversationRepository.save(any(ConversationEntity.class)))
+        when(conversationRepository.saveAndFlush(any(ConversationEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
+        
         when(messageRepository.save(any(MessageEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        
+        UserNameDto otherUserName = UserNameDto.builder()
+                .firstName("Jane")
+                .middleName(null)
+                .lastName("Smith")
+                .build();
+        when(userProfileClient.getNamesByUserIds(List.of(otherUserId)))
+                .thenReturn(Map.of(otherUserId, otherUserName));
 
         CreateConversationResponseDto resp = service.createOneToOneConversation(userId, req);
 
         assertNotNull(resp);
         assertFalse(resp.isExisting());
         assertNotNull(resp.getConversationId());
-        verify(conversationRepository, times(1)).save(any(ConversationEntity.class));
+        verify(conversationRepository, times(1)).saveAndFlush(any(ConversationEntity.class));
         verify(messageRepository, times(1)).save(any(MessageEntity.class));
     }
 
@@ -119,9 +142,9 @@ class CreateAndManageConversationServiceTest {
         when(conversationRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
         SendMessageRequestDto req = SendMessageRequestDto.builder().content("hi").build();
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+        ConversationNotFoundException ex = assertThrows(ConversationNotFoundException.class,
                 () -> service.sendMessage(conversationId, userId, req));
-        assertTrue(ex.getMessage().contains("Conversation not found"));
+        assertTrue(ex.getMessage().contains("CONVERSATION_NOT_FOUND"));
     }
 
     @Test
@@ -133,7 +156,7 @@ class CreateAndManageConversationServiceTest {
                 .thenReturn(Optional.empty());
 
         SendMessageRequestDto req = SendMessageRequestDto.builder().content("hello").build();
-        assertThrows(ConversationNotFoundException.class,
+        assertThrows(UserLeftConversationException.class,
                 () -> service.sendMessage(conversationId, userId, req));
     }
 
@@ -141,9 +164,9 @@ class CreateAndManageConversationServiceTest {
     @DisplayName("markConversationAsRead throws when participant not found")
     void testMarkConversationAsRead_noParticipant() {
         when(conversationRepository.findById(conversationId)).thenReturn(Optional.of(ConversationEntity.createOneToOneChat(userId)));
-        when(conversationParticipantRepository.findByConversation_ConversationIdAndUserId(conversationId, userId)).thenReturn(Optional.empty());
+        when(conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> service.markConversationAsRead(conversationId, userId));
+        assertThrows(UserLeftConversationException.class, () -> service.markConversationAsRead(conversationId, userId));
     }
 
     @Test
@@ -153,7 +176,7 @@ class CreateAndManageConversationServiceTest {
         ConversationParticipantEntity participant = ConversationParticipantEntity.create(conv, userId, ConversationRole.MEMBER);
 
         when(conversationRepository.findById(conversationId)).thenReturn(Optional.of(conv));
-        when(conversationParticipantRepository.findByConversation_ConversationIdAndUserId(conversationId, userId))
+        when(conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId))
                 .thenReturn(Optional.of(participant));
 
         service.markConversationAsRead(conversationId, userId);
@@ -173,7 +196,7 @@ class CreateAndManageConversationServiceTest {
         ConversationEntity conv = ConversationEntity.createGroup(userId);
         when(conversationRepository.findById(conversationId)).thenReturn(Optional.of(conv));
 
-        assertThrows(ForbiddenException.class, () -> service.blockConversation(conversationId, userId));
+        assertThrows(ConversationMutedException.class, () -> service.blockConversation(conversationId, userId));
     }
 
     @Test
@@ -213,7 +236,7 @@ class CreateAndManageConversationServiceTest {
         when(conversationParticipantRepository.findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId))
                 .thenReturn(Optional.empty());
 
-        assertThrows(ConversationNotFoundException.class, () -> service.blockConversation(conversationId, userId));
+        assertThrows(UserLeftConversationException.class, () -> service.blockConversation(conversationId, userId));
     }
 
     @Test
@@ -253,7 +276,7 @@ class CreateAndManageConversationServiceTest {
         ConversationEntity conv = ConversationEntity.createGroup(userId);
         when(conversationRepository.findById(conversationId)).thenReturn(Optional.of(conv));
 
-        assertThrows(ForbiddenException.class, () -> service.unblockConversation(conversationId, userId));
+        assertThrows(ConversationMutedException.class, () -> service.unblockConversation(conversationId, userId));
     }
 
     @Test
@@ -317,7 +340,7 @@ class CreateAndManageConversationServiceTest {
     @DisplayName("markConversationAsRead throws when conversation not found")
     void testMarkConversationAsRead_conversationNotFound() {
         when(conversationRepository.findById(conversationId)).thenReturn(Optional.empty());
-        assertThrows(IllegalArgumentException.class, () -> service.markConversationAsRead(conversationId, userId));
+        assertThrows(ConversationNotFoundException.class, () -> service.markConversationAsRead(conversationId, userId));
     }
 
 }

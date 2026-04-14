@@ -51,8 +51,7 @@ public class SessionService {
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
-        log.info("Access token after creating the session : {}", accessToken);
-        log.info("Refresh token after creating the session : {}", refreshToken);
+        log.info("Session created | userId={} | status=SUCCESS", user.getUserUuid());
 
         saveNewRefreshToken(refreshToken, user);
         setCookie(response, "ACCESS_TOKEN", accessToken, (int) (accessExpiryMinutes * 60));
@@ -78,7 +77,7 @@ public class SessionService {
             throw new AuthException("Invalid refresh token");
         }
         jwtService.validateTokenOrThrow(refreshToken);
-        if ("REFRESH".equals(jwtService.extractTokenType(refreshToken))) {
+        if (!"REFRESH".equals(jwtService.extractTokenType(refreshToken))) {
             throw new UnauthorizedException("Invalid token type for refresh");
         }
         UsersEntity user = storedToken.getUser();
@@ -88,8 +87,7 @@ public class SessionService {
 //        storedToken.setUpdatedAt(LocalDateTime.now());
         refreshTokenRepository.save(storedToken);
         String newAccessToken = jwtService.generateAccessToken(user);
-        log.info("Access token after refreshing the session : {}", newAccessToken);
-        log.info("Refresh token after refreshing the session : {}", newRefreshToken);
+        log.info("Session refreshed | userId={} | status=SUCCESS", user.getUserUuid());
         setCookie(response, "ACCESS_TOKEN", newAccessToken, (int) (accessExpiryMinutes * 60));
         setCookie(response, "REFRESH_TOKEN", newRefreshToken, (int) (refreshExpiryDays * 24 * 60 * 60));
         return SessionResponseDto.builder()
@@ -112,6 +110,7 @@ public class SessionService {
                         });
 
             } catch (Exception e) {
+                log.warn("Logout failed for invalid token | reason={}", e.getMessage());
                 // DO NOT fail logout if token is bad/expired
                 // Logout must always succeed
             }
@@ -143,6 +142,7 @@ public class SessionService {
         cookie.setSecure(true);   // true in prod
         cookie.setPath("/");
         cookie.setMaxAge(maxAge);
+        cookie.setAttribute("SameSite", "None");
         response.addCookie(cookie);
     }
 

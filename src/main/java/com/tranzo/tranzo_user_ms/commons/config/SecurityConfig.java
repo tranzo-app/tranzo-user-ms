@@ -3,6 +3,7 @@ package com.tranzo.tranzo_user_ms.commons.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -12,6 +13,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -38,8 +41,11 @@ public class SecurityConfig {
                                 "/auth/otp/**",
                                 "/auth/session/**",
                                 "/h2-console/**",
-                                "/ws-chat/**"
+                                "/ws-chat/**",
+                                "/trips/featured",
+                                "/trips/trending-destinations"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/trips", "/trips/").permitAll()
                         .requestMatchers("/user/register").authenticated()
                         .anyRequest().authenticated()
                 )
@@ -59,8 +65,24 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
         config.addAllowedOrigin("http://localhost:3000");
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("*");
+        config.addAllowedOrigin("http://192.168.0.105:3000");
+        config.addAllowedOrigin("https://www.tranzo.in");
+        config.addAllowedOrigin("https://tranzo.in");
+        config.setAllowedHeaders(List.of("*"));
+
+        config.setAllowedMethods(List.of(
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "OPTIONS",
+                "PATCH"
+        ));
+
+        config.setExposedHeaders(List.of(
+                "Set-Cookie",
+                "Authorization"
+        ));
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();

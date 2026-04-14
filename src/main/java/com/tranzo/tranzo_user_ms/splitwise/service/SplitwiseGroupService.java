@@ -4,326 +4,415 @@ import com.tranzo.tranzo_user_ms.splitwise.dto.request.AddGroupMemberRequest;
 import com.tranzo.tranzo_user_ms.splitwise.dto.request.CreateGroupRequest;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.GroupResponse;
 import com.tranzo.tranzo_user_ms.splitwise.dto.response.UserResponse;
-import com.tranzo.tranzo_user_ms.splitwise.entity.*;
-import com.tranzo.tranzo_user_ms.splitwise.exception.*;
+import com.tranzo.tranzo_user_ms.splitwise.entity.GroupMember;
+import com.tranzo.tranzo_user_ms.splitwise.entity.SplitwiseGroup;
+import com.tranzo.tranzo_user_ms.splitwise.exception.GroupNotFoundException;
+import com.tranzo.tranzo_user_ms.splitwise.exception.UserNotMemberException;
 import com.tranzo.tranzo_user_ms.splitwise.repository.SplitwiseGroupRepository;
-import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
-import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
+import com.tranzo.tranzo_user_ms.trip.enums.TripMemberStatus;
+import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
+import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
+import com.tranzo.tranzo_user_ms.trip.repository.TripMemberRepository;
+import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
 import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
+import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
+import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Service for managing Splitwise groups and their members.
+ * Service for managing Splitwise groups: CRUD, membership, and trip-linked group creation.
  */
 @Slf4j
 @Service
 @Transactional
 public class SplitwiseGroupService {
 
-    private final SplitwiseGroupRepository groupRepository;
+    private final SplitwiseGroupRepository splitwiseGroupRepository;
+    private final TripRepository tripRepository;
+    private final TripMemberRepository tripMemberRepository;
     private final UserRepository userRepository;
     private final ActivityService activityService;
 
-    public SplitwiseGroupService(SplitwiseGroupRepository groupRepository,
-                               UserRepository userRepository,
-                               ActivityService activityService) {
-        this.groupRepository = groupRepository;
+    public SplitwiseGroupService(SplitwiseGroupRepository splitwiseGroupRepository,
+                                TripRepository tripRepository,
+                                TripMemberRepository tripMemberRepository,
+                                UserRepository userRepository,
+                                ActivityService activityService) {
+        this.splitwiseGroupRepository = splitwiseGroupRepository;
+        this.tripRepository = tripRepository;
+        this.tripMemberRepository = tripMemberRepository;
         this.userRepository = userRepository;
         this.activityService = activityService;
     }
 
     /**
-     * Creates a new group with proper validation and member management.
+     * Creates a new group (manual creation). Current user becomes ADMIN; initial members from request.
      */
-    public GroupResponse createGroup(CreateGroupRequest request, UUID createdByUserId) {
-        log.info("Creating new group '{}' by user {}", request.getName(), createdByUserId);
+    public GroupResponse createGroup(CreateGroupRequest request, UUID currentUserId) {
+        log.info("Processing started | operation=createGroup | userId={} | groupName={}", currentUserId, request.getName());
 
-        UsersEntity createdBy = userRepository.findById(createdByUserId)
-                .orElseThrow(() -> new SplitwiseException("Creator user not found: " + createdByUserId));
+        try {
+            UUID syntheticTripId = UUID.randomUUID();
+            String description = request.getDescription() != null ? request.getDescription() : request.getName();
+            SplitwiseGroup group = SplitwiseGroup.builder()
+                    .tripId(syntheticTripId)
+                    .description(description)
+                    .createdBy(currentUserId)
+                    .build();
+            group = splitwiseGroupRepository.save(group);
 
-        // Create group entity
-        SplitwiseGroup group = SplitwiseGroup.builder()
-                .tripId(UUID.randomUUID()) // Generate trip ID or get from request
-                .description(request.getDescription())
-                .createdBy(createdByUserId)
-                .build();
+            GroupMember adminMember = GroupMember.builder()
+                    .group(group)
+                    .userId(currentUserId)
+                    .role(GroupMember.MemberRole.ADMIN)
+                    .build();
+            group.addMember(adminMember);
 
-        // Add creator as admin member
-        GroupMember creatorMember = GroupMember.builder()
-                .group(group)
-                .userId(createdByUserId)
-                .role(GroupMember.MemberRole.ADMIN)
-                .joinedAt(java.time.LocalDateTime.now())
-                .build();
-
-        group.addMember(creatorMember);
-
-        // Add additional members if provided
-        if (request.getMemberIds() != null && !request.getMemberIds().isEmpty()) {
             for (UUID memberId : request.getMemberIds()) {
-                if (!memberId.equals(createdByUserId)) {
-                    UsersEntity member = userRepository.findById(memberId)
-                            .orElseThrow(() -> new SplitwiseException("Member user not found: " + memberId));
-
-                    // Check if user is already a member
-                    if (group.isMember(memberId)) {
-                        log.warn("User {} is already a member of group {}", memberId, group.getId());
-                        continue;
-                    }
-
-                    GroupMember groupMember = GroupMember.builder()
-                            .group(group)
-                            .userId(memberId)
-                            .role(GroupMember.MemberRole.MEMBER)
-                            .joinedAt(java.time.LocalDateTime.now())
-                            .build();
-
-                    group.addMember(groupMember);
-                }
+                if (memberId.equals(currentUserId)) continue;
+                GroupMember member = GroupMember.builder()
+                        .group(group)
+                        .userId(memberId)
+                        .role(GroupMember.MemberRole.MEMBER)
+                        .build();
+                group.addMember(member);
             }
+            splitwiseGroupRepository.save(group);
+
+            UsersEntity currentUser = userRepository.findUserByUserUuid(currentUserId).orElse(null);
+            
+            log.info("Calling external service | service=ActivityService | operation=logGroupCreated | groupId={}", group.getId());
+            activityService.logGroupCreated(currentUser != null ? currentUser : null, group);
+            
+            log.info("Processing completed | operation=createGroup | userId={} | groupId={} | status=SUCCESS", currentUserId, group.getId());
+            return toGroupResponse(group);
+        } catch (Exception e) {
+            log.error("Operation failed | operation=createGroup | userId={} | reason={}", currentUserId, e.getMessage(), e);
+            throw e;
         }
-
-        group = groupRepository.save(group);
-
-        // Log activity
-        activityService.logGroupCreated(createdBy, group);
-
-        log.info("Successfully created group with ID '{}' and {} members", group.getId(), group.getMembers().size());
-        return convertToGroupResponse(group);
     }
 
     /**
-     * Gets a group by ID with authorization check.
+     * Creates a Splitwise group for a trip (event-driven). Host is added as ADMIN.
      */
-    @Transactional(readOnly = true)
-    public GroupResponse getGroup(Long groupId, UUID currentUserId) {
-        log.debug("Fetching group {} for user {}", groupId, currentUserId);
+    public GroupResponse createGroupForTrip(UUID tripId, String name, UUID hostUserId) {
+        log.info("Processing started | operation=createGroupForTrip | tripId={} | hostUserId={}", tripId, hostUserId);
 
-        SplitwiseGroup group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new GroupNotFoundException(groupId));
+        try {
+            SplitwiseGroup group = SplitwiseGroup.builder()
+                    .tripId(tripId)
+                    .description(name)
+                    .createdBy(hostUserId)
+                    .build();
+            group = splitwiseGroupRepository.save(group);
 
-        // Verify user is member of the group
-        if (!group.isMember(currentUserId)) {
-            throw new UserNotMemberException(currentUserId, groupId);
+            GroupMember adminMember = GroupMember.builder()
+                    .group(group)
+                    .userId(hostUserId)
+                    .role(GroupMember.MemberRole.ADMIN)
+                    .build();
+            group.addMember(adminMember);
+            splitwiseGroupRepository.save(group);
+
+            UsersEntity host = userRepository.findUserByUserUuid(hostUserId).orElse(null);
+            
+            log.info("Calling external service | service=ActivityService | operation=logGroupCreated | groupId={}", group.getId());
+            activityService.logGroupCreated(host != null ? host : null, group);
+            
+            log.info("Processing completed | operation=createGroupForTrip | tripId={} | groupId={} | status=SUCCESS", tripId, group.getId());
+            return toGroupResponse(group);
+        } catch (Exception e) {
+            log.error("Operation failed | operation=createGroupForTrip | tripId={} | reason={}", tripId, e.getMessage(), e);
+            throw e;
         }
-
-        log.debug("Successfully retrieved group with ID: {}", group.getId());
-        return convertToGroupResponse(group);
     }
 
     /**
-     * Adds members to an existing group.
+     * Adds a user to the group associated with the given trip (e.g. on participant join).
      */
-    public GroupResponse addMembers(Long groupId, AddGroupMemberRequest request, UUID currentUserId) {
-        log.info("Adding {} members to group {} by user {}", 
-                 request.getMemberIds().size(), groupId, currentUserId);
+    public void addMemberToGroupByTripId(UUID tripId, UUID userId) {
+        log.info("Processing started | operation=addMemberToGroupByTripId | tripId={} | userId={}", tripId, userId);
 
-        SplitwiseGroup group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new GroupNotFoundException(groupId));
-
-        // Verify current user is an admin
-        validateUserIsGroupAdmin(groupId, currentUserId);
-
-        // Add new members
-        for (UUID memberId : request.getMemberIds()) {
-            UsersEntity user = userRepository.findById(memberId)
-                    .orElseThrow(() -> new SplitwiseException("User not found: " + memberId));
-
-            // Check if user is already a member
-            if (group.isMember(memberId)) {
-                log.warn("User {} is already a member of group {}", memberId, groupId);
-                continue;
+        try {
+            SplitwiseGroup group = splitwiseGroupRepository.findByTripId(tripId)
+                    .orElseThrow(() -> new GroupNotFoundException("No group found for trip " + tripId));
+            if (group.isMember(userId)) {
+                log.info("User already member | operation=addMemberToGroupByTripId | tripId={} | userId={} | status=NOOP", tripId, userId);
+                return;
             }
-
             GroupMember member = GroupMember.builder()
                     .group(group)
-                    .userId(memberId)
+                    .userId(userId)
                     .role(GroupMember.MemberRole.MEMBER)
-                    .joinedAt(java.time.LocalDateTime.now())
                     .build();
-
             group.addMember(member);
-
-            // Log activity
-            activityService.logMemberAdded(memberId, group, currentUserId);
+            splitwiseGroupRepository.save(group);
+            
+            log.info("Calling external service | service=ActivityService | operation=logMemberAdded | groupId={}", group.getId());
+            activityService.logMemberAdded(userId, group, group.getCreatedBy());
+            
+            log.info("Processing completed | operation=addMemberToGroupByTripId | tripId={} | userId={} | groupId={} | status=SUCCESS", tripId, userId, group.getId());
+        } catch (GroupNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=addMemberToGroupByTripId | tripId={} | userId={} | reason={}", tripId, userId, e.getMessage(), e);
+            throw e;
         }
-
-        group = groupRepository.save(group);
-
-        log.info("Successfully added members to group {}", groupId);
-        return convertToGroupResponse(group);
     }
 
     /**
-     * Removes a member from a group.
-     */
-    public GroupResponse removeMember(Long groupId, UUID memberId, UUID currentUserId) {
-        log.info("Removing member {} from group {} by user {}", memberId, groupId, currentUserId);
-
-        SplitwiseGroup group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new GroupNotFoundException(groupId));
-
-        // Verify current user is an admin (or removing themselves)
-        if (!currentUserId.equals(memberId)) {
-            validateUserIsGroupAdmin(groupId, currentUserId);
-        }
-
-        UsersEntity memberToRemove = userRepository.findById(memberId)
-                .orElseThrow(() -> new SplitwiseException("User not found: " + memberId));
-
-        // Check if user is a member
-        if (!group.isMember(memberId)) {
-            throw new UserNotMemberException(memberId, groupId);
-        }
-
-        // Remove member
-        GroupMember groupMember = group.getMembers().stream()
-                .filter(member -> member.getUserId().equals(memberId))
-                .findFirst()
-                .orElse(null);
-        if (groupMember != null) {
-            group.removeMember(groupMember);
-            groupRepository.save(group);
-
-            // Log activity
-            activityService.logMemberRemoved(memberId, group, currentUserId);
-        }
-
-        log.info("Successfully removed member {} from group {}", memberId, groupId);
-        return convertToGroupResponse(group);
-    }
-
-    /**
-     * Gets all groups for a user.
+     * Gets a group by ID. Caller must be a member.
      */
     @Transactional(readOnly = true)
-    public List<GroupResponse> getUserGroups(UUID userId) {
-        log.debug("Fetching groups for user: {}", userId);
+    public GroupResponse getGroup(UUID groupId, UUID currentUserId) {
+        log.info("Processing started | operation=getGroup | groupId={} | userId={}", groupId, currentUserId);
 
-        List<SplitwiseGroup> groups = groupRepository.findByUserId(userId);
-
-        log.debug("Found {} groups for user {}", groups.size(), userId);
-        return groups.stream()
-                .map(this::convertToGroupResponse)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Updates group details.
-     */
-    public GroupResponse updateGroup(Long groupId, CreateGroupRequest request, UUID currentUserId) {
-        log.info("Updating group {} by user {}", groupId, currentUserId);
-
-        SplitwiseGroup group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new GroupNotFoundException(groupId));
-
-        // Verify current user is an admin
-        validateUserIsGroupAdmin(groupId, currentUserId);
-
-        // Update group details
-        group.setDescription(request.getDescription());
-
-        group = groupRepository.save(group);
-
-        // Log activity
-        activityService.logGroupUpdated(group, currentUserId);
-
-        log.info("Successfully updated group {}", groupId);
-        return convertToGroupResponse(group);
-    }
-
-    /**
-     * Deletes a group.
-     */
-    public void deleteGroup(Long groupId, UUID currentUserId) {
-        log.info("Deleting group {} by user {}", groupId, currentUserId);
-
-        SplitwiseGroup group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new GroupNotFoundException(groupId));
-
-        // Verify current user is an admin
-        validateUserIsGroupAdmin(groupId, currentUserId);
-
-        groupRepository.delete(group);
-
-        // Log activity
-        activityService.logGroupDeleted(group, currentUserId);
-
-        log.info("Successfully deleted group {}", groupId);
-    }
-
-    /**
-     * Validates that the user is an admin of the group.
-     */
-    private void validateUserIsGroupAdmin(Long groupId, UUID userId) {
-        boolean isAdmin = groupRepository.isUserAdminOfGroup(groupId, userId);
-        if (!isAdmin) {
-            throw new SplitwiseException("User " + userId + " is not an admin of group " + groupId);
-        }
-    }
-
-    /**
-     * Converts Group entity to GroupResponse DTO.
-     */
-    private GroupResponse convertToGroupResponse(SplitwiseGroup group) {
-        // Fetch user details for all members
-        List<UserResponse> members = group.getMembers().stream()
-                .map(member -> {
-                    UsersEntity user = userRepository.findById(member.getUserId())
-                            .orElse(null);
-                    if (user == null) return null;
-                    
-                    UserProfileEntity profile = user.getUserProfileEntity();
-                    String name = (profile != null) ? 
-                            (profile.getFirstName() + " " + (profile.getLastName() != null ? profile.getLastName() : "")).trim() 
-                            : "Unknown";
-                    
-                    return UserResponse.builder()
-                            .userUuid(member.getUserId())
-                            .name(name)
-                            .email(user.getEmail())
-                            .mobileNumber(user.getCountryCode() + user.getMobileNumber())
-                            .createdAt(user.getCreatedAt())
-                            .updatedAt(user.getUpdatedAt())
-                            .build();
-                })
-                .filter(java.util.Objects::nonNull)
-                .collect(Collectors.toList());
-
-        // Fetch creator details
-        UsersEntity creator = userRepository.findById(group.getCreatedBy())
-                .orElse(null);
-        UserResponse creatorResponse = null;
-        if (creator != null) {
-            UserProfileEntity creatorProfile = creator.getUserProfileEntity();
-            String creatorName = (creatorProfile != null) ? 
-                    (creatorProfile.getFirstName() + " " + (creatorProfile.getLastName() != null ? creatorProfile.getLastName() : "")).trim() 
-                    : "Unknown";
+        try {
+            SplitwiseGroup group = splitwiseGroupRepository.findById(groupId)
+                    .orElseThrow(() -> new GroupNotFoundException(groupId));
+            if (!splitwiseGroupRepository.isUserMemberOfGroup(groupId, currentUserId)) {
+                log.warn("Access denied | operation=getGroup | groupId={} | userId={} | reason=NOT_MEMBER", groupId, currentUserId);
+                throw new UserNotMemberException(currentUserId, groupId);
+            }
             
-            creatorResponse = UserResponse.builder()
-                    .userUuid(creator.getUserUuid())
-                    .name(creatorName)
-                    .email(creator.getEmail())
-                    .mobileNumber(creator.getCountryCode() + creator.getMobileNumber())
-                    .createdAt(creator.getCreatedAt())
-                    .updatedAt(creator.getUpdatedAt())
-                    .build();
+            log.info("Processing completed | operation=getGroup | groupId={} | userId={} | status=SUCCESS", groupId, currentUserId);
+            return toGroupResponse(group);
+        } catch (GroupNotFoundException | UserNotMemberException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=getGroup | groupId={} | userId={} | reason={}", groupId, currentUserId, e.getMessage(), e);
+            throw e;
         }
+    }
 
+    /**
+     * Updates group (admin only). Only description is updated from request.
+     */
+    public GroupResponse updateGroup(UUID groupId, CreateGroupRequest request, UUID currentUserId) {
+        log.info("Processing started | operation=updateGroup | groupId={} | userId={}", groupId, currentUserId);
+
+        try {
+            SplitwiseGroup group = splitwiseGroupRepository.findById(groupId)
+                    .orElseThrow(() -> new GroupNotFoundException(groupId));
+            if (!splitwiseGroupRepository.isUserAdminOfGroup(groupId, currentUserId)) {
+                log.warn("Access denied | operation=updateGroup | groupId={} | userId={} | reason=NOT_ADMIN", groupId, currentUserId);
+                throw new UserNotMemberException(currentUserId, groupId);
+            }
+            if (request.getDescription() != null) {
+                group.setDescription(request.getDescription());
+            }
+            splitwiseGroupRepository.save(group);
+            
+            log.info("Calling external service | service=ActivityService | operation=logGroupUpdated | groupId={}", groupId);
+            activityService.logGroupUpdated(group, currentUserId);
+            
+            log.info("Processing completed | operation=updateGroup | groupId={} | userId={} | status=SUCCESS", groupId, currentUserId);
+            return toGroupResponse(group);
+        } catch (GroupNotFoundException | UserNotMemberException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=updateGroup | groupId={} | userId={} | reason={}", groupId, currentUserId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Deletes a group (admin only).
+     */
+    public void deleteGroup(UUID groupId, UUID currentUserId) {
+        log.info("Processing started | operation=deleteGroup | groupId={} | userId={}", groupId, currentUserId);
+
+        try {
+            SplitwiseGroup group = splitwiseGroupRepository.findById(groupId)
+                    .orElseThrow(() -> new GroupNotFoundException(groupId));
+            if (!splitwiseGroupRepository.isUserAdminOfGroup(groupId, currentUserId)) {
+                log.warn("Access denied | operation=deleteGroup | groupId={} | userId={} | reason=NOT_ADMIN", groupId, currentUserId);
+                throw new UserNotMemberException(currentUserId, groupId);
+            }
+            
+            log.info("Calling external service | service=ActivityService | operation=logGroupDeleted | groupId={}", groupId);
+            activityService.logGroupDeleted(group, currentUserId);
+            splitwiseGroupRepository.delete(group);
+            
+            log.info("Processing completed | operation=deleteGroup | groupId={} | userId={} | status=SUCCESS", groupId, currentUserId);
+        } catch (GroupNotFoundException | UserNotMemberException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=deleteGroup | groupId={} | userId={} | reason={}", groupId, currentUserId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Adds members to the group (admin only).
+     */
+    public GroupResponse addMembers(UUID groupId, AddGroupMemberRequest request, UUID currentUserId) {
+        log.info("Processing started | operation=addMembers | groupId={} | userId={} | membersCount={}", groupId, currentUserId, request.getMemberIds().size());
+
+        try {
+            SplitwiseGroup group = splitwiseGroupRepository.findById(groupId)
+                    .orElseThrow(() -> new GroupNotFoundException(groupId));
+            if (!splitwiseGroupRepository.isUserAdminOfGroup(groupId, currentUserId)) {
+                log.warn("Access denied | operation=addMembers | groupId={} | userId={} | reason=NOT_ADMIN", groupId, currentUserId);
+                throw new UserNotMemberException(currentUserId, groupId);
+            }
+            GroupMember.MemberRole role = request.getRole() != null ? request.getRole() : GroupMember.MemberRole.MEMBER;
+            int addedCount = 0;
+            for (UUID memberId : request.getMemberIds()) {
+                if (group.isMember(memberId)) continue;
+                GroupMember member = GroupMember.builder()
+                        .group(group)
+                        .userId(memberId)
+                        .role(role)
+                        .build();
+                group.addMember(member);
+                
+                log.info("Calling external service | service=ActivityService | operation=logMemberAdded | groupId={} | memberId={}", groupId, memberId);
+                activityService.logMemberAdded(memberId, group, currentUserId);
+                addedCount++;
+            }
+            splitwiseGroupRepository.save(group);
+            
+            log.info("Processing completed | operation=addMembers | groupId={} | userId={} | addedCount={} | status=SUCCESS", groupId, currentUserId, addedCount);
+            return toGroupResponse(group);
+        } catch (GroupNotFoundException | UserNotMemberException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=addMembers | groupId={} | userId={} | reason={}", groupId, currentUserId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Removes a member from the group (admin only).
+     */
+    public GroupResponse removeMember(UUID groupId, UUID memberId, UUID currentUserId) {
+        log.info("Processing started | operation=removeMember | groupId={} | userId={} | memberId={}", groupId, currentUserId, memberId);
+
+        try {
+            SplitwiseGroup group = splitwiseGroupRepository.findById(groupId)
+                    .orElseThrow(() -> new GroupNotFoundException(groupId));
+            if (!splitwiseGroupRepository.isUserAdminOfGroup(groupId, currentUserId)) {
+                log.warn("Access denied | operation=removeMember | groupId={} | userId={} | reason=NOT_ADMIN", groupId, currentUserId);
+                throw new UserNotMemberException(currentUserId, groupId);
+            }
+            Optional<GroupMember> toRemove = group.getMembers().stream()
+                    .filter(m -> m.getUserId().equals(memberId))
+                    .findFirst();
+            if (toRemove.isPresent()) {
+                group.removeMember(toRemove.get());
+                splitwiseGroupRepository.save(group);
+                
+                log.info("Calling external service | service=ActivityService | operation=logMemberRemoved | groupId={} | memberId={}", groupId, memberId);
+                activityService.logMemberRemoved(memberId, group, currentUserId);
+                
+                log.info("Processing completed | operation=removeMember | groupId={} | userId={} | memberId={} | status=SUCCESS", groupId, currentUserId, memberId);
+            } else {
+                log.info("Member not found | operation=removeMember | groupId={} | userId={} | memberId={} | status=NOOP", groupId, currentUserId, memberId);
+            }
+            return toGroupResponse(group);
+        } catch (GroupNotFoundException | UserNotMemberException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=removeMember | groupId={} | userId={} | memberId={} | reason={}", groupId, currentUserId, memberId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Lists groups where the current user is a member of valid published trips.
+     * Only includes groups for trips with PUBLISHED, ONGOING, or COMPLETED status
+     * and where user is an active trip member.
+     */
+    @Transactional(readOnly = true)
+    public List<GroupResponse> getUserGroups(UUID currentUserId) {
+        log.info("Processing started | operation=getUserGroups | userId={}", currentUserId);
+
+        try {
+            // Get trips where user is an active member and trip is published/ongoing/completed
+            List<TripStatus> validTripStatuses = List.of(TripStatus.PUBLISHED, TripStatus.ONGOING, TripStatus.COMPLETED);
+            List<TripEntity> userTrips = tripMemberRepository.findTripsByUserIdAndStatusIn(currentUserId, validTripStatuses);
+            
+            // Filter trips that have splitwise group ID and get corresponding groups
+            List<SplitwiseGroup> validGroups = new ArrayList<>();
+            for (TripEntity trip : userTrips) {
+                if (trip.getSplitwiseGroupId() != null) {
+                    // Check if user is actually a member of the splitwise group
+                    if (splitwiseGroupRepository.isUserMemberOfGroup(trip.getSplitwiseGroupId(), currentUserId)) {
+                        splitwiseGroupRepository.findById(trip.getSplitwiseGroupId())
+                                .ifPresent(validGroups::add);
+                    }
+                }
+            }
+            
+            // Also include manually created groups (synthetic trip IDs) where user is member
+            List<SplitwiseGroup> userGroups = splitwiseGroupRepository.findByUserId(currentUserId);
+            for (SplitwiseGroup group : userGroups) {
+                // Skip if this is a trip-linked group (already handled above)
+                if (tripRepository.existsById(group.getTripId())) {
+                    continue;
+                }
+                // Include manually created groups
+                validGroups.add(group);
+            }
+            
+            List<GroupResponse> response = validGroups.stream()
+                    .map(this::toGroupResponse)
+                    .collect(Collectors.toList());
+            
+            log.info("Processing completed | operation=getUserGroups | userId={} | groupsCount={} | status=SUCCESS", 
+                    currentUserId, response.size());
+            return response;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=getUserGroups | userId={} | reason={}", currentUserId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    private GroupResponse toGroupResponse(SplitwiseGroup group) {
+        String name = tripRepository.findById(group.getTripId())
+                .map(TripEntity::getTripTitle)
+                .orElse(group.getDescription());
+        UserResponse createdByResponse = toUserResponse(group.getCreatedBy());
+        List<UserResponse> memberResponses = group.getMembers() == null
+                ? new ArrayList<>()
+                : group.getMembers().stream()
+                .map(m -> toUserResponse(m.getUserId()))
+                .collect(Collectors.toList());
         return GroupResponse.builder()
                 .id(group.getId())
-                .name("Group " + group.getId()) // Use a default name since entity doesn't have name field
+                .tripId(group.getTripId())
+                .name(name)
                 .description(group.getDescription())
-                .createdBy(creatorResponse)
-                .members(members)
+                .createdBy(createdByResponse)
                 .createdAt(group.getCreatedAt())
                 .updatedAt(group.getUpdatedAt())
+                .members(memberResponses)
+                .build();
+    }
+
+    private UserResponse toUserResponse(UUID userId) {
+        if (userId == null) return null;
+        UsersEntity user = userRepository.findUserByUserUuid(userId).orElse(null);
+        if (user == null) return UserResponse.builder().userUuid(userId).build();
+        String name = "";
+        if (user.getUserProfileEntity() != null) {
+            UserProfileEntity p = user.getUserProfileEntity();
+            name = (p.getFirstName() != null ? p.getFirstName() : "") + " " + (p.getLastName() != null ? p.getLastName() : "");
+        }
+        return UserResponse.builder()
+                .userUuid(user.getUserUuid())
+                .name(name.trim().isEmpty() ? null : name.trim())
+                .email(user.getEmail())
+                .mobileNumber(user.getMobileNumber())
                 .build();
     }
 }
