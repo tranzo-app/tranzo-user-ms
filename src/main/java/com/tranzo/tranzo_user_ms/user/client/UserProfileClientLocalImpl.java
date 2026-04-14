@@ -24,7 +24,7 @@ public class UserProfileClientLocalImpl implements UserProfileClient {
     }
 
     @Override
-    public Map<UUID, UserNameDto> getNamesByUserIds(Collection<UUID> userIds) {
+    public Map<UUID, UserNameDto> getNamesByUserIds(List<UUID> userIds) {
         if (userIds == null || userIds.isEmpty()) {
             return Collections.emptyMap();
         }

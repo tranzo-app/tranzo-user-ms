@@ -1,5 +1,9 @@
 package com.tranzo.tranzo_user_ms.user.service;
 
+import com.tranzo.tranzo_user_ms.trip.client.TripStatisticsClient;
+import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
+import com.tranzo.tranzo_user_ms.user.dto.SuggestedTravelPalDto;
+import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import com.tranzo.tranzo_user_ms.user.enums.TravelPalStatus;
 import com.tranzo.tranzo_user_ms.user.model.TravelPalEntity;
 import com.tranzo.tranzo_user_ms.user.repository.TravelPalRepository;
@@ -11,7 +15,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -25,6 +31,15 @@ class TravelPalServiceTest {
 
     @Mock
     private TravelPalRepository repository;
+
+    @Mock
+    private UserProfileClient userProfileClient;
+
+    @Mock
+    private TripStatisticsClient tripStatisticsClient;
+
+    @Mock
+    private RatingService ratingService;
 
     @InjectMocks
     private TravelPalService service;
@@ -100,8 +115,20 @@ class TravelPalServiceTest {
     @DisplayName("Should get incoming pending requests")
     void getIncomingPendingRequests_Success() {
         when(repository.findIncomingPending(userB)).thenReturn(List.of(pendingEntity));
+        when(repository.findAcceptedByUser(userA)).thenReturn(List.of());
+        when(tripStatisticsClient.getCompletedTripsCount(userA)).thenReturn(0);
+        when(ratingService.getUserAverageRating(userA)).thenReturn(null);
 
-        List<TravelPalEntity> pending = service.getIncomingPendingRequests(userB);
+        UserNameDto userNameDto = UserNameDto.builder()
+                .userId(userA)
+                .firstName("Test")
+                .lastName("User")
+                .build();
+        Map<UUID, UserNameDto> userDetails = new HashMap<>();
+        userDetails.put(userA, userNameDto);
+        when(userProfileClient.getNamesByUserIds(List.of(userA))).thenReturn(userDetails);
+
+        List<SuggestedTravelPalDto> pending = service.getIncomingPendingRequestsWithDetails(userB);
 
         assertNotNull(pending);
         assertEquals(1, pending.size());

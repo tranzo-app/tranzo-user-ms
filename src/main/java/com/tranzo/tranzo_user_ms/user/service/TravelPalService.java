@@ -11,6 +11,8 @@ import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
 import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import com.tranzo.tranzo_user_ms.commons.exception.ConflictException;
+import com.tranzo.tranzo_user_ms.trip.client.TripStatisticsClient;
+import com.tranzo.tranzo_user_ms.user.service.RatingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,8 @@ public class TravelPalService {
     private final TravelPalRepository repository;
     private final UserRepository userRepository;
     private final UserProfileClient userProfileClient;
+    private final TripStatisticsClient tripStatisticsClient;
+    private final RatingService ratingService;
 
     /* ================= NORMALIZE ================= */
 
@@ -136,15 +140,51 @@ public class TravelPalService {
                             .location(userName.getLocation()) // Not available from UserProfileClient
                             .dob(userName.getDob()) // Not available from UserProfileClient
                             .profilePictureUrl(userName.getProfilePictureUrl())
+                            .travelPalsCount(getMyTravelPals(palId).size())
+                            .completedTripsCount(tripStatisticsClient.getCompletedTripsCount(palId))
+                            .userRating(ratingService.getUserAverageRating(palId))
                             .build();
                 })
                 .toList();
     }
 
     /* ================= INCOMING REQUESTS ================= */
-
-    public List<TravelPalEntity> getIncomingPendingRequests(UUID userId) {
-        return repository.findIncomingPending(userId);
+    
+    public List<SuggestedTravelPalDto> getIncomingPendingRequestsWithDetails(UUID userId) {
+        List<TravelPalEntity> pendingRequests = repository.findIncomingPending(userId);
+        
+        if (pendingRequests.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // Get user IDs of requesters
+        List<UUID> requesterIds = pendingRequests.stream()
+                .map(entity -> entity.getRequestedBy())
+                .toList();
+        
+        // Get user details using UserProfileClient
+        Map<UUID, UserNameDto> userDetails = userProfileClient.getNamesByUserIds(requesterIds);
+        
+        // Convert to DTOs using available data from client
+        return requesterIds.stream()
+                .filter(userDetails::containsKey) // Only include users found in client response
+                .map(requesterId -> {
+                    UserNameDto userName = userDetails.get(requesterId);
+                    return SuggestedTravelPalDto.builder()
+                            .userId(userName.getUserId())
+                            .firstName(userName.getFirstName())
+                            .middleName(userName.getMiddleName())
+                            .lastName(userName.getLastName())
+                            .bio(userName.getBio())
+                            .dob(userName.getDob())
+                            .location(userName.getLocation())
+                            .profilePictureUrl(userName.getProfilePictureUrl())
+                            .travelPalsCount(getMyTravelPals(requesterId).size())
+                            .completedTripsCount(tripStatisticsClient.getCompletedTripsCount(requesterId))
+                            .userRating(ratingService.getUserAverageRating(requesterId))
+                            .build();
+                })
+                .toList();
     }
 
     public List<SuggestedTravelPalDto> getSuggestedTravelPals(UUID currentUserId) {
@@ -197,6 +237,9 @@ public class TravelPalService {
                             .dob(userName.getDob())
                             .location(userName.getLocation())
                             .profilePictureUrl(userName.getProfilePictureUrl())
+                            .travelPalsCount(getMyTravelPals(userId).size())
+                            .completedTripsCount(tripStatisticsClient.getCompletedTripsCount(userId))
+                            .userRating(ratingService.getUserAverageRating(userId))
                             .build();
                 })
                 .toList();

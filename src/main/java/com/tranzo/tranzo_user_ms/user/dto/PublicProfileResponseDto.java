@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -14,6 +15,7 @@ import java.util.List;
 @Builder
 public class PublicProfileResponseDto {
 
+    private UUID userId;
     private String firstName;
     private String middleName;
     private String lastName;

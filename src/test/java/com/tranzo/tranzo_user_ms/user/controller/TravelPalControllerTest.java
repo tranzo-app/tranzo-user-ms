@@ -119,7 +119,7 @@ class TravelPalControllerTest {
     void pending_Success() throws Exception {
         try (MockedStatic<SecurityUtils> security = mockStatic(SecurityUtils.class)) {
             security.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
-            when(service.getIncomingPendingRequests(userId)).thenReturn(List.of());
+            when(service.getIncomingPendingRequestsWithDetails(userId)).thenReturn(List.of());
 
             ResponseEntity<?> res = controller.pending();
 

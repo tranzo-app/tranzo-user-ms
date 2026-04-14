@@ -1,24 +1,17 @@
 package com.tranzo.tranzo_user_ms.user.client;
 
 import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
+import com.tranzo.tranzo_user_ms.user.model.UserProfileEntity;
+import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-/**
- * Client contract for fetching user display names by user IDs.
- * In monolith: implemented by {@link UserProfileClientLocalImpl} (in-process).
- * In microservices: implement with Feign calling the User service API.
- */
+@Component
 public interface UserProfileClient {
-
-    /**
-     * Fetches display names for the given user IDs.
-     * In microservices, this will be a Feign call to the User service.
-     *
-     * @param userIds collection of user UUIDs (may be empty)
-     * @return map of userId to UserNameDto; missing profiles are omitted from the map
-     */
-    Map<UUID, UserNameDto> getNamesByUserIds(Collection<UUID> userIds);
+    Map<UUID, UserNameDto> getNamesByUserIds(List<UUID> userIds);
 }

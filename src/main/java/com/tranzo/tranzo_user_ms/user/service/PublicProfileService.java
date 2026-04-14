@@ -63,6 +63,7 @@ public class PublicProfileService {
 
         String profilePictureUrl = userService.resolveProfilePictureUrl(profile.getProfilePictureUrl());
         return PublicProfileResponseDto.builder()
+                .userId(userId)
                 .firstName(profile.getFirstName())
                 .middleName(profile.getMiddleName())
                 .lastName(profile.getLastName())

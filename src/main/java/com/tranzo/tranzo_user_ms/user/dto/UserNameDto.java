@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -25,4 +26,7 @@ public class UserNameDto {
     private LocalDate dob;
     private String location;
     private String profilePictureUrl;
+    private Integer travelPalsCount;
+    private Integer completedTripsCount;
+    private BigDecimal userRating;
 }
