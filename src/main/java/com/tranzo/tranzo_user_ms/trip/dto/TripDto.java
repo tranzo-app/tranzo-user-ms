@@ -35,6 +35,10 @@ public class TripDto {
             message = "Trip destination is required for publishing")
     private String tripDestination;
 
+    private Double latitude;
+
+    private Double longitude;
+
     @NotNull(groups = PublishChecks.class,
             message = "Trip start date is required for publishing")
     private LocalDate tripStartDate;

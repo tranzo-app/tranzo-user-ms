@@ -25,7 +25,6 @@ public class SettlementResponse {
     private UserResponse paidTo;
     private BigDecimal amount;
     private String paymentMethod;
-    private UUID transactionId;
     private String notes;
     private LocalDateTime settledAt;
     private List<ExpenseResponse> settledExpenses;

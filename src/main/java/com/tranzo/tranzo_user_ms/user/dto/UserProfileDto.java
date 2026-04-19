@@ -12,12 +12,14 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.util.List;
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class UserProfileDto {
+    private UUID userId;
     @NotBlank(message = "First name is required")
     @Size(max = 50, message = "First name cannot exceed 50 characters")
     private String firstName;

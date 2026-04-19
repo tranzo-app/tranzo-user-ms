@@ -21,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -91,7 +92,7 @@ class TripManagementServiceTest {
 
     @Test
     @DisplayName("Should create draft trip successfully")
-    void testCreateDraftTrip_Success() {
+    void testCreateDraftTrip_Success() throws IOException {
         // Given
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
@@ -105,11 +106,8 @@ class TripManagementServiceTest {
                 .build();
         when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
 
-        // Mock imageFetchService
-        when(imageFetchService.getImagesForDestination(anyString())).thenReturn(new ArrayList<>());
-
         // When
-        TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId);
+        TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId, Collections.emptyList());
 
         // Then
         assertNotNull(response);
@@ -120,7 +118,7 @@ class TripManagementServiceTest {
 
     @Test
     @DisplayName("Should throw exception when start date is after end date")
-    void testCreateDraftTrip_InvalidDateRange() {
+    void testCreateDraftTrip_InvalidDateRange() throws IOException {
         // Given
         TripDto invalidDto = createSampleTripDto();
         invalidDto.setTripStartDate(LocalDate.of(2026, 3, 1));
@@ -128,13 +126,13 @@ class TripManagementServiceTest {
 
         // When & Then
         assertThrows(TripValidationException.class, () ->
-            tripManagementService.createDraftTrip(invalidDto, userId)
+            tripManagementService.createDraftTrip(invalidDto, userId, Collections.emptyList())
         );
     }
 
     @Test
     @DisplayName("Should create draft trip with policy")
-    void testCreateDraftTrip_WithPolicy() {
+    void testCreateDraftTrip_WithPolicy() throws IOException {
         // Given
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
@@ -148,16 +146,13 @@ class TripManagementServiceTest {
                 .build();
         when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
 
-        // Mock imageFetchService
-        when(imageFetchService.getImagesForDestination(anyString())).thenReturn(new ArrayList<>());
-
         TripPolicyDto policyDto = new TripPolicyDto();
         policyDto.setCancellationPolicy("No refund after 7 days");
         policyDto.setRefundPolicy("Full refund if cancelled before 7 days");
         tripDto.setTripPolicy(policyDto);
 
         // When
-        TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId);
+        TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId, Collections.emptyList());
 
         // Then
         assertNotNull(response);
@@ -166,7 +161,7 @@ class TripManagementServiceTest {
 
     @Test
     @DisplayName("Should create draft trip with metadata")
-    void testCreateDraftTrip_WithMetadata() {
+    void testCreateDraftTrip_WithMetadata() throws IOException {
         // Given
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
@@ -179,9 +174,6 @@ class TripManagementServiceTest {
                 .lastName("Doe")
                 .build();
         when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
-
-        // Mock imageFetchService
-        when(imageFetchService.getImagesForDestination(anyString())).thenReturn(new ArrayList<>());
 
         TripMetaDataDto metaDataDto = new TripMetaDataDto();
         metaDataDto.setTripSummary(Map.of("en", "Summer adventure"));
@@ -190,7 +182,7 @@ class TripManagementServiceTest {
         tripDto.setTripMetaData(metaDataDto);
 
         // When
-        TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId);
+        TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId, Collections.emptyList());
 
         // Then
         assertNotNull(response);
@@ -199,7 +191,7 @@ class TripManagementServiceTest {
 
     @Test
     @DisplayName("Should create draft trip with itineraries")
-    void testCreateDraftTrip_WithItineraries() {
+    void testCreateDraftTrip_WithItineraries() throws IOException {
         // Given
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
@@ -212,9 +204,6 @@ class TripManagementServiceTest {
                 .lastName("Doe")
                 .build();
         when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
-
-        // Mock imageFetchService
-        when(imageFetchService.getImagesForDestination(anyString())).thenReturn(new ArrayList<>());
 
         TripItineraryDto itineraryDto = new TripItineraryDto();
         itineraryDto.setDayNumber(1);
@@ -226,7 +215,7 @@ class TripManagementServiceTest {
         tripDto.setTripItineraries(new HashSet<>(Collections.singletonList(itineraryDto)));
 
         // When
-        TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId);
+        TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId, Collections.emptyList());
 
         // Then
         assertNotNull(response);
@@ -235,7 +224,7 @@ class TripManagementServiceTest {
 
     @Test
     @DisplayName("Should create draft trip with existing tags")
-    void testCreateDraftTrip_WithExistingTags() {
+    void testCreateDraftTrip_WithExistingTags() throws IOException {
         // Given
         TagEntity existingTag = new TagEntity();
         existingTag.setTagName("Adventure");
@@ -250,11 +239,8 @@ class TripManagementServiceTest {
                 .build();
         when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
 
-        // Mock imageFetchService
-        when(imageFetchService.getImagesForDestination(anyString())).thenReturn(new ArrayList<>());
-
         // When
-        TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId);
+        TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId, Collections.emptyList());
 
         // Then
         assertNotNull(response);
@@ -265,7 +251,7 @@ class TripManagementServiceTest {
 
     @Test
     @DisplayName("Should update draft trip successfully")
-    void testUpdateDraftTrip_Success() {
+    void testUpdateDraftTrip_Success() throws IOException {
         // Given
         TripEntity draftTrip = createSampleTripEntity();
         draftTrip.setTripStatus(TripStatus.DRAFT);
@@ -276,11 +262,8 @@ class TripManagementServiceTest {
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(tagRepository.save(any(TagEntity.class))).thenReturn(new TagEntity());
 
-        // Mock imageFetchService
-        when(imageFetchService.getImagesForDestination(anyString())).thenReturn(new ArrayList<>());
-
         // When
-        TripResponseDto response = tripManagementService.updateDraftTrip(tripDto, tripId, userId);
+        TripResponseDto response = tripManagementService.updateDraftTrip(tripDto, tripId, userId, null);
 
         // Then
         assertNotNull(response);
@@ -290,7 +273,7 @@ class TripManagementServiceTest {
 
     @Test
     @DisplayName("Should throw exception when updating non-draft trip")
-    void testUpdateDraftTrip_NonDraftTrip() {
+    void testUpdateDraftTrip_NonDraftTrip() throws IOException {
         // Given
         TripEntity publishedTrip = createSampleTripEntity();
         publishedTrip.setTripStatus(TripStatus.PUBLISHED);
@@ -299,25 +282,25 @@ class TripManagementServiceTest {
 
         // When & Then
         assertThrows(TripValidationException.class, () ->
-            tripManagementService.updateDraftTrip(tripDto, tripId, userId)
+            tripManagementService.updateDraftTrip(tripDto, tripId, userId, null)
         );
     }
 
     @Test
     @DisplayName("Should throw exception when trip not found for update")
-    void testUpdateDraftTrip_TripNotFound() {
+    void testUpdateDraftTrip_TripNotFound() throws IOException {
         // Given
         when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
 
         // When & Then
         assertThrows(TripNotFoundException.class, () ->
-            tripManagementService.updateDraftTrip(tripDto, tripId, userId)
+            tripManagementService.updateDraftTrip(tripDto, tripId, userId, null)
         );
     }
 
     @Test
     @DisplayName("Should throw exception when user is not host for update")
-    void testUpdateDraftTrip_NotHost() {
+    void testUpdateDraftTrip_NotHost() throws IOException {
         // Given
         TripEntity draftTrip = createSampleTripEntity();
         draftTrip.setTripStatus(TripStatus.DRAFT);
@@ -327,7 +310,7 @@ class TripManagementServiceTest {
 
         // When & Then
         assertThrows(ForbiddenException.class, () ->
-            tripManagementService.updateDraftTrip(tripDto, tripId, userId)
+            tripManagementService.updateDraftTrip(tripDto, tripId, userId, null)
         );
     }
 
@@ -506,7 +489,7 @@ class TripManagementServiceTest {
         when(tripRepository.save(any(TripEntity.class))).thenReturn(draftTrip);
 
         // When
-        TripResponseDto response = tripManagementService.publishTrip(tripId, userId);
+        TripResponseDto response = tripManagementService.publishTrip(tripId, userId, null);
 
         // Then
         assertNotNull(response);
@@ -528,7 +511,7 @@ class TripManagementServiceTest {
 
         // When & Then
         assertThrows(TripValidationException.class, () ->
-            tripManagementService.publishTrip(tripId, userId)
+            tripManagementService.publishTrip(tripId, userId, null)
         );
     }
 

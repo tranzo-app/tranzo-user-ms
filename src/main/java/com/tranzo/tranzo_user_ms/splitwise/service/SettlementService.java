@@ -90,7 +90,6 @@ public class SettlementService {
                     .paidTo(request.getPaidToId())
                     .amount(request.getAmount())
                     .paymentMethod(request.getPaymentMethod())
-                    .transactionId(request.getTransactionId())
                     .notes(request.getNotes())
                     .status("COMPLETED")
                     .build();
@@ -269,7 +268,6 @@ public class SettlementService {
                 .paidTo(toUserResponse(settlement.getPaidTo()))
                 .amount(settlement.getAmount())
                 .paymentMethod(settlement.getPaymentMethod())
-                .transactionId(settlement.getTransactionId())
                 .notes(settlement.getNotes())
                 .settledAt(settlement.getSettledAt())
                 .settledExpenses(settledExpenseResponses)

@@ -63,33 +63,33 @@ class TripManagementControllerTest {
     @Test
     @DisplayName("Should create draft trip and return 201 status")
     void testCreateDraftTrip_Success() throws Exception {
-        when(tripManagementService.createDraftTrip(any(TripDto.class), any(UUID.class)))
+        when(tripManagementService.createDraftTrip(any(TripDto.class), any(UUID.class), any()))
             .thenReturn(tripResponseDto);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
 
             ResponseEntity<ResponseDto<TripResponseDto>> response =
-                tripManagementController.createDraftTrip(tripDto);
+                tripManagementController.createDraftTrip(tripDto, null, null);
 
             assertEquals(HttpStatus.CREATED, response.getStatusCode());
             assertNotNull(response.getBody());
             assertNotNull(response.getBody().getData());
-            verify(tripManagementService, times(1)).createDraftTrip(eq(tripDto), eq(userId));
+            verify(tripManagementService, times(1)).createDraftTrip(eq(tripDto), eq(userId), eq(null));
         }
     }
 
     @Test
     @DisplayName("Should return response with correct trip ID")
     void testCreateDraftTrip_ResponseValidation() throws Exception {
-        when(tripManagementService.createDraftTrip(any(TripDto.class), any(UUID.class)))
+        when(tripManagementService.createDraftTrip(any(TripDto.class), any(UUID.class), any()))
             .thenReturn(tripResponseDto);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
 
             ResponseEntity<ResponseDto<TripResponseDto>> response =
-                tripManagementController.createDraftTrip(tripDto);
+                tripManagementController.createDraftTrip(tripDto, null, null);
 
             assertNotNull(response.getBody());
             ResponseDto<TripResponseDto> body = response.getBody();
@@ -104,37 +104,38 @@ class TripManagementControllerTest {
     @Test
     @DisplayName("Should update draft trip successfully")
     void testUpdateDraftTrip_Success() throws Exception {
-        when(tripManagementService.updateDraftTrip(any(TripDto.class), any(UUID.class), any(UUID.class)))
+        when(tripManagementService.updateDraftTrip(any(TripDto.class), any(UUID.class), any(UUID.class), any()))
             .thenReturn(tripResponseDto);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
 
             ResponseEntity<ResponseDto<TripResponseDto>> response =
-                tripManagementController.updateDraftTrip(tripDto, tripId);
+                tripManagementController.updateDraftTrip(tripId, tripDto, null, null);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
             assertNotNull(response.getBody().getData());
-            verify(tripManagementService, times(1)).updateDraftTrip(eq(tripDto), eq(tripId), eq(userId));
+            verify(tripManagementService, times(1)).updateDraftTrip(eq(tripDto), eq(tripId), eq(userId), eq(null));
         }
     }
 
     @Test
     @DisplayName("Should pass correct parameters to service for update")
     void testUpdateDraftTrip_ParameterValidation() throws Exception {
-        when(tripManagementService.updateDraftTrip(any(TripDto.class), any(UUID.class), any(UUID.class)))
+        when(tripManagementService.updateDraftTrip(any(TripDto.class), any(UUID.class), any(UUID.class), any()))
             .thenReturn(tripResponseDto);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
 
-            tripManagementController.updateDraftTrip(tripDto, tripId);
+            tripManagementController.updateDraftTrip(tripId, tripDto, null, null);
 
             verify(tripManagementService, times(1)).updateDraftTrip(
                 eq(tripDto),
                 eq(tripId),
-                eq(userId)
+                eq(userId),
+                eq(null)
             );
         }
     }
@@ -186,20 +187,21 @@ class TripManagementControllerTest {
     @DisplayName("Should publish trip successfully")
     void testPublishTrip_Success() throws Exception {
         tripResponseDto.setTripStatus(TripStatus.PUBLISHED);
-        when(tripManagementService.publishTrip(any(UUID.class), any(UUID.class)))
+        PublishTripRequest publishRequest = new PublishTripRequest();
+        when(tripManagementService.publishTrip(any(UUID.class), any(UUID.class), any(PublishTripRequest.class)))
             .thenReturn(tripResponseDto);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
 
             ResponseEntity<ResponseDto<TripResponseDto>> response =
-                tripManagementController.publishDraftTrip(tripId);
+                tripManagementController.publishDraftTrip(tripId, publishRequest);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
             assertNotNull(response.getBody().getData());
             assertEquals(TripStatus.PUBLISHED, response.getBody().getData().getTripStatus());
-            verify(tripManagementService, times(1)).publishTrip(eq(tripId), eq(userId));
+            verify(tripManagementService, times(1)).publishTrip(eq(tripId), eq(userId), eq(publishRequest));
         }
     }
 

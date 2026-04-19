@@ -49,9 +49,6 @@ public class Settlement {
     @Column(name = "payment_method", length = 50)
     private String paymentMethod;
 
-    @Column(name = "transaction_id", length = 100)
-    private UUID transactionId;
-
     @Column(name = "notes", length = 500)
     private String notes;
 

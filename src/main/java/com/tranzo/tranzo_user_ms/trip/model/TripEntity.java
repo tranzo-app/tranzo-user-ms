@@ -44,6 +44,12 @@ public class TripEntity {
     @Column(name = "trip_destination")
     private String tripDestination;
 
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
+
     @Column(name = "trip_start_date")
     private LocalDate tripStartDate;
 

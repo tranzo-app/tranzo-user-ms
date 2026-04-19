@@ -37,9 +37,6 @@ public class CreateSettlementRequest {
     @Size(max = 50, message = "Payment method must not exceed 50 characters")
     private String paymentMethod;
 
-    @NotNull(message = "transaction ID is required")
-    private UUID transactionId;
-
     @Size(max = 500, message = "Notes must not exceed 500 characters")
     private String notes;
 }
