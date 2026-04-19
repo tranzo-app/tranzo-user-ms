@@ -150,6 +150,17 @@ public class TripEntity {
 
     @OneToMany(mappedBy = "trip", fetch = FetchType.LAZY)
     private Set<TripWishlistEntity> tripWishlists = new HashSet<>();
+
+    @ManyToMany(
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE},
+            fetch = FetchType.LAZY
+    )
+    @JoinTable(
+            name = "trip_trip_image",
+            joinColumns = @JoinColumn(name = "trip_id"),
+            inverseJoinColumns = @JoinColumn(name = "image_id")
+    )
+    private Set<TripImageEntity> tripImages = new HashSet<>();
 }
 
 

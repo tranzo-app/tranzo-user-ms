@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -36,8 +37,10 @@ public class TripViewDto {
     private JoinPolicy joinPolicy;
     private VisibilityStatus visibilityStatus;
     private UUID splitWiseGroupId;
+    private UUID conversationId;
     private TripPolicyViewDto tripPolicy;
     private TripMetaDataViewDto tripMetaData;
     private Set<TripTagViewDto> tripTags = new HashSet<>();
     private Set<TripItineraryViewDto> tripItineraries = new HashSet<>();
+    private List<String> imageUrls;
 }

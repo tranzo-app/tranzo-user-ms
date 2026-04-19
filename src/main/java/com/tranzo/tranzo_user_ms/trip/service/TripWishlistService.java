@@ -86,10 +86,12 @@ public class TripWishlistService {
     @Transactional(readOnly = true)
     public List<TripWishlistResponseDto> fetchWishlist(UUID userId) {
         log.info("Processing started | operation=fetchWishlist | userId={}", userId);
-        
+
         try {
             List<TripWishlistEntity> tripWishlistEntityList = tripWishlistRepository.findByUserIdOrderByCreatedAtDesc(userId);
-            List<TripWishlistResponseDto> wishlist = tripWishlistEntityList.stream().map((wishlistItem) -> {
+            List<TripWishlistResponseDto> wishlist = tripWishlistEntityList.stream()
+                    .filter(wishlistItem -> wishlistItem.getTrip().getTripStatus() == TripStatus.PUBLISHED)
+                    .map((wishlistItem) -> {
                 TripWishlistResponseDto wishlistDto = TripWishlistResponseDto.builder()
                         .tripId(wishlistItem.getTrip().getTripId())
                         .tripTitle(wishlistItem.getTrip().getTripTitle())
@@ -99,7 +101,7 @@ public class TripWishlistService {
                         .build();
                 return wishlistDto;
             }).toList();
-            
+
             log.info("Processing completed | operation=fetchWishlist | userId={} | itemsCount={} | status=SUCCESS", userId, wishlist.size());
             return wishlist;
         } catch (Exception e) {
