@@ -54,6 +54,16 @@ aws:
   access-key: ses-access-key
   secret-key: ses-secret-key
 
+trip:
+  image:
+    unsplash:
+      api-key: njhjjgtyutghgvMgJLdpPsUsmlULmYY6X0
+      api-url: https://api.unsplash.com/search/photos
+      per-page: 1
+      orientation: landscape
+      content-filter: low
+    default-images: https://via.placeholder.com/800x600/3B82F6/FFFFFF?text=Trip
+
 logging:
   level:
     root: WARN

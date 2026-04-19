@@ -67,6 +67,16 @@ app:
     region: ${AWS_REGION:ap-south-1}
     presigned-url-expiry-minutes: 15
 
+trip:
+  image:
+    unsplash:
+      api-key: ${TRIP_IMAGE_UNSPLASH_API_KEY}
+      api-url: ${TRIP_IMAGE_UNSPLASH_API_URL:https://api.unsplash.com/search/photos}
+      per-page: ${TRIP_IMAGE_UNSPLASH_PER_PAGE:1}
+      orientation: ${TRIP_IMAGE_UNSPLASH_ORIENTATION:landscape}
+      content-filter: ${TRIP_IMAGE_UNSPLASH_CONTENT_FILTER:low}
+    default-images: ${TRIP_IMAGE_DEFAULT_IMAGES:https://via.placeholder.com/800x600/3B82F6/FFFFFF?text=Trip}
+
 aws:
   region: ap-south-1
   access-key: ${AWS_SES_ACCESS_KEY}

@@ -29,19 +29,19 @@ public class ImageFetchService {
     @Value("${trip.image.unsplash.api-key}")
     private String unsplashApiKey;
 
-    @Value("${trip.image.unsplash.api-url:https://api.unsplash.com/search/photos}")
+    @Value("${trip.image.unsplash.api-url}")
     private String unsplashApiUrl;
 
-    @Value("${trip.image.unsplash.per-page:3}")
+    @Value("${trip.image.unsplash.per-page}")
     private int unsplashPerPage;
 
-    @Value("${trip.image.unsplash.orientation:landscape}")
+    @Value("${trip.image.unsplash.orientation}")
     private String unsplashOrientation;
 
-    @Value("${trip.image.unsplash.content-filter:low}")
+    @Value("${trip.image.unsplash.content-filter}")
     private String unsplashContentFilter;
 
-    @Value("${trip.image.default-images:https://via.placeholder.com/800x600/3B82F6/FFFFFF?text=Trip}")
+    @Value("${trip.image.default-images}")
     private String defaultImages;
 
     @Transactional(readOnly = true)
