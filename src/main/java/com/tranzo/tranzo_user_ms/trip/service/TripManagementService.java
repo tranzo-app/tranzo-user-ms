@@ -15,6 +15,7 @@ import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
 import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
+import com.tranzo.tranzo_user_ms.media.service.S3MediaService;
 import com.tranzo.tranzo_user_ms.commons.events.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -23,7 +24,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -46,6 +49,8 @@ public class TripManagementService {
     private final TravelPalService travelPalService;
     private final UserProfileClient userProfileClient;
     private final ImageFetchService imageFetchService;
+    private final S3MediaService s3MediaService;
+    private final TripImageRepository tripImageRepository;
 
     public TripManagementService(TripMemberRepository tripMemberRepository,
                                  TripRepository tripRepository,
@@ -59,7 +64,9 @@ public class TripManagementService {
                                  ApplicationEventPublisher applicationEventPublisher,
                                  TravelPalService travelPalService,
                                  UserProfileClient userProfileClient,
-                                 ImageFetchService imageFetchService) {
+                                 ImageFetchService imageFetchService,
+                                 S3MediaService s3MediaService,
+                                 TripImageRepository tripImageRepository) {
         this.tripMemberRepository = tripMemberRepository;
         this.tripRepository = tripRepository;
         this.tagRepository = tagRepository;
@@ -73,14 +80,16 @@ public class TripManagementService {
         this.travelPalService = travelPalService;
         this.userProfileClient = userProfileClient;
         this.imageFetchService = imageFetchService;
+        this.s3MediaService = s3MediaService;
+        this.tripImageRepository = tripImageRepository;
     }
 
-    private void resolveTripImages(TripEntity trip, List<String> userProvidedImageUrls) {
+    private void resolveTripImages(TripEntity trip, List<String> userProvidedImageUrls, String userId) {
         String destination = trip.getTripDestination();
-        
+
         if (userProvidedImageUrls != null && !userProvidedImageUrls.isEmpty()) {
             // User provided images - save them directly
-            Set<TripImageEntity> images = new HashSet<>(imageFetchService.saveUserProvidedImages(userProvidedImageUrls, destination));
+            Set<TripImageEntity> images = new HashSet<>(imageFetchService.saveUserProvidedImages(userProvidedImageUrls, destination, userId));
             trip.setTripImages(images);
             images.forEach(image -> image.incrementUsage());
         } else {
@@ -93,8 +102,7 @@ public class TripManagementService {
 
 
     @Transactional
-    public TripResponseDto createDraftTrip(TripDto tripDto, UUID userId)
-    {
+    public TripResponseDto createDraftTrip(TripDto tripDto, UUID userId, List<MultipartFile> files) throws IOException {
         // First check if the user exists and is active.
 
         TripEntity tripEntity = new TripEntity();
@@ -181,8 +189,13 @@ public class TripManagementService {
 
         TripEntity newTrip = tripRepository.save(tripEntity);
 
-        // Handle image resolution
-        resolveTripImages(newTrip, tripDto.getImageUrls());
+        // Upload user-provided image files to S3 (if provided)
+        if (files != null && !files.isEmpty()) {
+            Set<TripImageEntity> images = uploadTripImagesToS3(files, tripEntity.getTripDestination(), userId.toString());
+            tripEntity.setTripImages(images);
+            images.forEach(image -> image.incrementUsage());
+            tripRepository.save(tripEntity);
+        }
 
         return TripResponseDto.builder()
                 .tripId(newTrip.getTripId())
@@ -191,8 +204,7 @@ public class TripManagementService {
     }
 
     @Transactional
-    public TripResponseDto updateDraftTrip(TripDto tripDto, UUID tripId, UUID userId)
-    {
+    public TripResponseDto updateDraftTrip(TripDto tripDto, UUID tripId, UUID userId, List<MultipartFile> files) throws IOException {
         TripEntity trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new TripNotFoundException());
         if (trip.getTripStatus() != TripStatus.DRAFT)
@@ -205,10 +217,14 @@ public class TripManagementService {
         updateDraftTripMetadata(trip, tripDto);
         updateDraftTripTags(trip, tripDto);
         updateDraftTripItinerary(trip, tripDto);
-        
-        // Handle image resolution
-        resolveTripImages(trip, tripDto.getImageUrls());
-        
+
+        // Upload user-provided image files to S3 (if provided)
+        if (files != null && !files.isEmpty()) {
+            Set<TripImageEntity> images = uploadTripImagesToS3(files, trip.getTripDestination(), userId.toString());
+            trip.setTripImages(images);
+            images.forEach(image -> image.incrementUsage());
+        }
+
         TripEntity updateTrip = tripRepository.save(trip);
         return TripResponseDto.builder()
                 .tripId(updateTrip.getTripId())
@@ -341,7 +357,7 @@ public class TripManagementService {
     }
 
     @Transactional
-    public TripResponseDto publishTrip(UUID tripId, UUID userId)
+    public TripResponseDto publishTrip(UUID tripId, UUID userId, PublishTripRequest publishTripRequest)
     {
         TripEntity trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new TripNotFoundException());
@@ -352,6 +368,18 @@ public class TripManagementService {
         {
             trip.setVisibilityStatus(VisibilityStatus.PUBLIC);
         }
+
+        // Set latitude and longitude if provided
+        if (publishTripRequest != null) {
+            trip.setLatitude(publishTripRequest.getLatitude());
+            trip.setLongitude(publishTripRequest.getLongitude());
+        }
+
+        // Handle image resolution when publishing (only if no images already exist)
+        if (trip.getTripImages() == null || trip.getTripImages().isEmpty()) {
+            resolveTripImages(trip, null, userId.toString());
+        }
+
         TripEntity updateTrip = tripRepository.save(trip);
         TripPublishedEventPayloadDto eventPayloadDto = TripPublishedEventPayloadDto.builder()
                 .eventType("TRIP_PUBLISHED")
@@ -594,6 +622,8 @@ public class TripManagementService {
                 .tripDescription(trip.getTripDescription())
                 .tripTitle(trip.getTripTitle())
                 .tripDestination(trip.getTripDestination())
+                .latitude(trip.getLatitude())
+                .longitude(trip.getLongitude())
                 .tripStartDate(trip.getTripStartDate())
                 .tripEndDate(trip.getTripEndDate())
                 .estimatedBudget(trip.getEstimatedBudget())
@@ -613,7 +643,19 @@ public class TripManagementService {
                 .tripTags(trip.getTripTags() != null ? mapTripTagsToDto(trip.getTripTags()) :Set.of())
                 .tripItineraries(trip.getTripItineraries() != null ? mapTripItinerariesToDto(trip.getTripItineraries()) : Set.of())
                 .imageUrls(trip.getTripImages() != null ? trip.getTripImages().stream()
-                        .map(TripImageEntity::getImageUrl)
+                        .map(image -> {
+                            String imageUrl = image.getImageUrl();
+                            // Resolve S3 keys to presigned URLs (similar to profile picture handling)
+                            if (imageUrl != null && imageUrl.startsWith("uploads/")) {
+                                try {
+                                    return s3MediaService.getPresignedUrl(imageUrl, null).getUrl();
+                                } catch (Exception e) {
+                                    log.warn("Failed to generate presigned URL for image key: {}", imageUrl, e);
+                                    return imageUrl;
+                                }
+                            }
+                            return imageUrl;
+                        })
                         .collect(java.util.stream.Collectors.toList()) : null)
                 .build();
     }
@@ -936,5 +978,39 @@ public class TripManagementService {
             }
             return cb.or(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    /**
+     * Upload trip image files to S3 and return TripImageEntity objects.
+     */
+    private Set<TripImageEntity> uploadTripImagesToS3(List<MultipartFile> files, String destination, String userId) throws IOException {
+        Set<TripImageEntity> images = new HashSet<>();
+
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) {
+                continue;
+            }
+
+            try {
+                var uploadResponse = s3MediaService.upload(file, userId);
+                String s3Key = uploadResponse.getKey();
+
+                TripImageEntity image = TripImageEntity.builder()
+                        .imageUrl(s3Key)
+                        .destination(destination)
+                        .source(ImageSource.USER_PROVIDED)
+                        .usageCount(0)
+                        .build();
+                image = tripImageRepository.save(image);
+                images.add(image);
+
+                log.info("Trip image uploaded to S3 | destination={} | key={} | status=SUCCESS", destination, s3Key);
+            } catch (Exception e) {
+                log.error("Failed to upload trip image to S3 | destination={} | error={}", destination, e.getMessage(), e);
+                throw new IOException("Failed to upload trip image to S3", e);
+            }
+        }
+
+        return images;
     }
 }

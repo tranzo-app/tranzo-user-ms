@@ -96,6 +96,39 @@ public class S3MediaService {
     }
 
     /**
+     * Upload bytes to S3. Key format: uploads/media/{userId}/{uuid}.{extension}.
+     */
+    public UploadResponseDto uploadBytes(byte[] bytes, String userId, String contentType, String extension) {
+        log.info("Processing started | operation=uploadBytes | userId={} | size={} | contentType={}", userId, bytes.length, contentType);
+
+        try {
+            ensureConfigured();
+            String key = UPLOAD_PREFIX + userId + "/" + UUID.randomUUID() + "." + extension;
+
+            PutObjectRequest putRequest = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .contentType(contentType)
+                    .contentLength((long) bytes.length)
+                    .build();
+
+            log.info("Calling external service | service=S3 | operation=putObject | bucket={} | key={}", bucket, key);
+            s3Client.putObject(putRequest, RequestBody.fromBytes(bytes));
+            log.info("Bytes uploaded to S3 | userId={} | key={} | status=SUCCESS", userId, key);
+
+            String presignedUrl = buildPresignedUrl(key, presignedUrlExpiryMinutes);
+            log.info("Processing completed | operation=uploadBytes | userId={} | key={} | status=SUCCESS", userId, key);
+            return UploadResponseDto.builder()
+                    .key(key)
+                    .presignedUrl(presignedUrl)
+                    .build();
+        } catch (Exception e) {
+            log.error("Operation failed | operation=uploadBytes | userId={} | reason={}", userId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
      * Generate a presigned GET URL for an existing object key.
      */
     public PresignedUrlResponseDto getPresignedUrl(String key, Integer expiryMinutes) {

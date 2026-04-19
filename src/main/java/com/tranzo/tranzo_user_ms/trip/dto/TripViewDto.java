@@ -23,6 +23,8 @@ public class TripViewDto {
     private String tripTitle;
     private String tripDescription;
     private String tripDestination;
+    private Double latitude;
+    private Double longitude;
     private LocalDate tripStartDate;
     private LocalDate tripEndDate;
     private Double estimatedBudget;

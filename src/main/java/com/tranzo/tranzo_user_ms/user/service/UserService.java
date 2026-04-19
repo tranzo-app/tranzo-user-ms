@@ -154,6 +154,7 @@ public class UserService {
         String profilePictureUrl = resolveProfilePictureUrl(profileEntity.getProfilePictureUrl());
 
         return UserProfileDto.builder()
+                .userId(user.getUserUuid())
                 .firstName(profileEntity.getFirstName())
                 .middleName(profileEntity.getMiddleName())
                 .lastName(profileEntity.getLastName())

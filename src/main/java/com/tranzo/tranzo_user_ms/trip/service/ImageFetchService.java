@@ -2,6 +2,8 @@ package com.tranzo.tranzo_user_ms.trip.service;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.tranzo.tranzo_user_ms.media.dto.UploadResponseDto;
+import com.tranzo.tranzo_user_ms.media.service.S3MediaService;
 import com.tranzo.tranzo_user_ms.trip.enums.ImageSource;
 import com.tranzo.tranzo_user_ms.trip.model.TripImageEntity;
 import com.tranzo.tranzo_user_ms.trip.repository.TripImageRepository;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,6 +28,9 @@ public class ImageFetchService {
 
     private final TripImageRepository tripImageRepository;
     private final RestTemplate restTemplate = new RestTemplate();
+    private final S3MediaService s3MediaService;
+
+    private static final String TRIP_UPLOAD_PREFIX = "uploads/trip/";
 
     @Value("${trip.image.unsplash.api-key}")
     private String unsplashApiKey;
@@ -173,26 +179,75 @@ public class ImageFetchService {
     }
 
     @Transactional
-    public List<TripImageEntity> saveUserProvidedImages(List<String> imageUrls, String destination) {
+    public List<TripImageEntity> saveUserProvidedImages(List<String> imageUrls, String destination, String userId) {
         List<TripImageEntity> images = new ArrayList<>();
-        
+
         for (String imageUrl : imageUrls) {
-            // Check if image already exists
-            if (!tripImageRepository.existsByImageUrl(imageUrl)) {
-                TripImageEntity image = TripImageEntity.builder()
-                        .imageUrl(imageUrl)
-                        .destination(destination)
-                        .source(ImageSource.USER_PROVIDED)
-                        .usageCount(0)
-                        .build();
-                image = tripImageRepository.save(image);
-                images.add(image);
+            if (imageUrl == null || imageUrl.isBlank()) {
+                continue;
+            }
+
+            // Check if it's a base64 encoded image
+            if (imageUrl.startsWith("data:image/")) {
+                try {
+                    String s3Key = uploadBase64ImageToS3(imageUrl, userId);
+                    // Check if this S3 key already exists
+                    if (!tripImageRepository.existsByImageUrl(s3Key)) {
+                        TripImageEntity image = TripImageEntity.builder()
+                                .imageUrl(s3Key)
+                                .destination(destination)
+                                .source(ImageSource.USER_PROVIDED)
+                                .usageCount(0)
+                                .build();
+                        image = tripImageRepository.save(image);
+                        images.add(image);
+                    } else {
+                        tripImageRepository.findByImageUrl(s3Key).ifPresent(images::add);
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to upload base64 image to S3 | destination={} | error={}", destination, e.getMessage(), e);
+                    // Skip this image if upload fails
+                }
             } else {
-                tripImageRepository.findByImageUrl(imageUrl).ifPresent(images::add);
+                // It's a regular URL (S3 key or external URL)
+                if (!tripImageRepository.existsByImageUrl(imageUrl)) {
+                    TripImageEntity image = TripImageEntity.builder()
+                            .imageUrl(imageUrl)
+                            .destination(destination)
+                            .source(ImageSource.USER_PROVIDED)
+                            .usageCount(0)
+                            .build();
+                    image = tripImageRepository.save(image);
+                    images.add(image);
+                } else {
+                    tripImageRepository.findByImageUrl(imageUrl).ifPresent(images::add);
+                }
             }
         }
-        
+
         return images;
+    }
+
+    private String uploadBase64ImageToS3(String base64Image, String userId) throws IOException {
+        // Extract the base64 data (remove the data:image/...;base64, prefix)
+        String[] parts = base64Image.split(",");
+        if (parts.length < 2) {
+            throw new IllegalArgumentException("Invalid base64 image format");
+        }
+
+        String base64Data = parts[1];
+        String mimeType = parts[0].split(";")[0].split(":")[1]; // Extract "image/jpeg", "image/png", etc.
+
+        // Decode base64 to bytes
+        byte[] imageBytes = java.util.Base64.getDecoder().decode(base64Data);
+
+        // Get file extension from mime type
+        String extension = mimeType.split("/")[1];
+
+        // Upload to S3 using the new uploadBytes method
+        UploadResponseDto uploadResponse = s3MediaService.uploadBytes(imageBytes, userId, mimeType, extension);
+        log.info("Base64 image uploaded to S3 | key={} | status=SUCCESS", uploadResponse.getKey());
+        return uploadResponse.getKey();
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

@@ -16,10 +16,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,21 +34,30 @@ public class TripManagementController {
     private final TripManagementService tripManagementService;
     private final TripInviteService tripInviteService;
 
-    @PostMapping("/")
-    public ResponseEntity<ResponseDto<TripResponseDto>> createDraftTrip(@Validated(DraftChecks.class) @RequestBody TripDto tripDto) throws AuthException {
+    @PostMapping(value = "/")
+    public ResponseEntity<ResponseDto<TripResponseDto>> createDraftTrip(
+            @RequestBody(required = false) @Validated(DraftChecks.class) TripDto jsonTripDto,
+            @RequestPart(value = "trip", required = false) @Validated(DraftChecks.class) TripDto multipartTripDto,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) throws AuthException, IOException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Incoming request | API=/trips/ | method=POST | userId={}", userId);
-        TripResponseDto tripResponse = tripManagementService.createDraftTrip(tripDto, userId);
+        TripDto tripDto = jsonTripDto != null ? jsonTripDto : multipartTripDto;
+        log.info("Incoming request | API=/trips/ | method=POST | userId={} | filesCount={}", userId, files != null ? files.size() : 0);
+        TripResponseDto tripResponse = tripManagementService.createDraftTrip(tripDto, userId, files);
         log.info("Draft trip created | userId={} | tripId={} | status=SUCCESS", userId, tripResponse.getTripId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.success(201,"Draft trip has been created successfully", tripResponse));
     }
 
     // Frontend should send the complete TripDto whether any field is empty or not. That's why it is PUT
-    @PutMapping("/{tripId}")
-    public ResponseEntity<ResponseDto<TripResponseDto>> updateDraftTrip(@Validated(DraftChecks.class) @RequestBody TripDto tripDto, @PathVariable UUID tripId) throws AuthException {
+    @PutMapping(value = "/{tripId}")
+    public ResponseEntity<ResponseDto<TripResponseDto>> updateDraftTrip(
+            @PathVariable UUID tripId,
+            @RequestBody(required = false) @Validated(DraftChecks.class) TripDto jsonTripDto,
+            @RequestPart(value = "trip", required = false) @Validated(DraftChecks.class) TripDto multipartTripDto,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) throws AuthException, IOException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Incoming request | API=/trips/{} | method=PUT | userId={}", tripId, userId);
-        TripResponseDto tripResponse = tripManagementService.updateDraftTrip(tripDto, tripId, userId);
+        TripDto tripDto = jsonTripDto != null ? jsonTripDto : multipartTripDto;
+        log.info("Incoming request | API=/trips/{} | method=PUT | userId={} | filesCount={}", tripId, userId, files != null ? files.size() : 0);
+        TripResponseDto tripResponse = tripManagementService.updateDraftTrip(tripDto, tripId, userId, files);
         log.info("Draft trip updated | userId={} | tripId={} | status=SUCCESS", userId, tripId);
         return ResponseEntity.ok(ResponseDto.success("Draft trip has been updated successfully", tripResponse));
     }
@@ -111,10 +123,12 @@ public class TripManagementController {
     }
 
     @PostMapping("/{tripId}/publish")
-    public ResponseEntity<ResponseDto<TripResponseDto>> publishDraftTrip(@PathVariable UUID tripId) throws AuthException {
+    public ResponseEntity<ResponseDto<TripResponseDto>> publishDraftTrip(
+            @PathVariable UUID tripId,
+            @RequestBody(required = false) PublishTripRequest publishTripRequest) throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Incoming request | API=/trips/{}/publish | method=POST | userId={}", tripId, userId);
-        TripResponseDto tripResponse = tripManagementService.publishTrip(tripId, userId);
+        TripResponseDto tripResponse = tripManagementService.publishTrip(tripId, userId, publishTripRequest);
         log.info("Trip published | userId={} | tripId={} | status=SUCCESS", userId, tripId);
         return ResponseEntity.ok(ResponseDto.success("Trip is successfully published", tripResponse));
     }
