@@ -28,4 +28,5 @@ public class SuggestedTravelPalDto {
     private Integer travelPalsCount;
     private Integer completedTripsCount;
     private BigDecimal userRating;
+    private UUID conversationId;
 }

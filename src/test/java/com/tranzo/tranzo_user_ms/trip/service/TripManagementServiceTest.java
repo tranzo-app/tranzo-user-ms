@@ -68,6 +68,9 @@ class TripManagementServiceTest {
     @Mock
     private UserProfileClient userProfileClient;
 
+    @Mock
+    private ImageFetchService imageFetchService;
+
     @InjectMocks
     private TripManagementService tripManagementService;
 
@@ -93,7 +96,7 @@ class TripManagementServiceTest {
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(tagRepository.save(any(TagEntity.class))).thenReturn(new TagEntity());
-        
+
         // Mock UserProfileClient
         UserNameDto userNameDto = UserNameDto.builder()
                 .userId(userId)
@@ -101,6 +104,9 @@ class TripManagementServiceTest {
                 .lastName("Doe")
                 .build();
         when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
+
+        // Mock imageFetchService
+        when(imageFetchService.getImagesForDestination(anyString())).thenReturn(new ArrayList<>());
 
         // When
         TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId);
@@ -133,7 +139,7 @@ class TripManagementServiceTest {
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(tagRepository.save(any(TagEntity.class))).thenReturn(new TagEntity());
-        
+
         // Mock UserProfileClient
         UserNameDto userNameDto = UserNameDto.builder()
                 .userId(userId)
@@ -141,6 +147,9 @@ class TripManagementServiceTest {
                 .lastName("Doe")
                 .build();
         when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
+
+        // Mock imageFetchService
+        when(imageFetchService.getImagesForDestination(anyString())).thenReturn(new ArrayList<>());
 
         TripPolicyDto policyDto = new TripPolicyDto();
         policyDto.setCancellationPolicy("No refund after 7 days");
@@ -162,7 +171,7 @@ class TripManagementServiceTest {
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(tagRepository.save(any(TagEntity.class))).thenReturn(new TagEntity());
-        
+
         // Mock UserProfileClient
         UserNameDto userNameDto = UserNameDto.builder()
                 .userId(userId)
@@ -170,6 +179,9 @@ class TripManagementServiceTest {
                 .lastName("Doe")
                 .build();
         when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
+
+        // Mock imageFetchService
+        when(imageFetchService.getImagesForDestination(anyString())).thenReturn(new ArrayList<>());
 
         TripMetaDataDto metaDataDto = new TripMetaDataDto();
         metaDataDto.setTripSummary(Map.of("en", "Summer adventure"));
@@ -192,7 +204,7 @@ class TripManagementServiceTest {
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(tagRepository.save(any(TagEntity.class))).thenReturn(new TagEntity());
-        
+
         // Mock UserProfileClient
         UserNameDto userNameDto = UserNameDto.builder()
                 .userId(userId)
@@ -200,6 +212,9 @@ class TripManagementServiceTest {
                 .lastName("Doe")
                 .build();
         when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
+
+        // Mock imageFetchService
+        when(imageFetchService.getImagesForDestination(anyString())).thenReturn(new ArrayList<>());
 
         TripItineraryDto itineraryDto = new TripItineraryDto();
         itineraryDto.setDayNumber(1);
@@ -226,7 +241,7 @@ class TripManagementServiceTest {
         existingTag.setTagName("Adventure");
         when(tripRepository.save(any(TripEntity.class))).thenReturn(tripEntity);
         when(tagRepository.findByTagNameIgnoreCase("Adventure")).thenReturn(Optional.of(existingTag));
-        
+
         // Mock UserProfileClient
         UserNameDto userNameDto = UserNameDto.builder()
                 .userId(userId)
@@ -234,6 +249,9 @@ class TripManagementServiceTest {
                 .lastName("Doe")
                 .build();
         when(userProfileClient.getNamesByUserIds(List.of(userId))).thenReturn(Map.of(userId, userNameDto));
+
+        // Mock imageFetchService
+        when(imageFetchService.getImagesForDestination(anyString())).thenReturn(new ArrayList<>());
 
         // When
         TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId);
@@ -257,6 +275,9 @@ class TripManagementServiceTest {
         doNothing().when(userUtil).validateUserIsHost(tripId, userId);
         when(tagRepository.findByTagNameIgnoreCase(anyString())).thenReturn(Optional.empty());
         when(tagRepository.save(any(TagEntity.class))).thenReturn(new TagEntity());
+
+        // Mock imageFetchService
+        when(imageFetchService.getImagesForDestination(anyString())).thenReturn(new ArrayList<>());
 
         // When
         TripResponseDto response = tripManagementService.updateDraftTrip(tripDto, tripId, userId);

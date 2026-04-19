@@ -6,13 +6,12 @@ import com.tranzo.tranzo_user_ms.user.enums.TravelPalStatus;
 import com.tranzo.tranzo_user_ms.user.model.TravelPalEntity;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.user.repository.TravelPalRepository;
-import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
 import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import com.tranzo.tranzo_user_ms.commons.exception.ConflictException;
 import com.tranzo.tranzo_user_ms.trip.client.TripStatisticsClient;
-import com.tranzo.tranzo_user_ms.user.service.RatingService;
+import com.tranzo.tranzo_user_ms.chat.client.ConversationClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +27,7 @@ public class TravelPalService {
     private final UserProfileClient userProfileClient;
     private final TripStatisticsClient tripStatisticsClient;
     private final RatingService ratingService;
+    private final ConversationClient conversationClient;
 
     /* ================= NORMALIZE ================= */
 
@@ -37,6 +37,12 @@ public class TravelPalService {
         } else {
             return new UserPair(userB, userA);
         }
+    }
+
+    /* ================= HELPER METHODS ================= */
+
+    private UUID getConversationIdBetweenUsers(UUID userA, UUID userB) {
+        return conversationClient.getConversationIdBetweenUsers(userA, userB);
     }
 
     /* ================= SEND REQUEST ================= */
@@ -118,14 +124,14 @@ public class TravelPalService {
     public List<SuggestedTravelPalDto> getMyTravelPalsWithDetails(UUID userId) {
         // Get existing travel pal IDs
         List<UUID> palIds = getMyTravelPals(userId);
-        
+
         if (palIds.isEmpty()) {
             return new ArrayList<>();
         }
-        
+
         // Get user names using UserProfileClient
         Map<UUID, UserNameDto> userNames = userProfileClient.getNamesByUserIds(palIds);
-        
+
         // Convert to DTOs using available data from client
         return palIds.stream()
                 .filter(userNames::containsKey) // Only include users found in client response
@@ -143,6 +149,7 @@ public class TravelPalService {
                             .travelPalsCount(getMyTravelPals(palId).size())
                             .completedTripsCount(tripStatisticsClient.getCompletedTripsCount(palId))
                             .userRating(ratingService.getUserAverageRating(palId))
+                            .conversationId(getConversationIdBetweenUsers(userId, palId))
                             .build();
                 })
                 .toList();
@@ -152,19 +159,19 @@ public class TravelPalService {
     
     public List<SuggestedTravelPalDto> getIncomingPendingRequestsWithDetails(UUID userId) {
         List<TravelPalEntity> pendingRequests = repository.findIncomingPending(userId);
-        
+
         if (pendingRequests.isEmpty()) {
             return new ArrayList<>();
         }
-        
+
         // Get user IDs of requesters
         List<UUID> requesterIds = pendingRequests.stream()
                 .map(entity -> entity.getRequestedBy())
                 .toList();
-        
+
         // Get user details using UserProfileClient
         Map<UUID, UserNameDto> userDetails = userProfileClient.getNamesByUserIds(requesterIds);
-        
+
         // Convert to DTOs using available data from client
         return requesterIds.stream()
                 .filter(userDetails::containsKey) // Only include users found in client response
@@ -182,6 +189,7 @@ public class TravelPalService {
                             .travelPalsCount(getMyTravelPals(requesterId).size())
                             .completedTripsCount(tripStatisticsClient.getCompletedTripsCount(requesterId))
                             .userRating(ratingService.getUserAverageRating(requesterId))
+                            .conversationId(getConversationIdBetweenUsers(userId, requesterId))
                             .build();
                 })
                 .toList();
@@ -190,7 +198,7 @@ public class TravelPalService {
     public List<SuggestedTravelPalDto> getSuggestedTravelPals(UUID currentUserId) {
         // Get existing travel pals
         List<UUID> existingPals = getMyTravelPals(currentUserId);
-        
+
         // Get incoming pending requests
         List<UUID> incomingPending = repository.findIncomingPending(currentUserId)
                 .stream()
@@ -198,7 +206,7 @@ public class TravelPalService {
                         ? entity.getUserHighId()
                         : entity.getUserLowId())
                 .toList();
-        
+
         // Get outgoing pending requests
         List<UUID> outgoingPending = repository.findOutgoingPending(currentUserId)
                 .stream()
@@ -206,7 +214,7 @@ public class TravelPalService {
                         ? entity.getUserHighId()
                         : entity.getUserLowId())
                 .toList();
-        
+
         // Combine all excluded user IDs
         Set<UUID> excludedUserIds = new HashSet<>();
         excludedUserIds.add(currentUserId);
@@ -240,6 +248,7 @@ public class TravelPalService {
                             .travelPalsCount(getMyTravelPals(userId).size())
                             .completedTripsCount(tripStatisticsClient.getCompletedTripsCount(userId))
                             .userRating(ratingService.getUserAverageRating(userId))
+                            .conversationId(getConversationIdBetweenUsers(currentUserId, userId))
                             .build();
                 })
                 .toList();

@@ -45,6 +45,7 @@ public class TripManagementService {
     private final ApplicationEventPublisher applicationEventPublisher;
     private final TravelPalService travelPalService;
     private final UserProfileClient userProfileClient;
+    private final ImageFetchService imageFetchService;
 
     public TripManagementService(TripMemberRepository tripMemberRepository,
                                  TripRepository tripRepository,
@@ -57,7 +58,8 @@ public class TripManagementService {
                                  UserUtil userUtil,
                                  ApplicationEventPublisher applicationEventPublisher,
                                  TravelPalService travelPalService,
-                                 UserProfileClient userProfileClient) {
+                                 UserProfileClient userProfileClient,
+                                 ImageFetchService imageFetchService) {
         this.tripMemberRepository = tripMemberRepository;
         this.tripRepository = tripRepository;
         this.tagRepository = tagRepository;
@@ -70,6 +72,23 @@ public class TripManagementService {
         this.applicationEventPublisher = applicationEventPublisher;
         this.travelPalService = travelPalService;
         this.userProfileClient = userProfileClient;
+        this.imageFetchService = imageFetchService;
+    }
+
+    private void resolveTripImages(TripEntity trip, List<String> userProvidedImageUrls) {
+        String destination = trip.getTripDestination();
+        
+        if (userProvidedImageUrls != null && !userProvidedImageUrls.isEmpty()) {
+            // User provided images - save them directly
+            Set<TripImageEntity> images = new HashSet<>(imageFetchService.saveUserProvidedImages(userProvidedImageUrls, destination));
+            trip.setTripImages(images);
+            images.forEach(image -> image.incrementUsage());
+        } else {
+            // No user images - fetch from datastore or API
+            Set<TripImageEntity> images = new HashSet<>(imageFetchService.getImagesForDestination(destination));
+            trip.setTripImages(images);
+            images.forEach(image -> image.incrementUsage());
+        }
     }
 
 
@@ -161,6 +180,10 @@ public class TripManagementService {
         }
 
         TripEntity newTrip = tripRepository.save(tripEntity);
+
+        // Handle image resolution
+        resolveTripImages(newTrip, tripDto.getImageUrls());
+
         return TripResponseDto.builder()
                 .tripId(newTrip.getTripId())
                 .tripStatus(newTrip.getTripStatus())
@@ -182,6 +205,10 @@ public class TripManagementService {
         updateDraftTripMetadata(trip, tripDto);
         updateDraftTripTags(trip, tripDto);
         updateDraftTripItinerary(trip, tripDto);
+        
+        // Handle image resolution
+        resolveTripImages(trip, tripDto.getImageUrls());
+        
         TripEntity updateTrip = tripRepository.save(trip);
         return TripResponseDto.builder()
                 .tripId(updateTrip.getTripId())
@@ -574,6 +601,7 @@ public class TripManagementService {
                 .currentParticipants(activeMemberCount)
                 .isFull(trip.getIsFull())
                 .splitWiseGroupId(trip.getSplitwiseGroupId())
+                .conversationId(trip.getConversationID())
                 .isTripHost(isTripHost)
                 .hostName(hostName)
                 .tripStatus(trip.getTripStatus())
@@ -584,6 +612,9 @@ public class TripManagementService {
                 .tripMetaData(trip.getTripMetaData() != null ? mapTripMetaDataToDto(trip.getTripMetaData()) : null)
                 .tripTags(trip.getTripTags() != null ? mapTripTagsToDto(trip.getTripTags()) :Set.of())
                 .tripItineraries(trip.getTripItineraries() != null ? mapTripItinerariesToDto(trip.getTripItineraries()) : Set.of())
+                .imageUrls(trip.getTripImages() != null ? trip.getTripImages().stream()
+                        .map(TripImageEntity::getImageUrl)
+                        .collect(java.util.stream.Collectors.toList()) : null)
                 .build();
     }
 

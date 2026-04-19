@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.user.service;
 
+import com.tranzo.tranzo_user_ms.chat.client.ConversationClient;
 import com.tranzo.tranzo_user_ms.trip.client.TripStatisticsClient;
 import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
 import com.tranzo.tranzo_user_ms.user.dto.SuggestedTravelPalDto;
@@ -40,6 +41,9 @@ class TravelPalServiceTest {
 
     @Mock
     private RatingService ratingService;
+
+    @Mock
+    private ConversationClient conversationClient;
 
     @InjectMocks
     private TravelPalService service;
@@ -118,6 +122,7 @@ class TravelPalServiceTest {
         when(repository.findAcceptedByUser(userA)).thenReturn(List.of());
         when(tripStatisticsClient.getCompletedTripsCount(userA)).thenReturn(0);
         when(ratingService.getUserAverageRating(userA)).thenReturn(null);
+        when(conversationClient.getConversationIdBetweenUsers(any(), any())).thenReturn(UUID.randomUUID());
 
         UserNameDto userNameDto = UserNameDto.builder()
                 .userId(userA)

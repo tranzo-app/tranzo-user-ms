@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -81,4 +82,6 @@ public class TripDto {
     @NotEmpty(groups = PublishChecks.class,
             message = "At least one itinerary is required for publishing")
     private Set<TripItineraryDto> tripItineraries = new HashSet<>();
+
+    private List<String> imageUrls;
 }
