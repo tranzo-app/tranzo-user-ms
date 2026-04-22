@@ -28,6 +28,11 @@ spring:
     xApiSecret: test-secret
     timeout: 30
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 25MB
+
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
