@@ -396,7 +396,7 @@ public class TripManagementService {
     }
 
     @Transactional
-    public TripResponseDto updateTrip(TripDto tripDto, UUID tripId, UUID userId)
+    public TripResponseDto updateTrip(TripDto tripDto, UUID tripId, UUID userId, List<MultipartFile> files) throws IOException
     {
         TripEntity trip = tripRepository.findById(tripId)
                 .orElseThrow(() -> new TripNotFoundException());
@@ -405,6 +405,14 @@ public class TripManagementService {
         }
         userUtil.validateUserIsHost(tripId, userId);
         updatePublishedTripBasicInfo(trip, tripDto);
+
+        // Upload user-provided image files to S3 (if provided)
+        if (files != null && !files.isEmpty()) {
+            Set<TripImageEntity> images = uploadTripImagesToS3(files, trip.getTripDestination(), userId.toString());
+            trip.setTripImages(images);
+            images.forEach(image -> image.incrementUsage());
+        }
+
         TripEntity updateTrip = tripRepository.save(trip);
 
         List<UUID> memberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)

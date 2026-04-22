@@ -70,7 +70,7 @@ class TripManagementControllerTest {
             securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
 
             ResponseEntity<ResponseDto<TripResponseDto>> response =
-                tripManagementController.createDraftTrip(tripDto, null, null);
+                tripManagementController.createDraftTrip(tripDto, null);
 
             assertEquals(HttpStatus.CREATED, response.getStatusCode());
             assertNotNull(response.getBody());
@@ -89,7 +89,7 @@ class TripManagementControllerTest {
             securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
 
             ResponseEntity<ResponseDto<TripResponseDto>> response =
-                tripManagementController.createDraftTrip(tripDto, null, null);
+                tripManagementController.createDraftTrip(tripDto, null);
 
             assertNotNull(response.getBody());
             ResponseDto<TripResponseDto> body = response.getBody();
@@ -111,7 +111,7 @@ class TripManagementControllerTest {
             securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
 
             ResponseEntity<ResponseDto<TripResponseDto>> response =
-                tripManagementController.updateDraftTrip(tripId, tripDto, null, null);
+                tripManagementController.updateDraftTrip(tripId, tripDto, null);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
@@ -129,7 +129,7 @@ class TripManagementControllerTest {
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
 
-            tripManagementController.updateDraftTrip(tripId, tripDto, null, null);
+            tripManagementController.updateDraftTrip(tripId, tripDto, null);
 
             verify(tripManagementService, times(1)).updateDraftTrip(
                 eq(tripDto),
@@ -210,18 +210,18 @@ class TripManagementControllerTest {
     @Test
     @DisplayName("Should update published trip successfully")
     void testUpdatePublishedTrip_Success() throws Exception {
-        when(tripManagementService.updateTrip(any(TripDto.class), any(UUID.class), any(UUID.class)))
+        when(tripManagementService.updateTrip(any(TripDto.class), any(UUID.class), any(UUID.class), any()))
             .thenReturn(tripResponseDto);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
 
             ResponseEntity<ResponseDto<TripResponseDto>> response =
-                tripManagementController.updatePublishedTrip(tripId, tripDto);
+                tripManagementController.updatePublishedTrip(tripId, tripDto, null);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
-            verify(tripManagementService, times(1)).updateTrip(eq(tripDto), eq(tripId), eq(userId));
+            verify(tripManagementService, times(1)).updateTrip(eq(tripDto), eq(tripId), eq(userId), any());
         }
     }
 

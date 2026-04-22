@@ -579,7 +579,7 @@ class TripManagementServiceTest {
 
     @Test
     @DisplayName("Should update published trip successfully and publish TripDetailsChangedEvent")
-    void testUpdateTrip_Published_Success() {
+    void testUpdateTrip_Published_Success() throws IOException {
         TripEntity publishedTrip = createSampleTripEntity();
         publishedTrip.setTripStatus(TripStatus.PUBLISHED);
         TripMemberEntity member = new TripMemberEntity();
@@ -591,7 +591,7 @@ class TripManagementServiceTest {
         when(tripRepository.save(any(TripEntity.class))).thenReturn(publishedTrip);
         when(tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)).thenReturn(members);
 
-        TripResponseDto response = tripManagementService.updateTrip(tripDto, tripId, userId);
+        TripResponseDto response = tripManagementService.updateTrip(tripDto, tripId, userId, null);
 
         assertNotNull(response);
         verify(tripRepository).save(any(TripEntity.class));
@@ -606,7 +606,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(draftTrip));
 
         assertThrows(TripValidationException.class, () ->
-            tripManagementService.updateTrip(tripDto, tripId, userId));
+            tripManagementService.updateTrip(tripDto, tripId, userId, null));
     }
 
     @Test
@@ -615,7 +615,7 @@ class TripManagementServiceTest {
         when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
 
         assertThrows(TripNotFoundException.class, () ->
-            tripManagementService.updateTrip(tripDto, tripId, userId));
+            tripManagementService.updateTrip(tripDto, tripId, userId, null));
     }
 
     @Test
@@ -630,7 +630,7 @@ class TripManagementServiceTest {
         doNothing().when(userUtil).validateUserIsHost(tripId, userId);
 
         assertThrows(TripValidationException.class, () ->
-            tripManagementService.updateTrip(tripDto, tripId, userId));
+            tripManagementService.updateTrip(tripDto, tripId, userId, null));
     }
 
     // ============== PROMOTE TO CO-HOST TESTS ==============

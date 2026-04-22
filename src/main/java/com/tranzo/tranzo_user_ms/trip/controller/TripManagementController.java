@@ -34,13 +34,21 @@ public class TripManagementController {
     private final TripManagementService tripManagementService;
     private final TripInviteService tripInviteService;
 
-    @PostMapping(value = "/")
+//    @PostMapping(value = "/", consumes = MediaType.APPLICATION_JSON_VALUE)
+//    public ResponseEntity<ResponseDto<TripResponseDto>> createDraftTrip(
+//            @RequestBody @Validated(DraftChecks.class) TripDto tripDto) throws AuthException, IOException {
+//        UUID userId = SecurityUtils.getCurrentUserUuid();
+//        log.info("Incoming request | API=/trips/ | method=POST | userId={} | filesCount=0", userId);
+//        TripResponseDto tripResponse = tripManagementService.createDraftTrip(tripDto, userId, null);
+//        log.info("Draft trip created | userId={} | tripId={} | status=SUCCESS", userId, tripResponse.getTripId());
+//        return ResponseEntity.status(HttpStatus.CREATED).body(ResponseDto.success(201,"Draft trip has been created successfully", tripResponse));
+//    }
+
+    @PostMapping(value = "/", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<TripResponseDto>> createDraftTrip(
-            @RequestBody(required = false) @Validated(DraftChecks.class) TripDto jsonTripDto,
-            @RequestPart(value = "trip", required = false) @Validated(DraftChecks.class) TripDto multipartTripDto,
+            @RequestPart(value = "trip") @Validated(DraftChecks.class) TripDto tripDto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) throws AuthException, IOException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        TripDto tripDto = jsonTripDto != null ? jsonTripDto : multipartTripDto;
         log.info("Incoming request | API=/trips/ | method=POST | userId={} | filesCount={}", userId, files != null ? files.size() : 0);
         TripResponseDto tripResponse = tripManagementService.createDraftTrip(tripDto, userId, files);
         log.info("Draft trip created | userId={} | tripId={} | status=SUCCESS", userId, tripResponse.getTripId());
@@ -48,14 +56,12 @@ public class TripManagementController {
     }
 
     // Frontend should send the complete TripDto whether any field is empty or not. That's why it is PUT
-    @PutMapping(value = "/{tripId}")
+    @PutMapping(value = "/{tripId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<TripResponseDto>> updateDraftTrip(
             @PathVariable UUID tripId,
-            @RequestBody(required = false) @Validated(DraftChecks.class) TripDto jsonTripDto,
-            @RequestPart(value = "trip", required = false) @Validated(DraftChecks.class) TripDto multipartTripDto,
+            @RequestPart(value = "trip") @Validated(DraftChecks.class) TripDto tripDto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) throws AuthException, IOException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        TripDto tripDto = jsonTripDto != null ? jsonTripDto : multipartTripDto;
         log.info("Incoming request | API=/trips/{} | method=PUT | userId={} | filesCount={}", tripId, userId, files != null ? files.size() : 0);
         TripResponseDto tripResponse = tripManagementService.updateDraftTrip(tripDto, tripId, userId, files);
         log.info("Draft trip updated | userId={} | tripId={} | status=SUCCESS", userId, tripId);
@@ -134,11 +140,14 @@ public class TripManagementController {
     }
 
     // Frontend should send the partial TripDto whether any field is empty or not. That's why it is PATCH
-    @PatchMapping("/{tripId}")
-    public ResponseEntity<ResponseDto<TripResponseDto>> updatePublishedTrip(@PathVariable UUID tripId, @Valid @RequestBody TripDto tripDto) throws AuthException {
+    @PatchMapping(value = "/{tripId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResponseDto<TripResponseDto>> updatePublishedTrip(
+            @PathVariable UUID tripId,
+            @RequestPart(value = "trip") @Valid TripDto tripDto,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files) throws AuthException, IOException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
-        log.info("Incoming request | API=/trips/{} | method=PATCH | userId={}", tripId, userId);
-        TripResponseDto tripResponse = tripManagementService.updateTrip(tripDto, tripId, userId);
+        log.info("Incoming request | API=/trips/{} | method=PATCH | userId={} | filesCount={}", tripId, userId, files != null ? files.size() : 0);
+        TripResponseDto tripResponse = tripManagementService.updateTrip(tripDto, tripId, userId, files);
         log.info("Published trip updated | userId={} | tripId={} | status=SUCCESS", userId, tripId);
         return ResponseEntity.ok(ResponseDto.success("Published trip has been updated successfully", tripResponse));
     }
