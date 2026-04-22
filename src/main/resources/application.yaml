@@ -13,6 +13,11 @@ spring:
     xApiSecret: test-secret
     timeout: 30
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 25MB
+
   datasource:
     url: jdbc:h2:file:./data/tranzo_db;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
     driver-class-name: org.h2.Driver
@@ -87,6 +92,16 @@ twilio :
   phone-number : +12345678905
   username : username
   sms-template: template
+
+trip:
+  image:
+    unsplash:
+      api-key: .....
+      api-url: https://api.unsplash.com/search/photos
+      per-page: 1
+      orientation: landscape
+      content-filter: low
+    default-images: https://via.placeholder.com/800x600/3B82F6/FFFFFF?text=Trip
 
 logging:
   level:

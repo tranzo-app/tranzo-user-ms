@@ -899,13 +899,6 @@ public class TripManagementService {
 //        }
         boolean wasFull = Boolean.TRUE.equals(trip.getIsFull());
         trip.setIsFull(!wasFull);
-        if (!wasFull) {
-            // Trip is being marked as full - set status to COMPLETED
-            trip.setTripStatus(TripStatus.COMPLETED);
-        } else {
-            // Trip is being unmarked as full - set status to PUBLISHED
-            trip.setTripStatus(TripStatus.PUBLISHED);
-        }
         tripRepository.save(trip);
 
         UUID hostUserId = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
