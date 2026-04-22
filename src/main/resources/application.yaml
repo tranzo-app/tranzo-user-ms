@@ -96,7 +96,7 @@ twilio :
 trip:
   image:
     unsplash:
-      api-key: CO-ZSH7XaruVyp-hcFjW5TvMgJLdpPsUsmlULmYY6X0
+      api-key: .....
       api-url: https://api.unsplash.com/search/photos
       per-page: 1
       orientation: landscape
