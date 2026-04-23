@@ -212,7 +212,7 @@ class TripManagementServiceTest {
         itineraryDto.setActivities(Map.of("en", "Sightseeing"));
         itineraryDto.setMeals(Map.of("en", "Breakfast, Dinner"));
         itineraryDto.setStay(Map.of("en", "Hotel ABC"));
-        tripDto.setTripItineraries(new HashSet<>(Collections.singletonList(itineraryDto)));
+        tripDto.setTripItineraries(new ArrayList<>(Collections.singletonList(itineraryDto)));
 
         // When
         TripResponseDto response = tripManagementService.createDraftTrip(tripDto, userId, Collections.emptyList());
@@ -998,7 +998,7 @@ class TripManagementServiceTest {
         trip.setJoinPolicy(JoinPolicy.OPEN);
         trip.setVisibilityStatus(VisibilityStatus.PUBLIC);
         trip.setTripStatus(TripStatus.DRAFT);
-        trip.setTripItineraries(new HashSet<>());
+        trip.setTripItineraries(new ArrayList<>());
         trip.setTripMembers(new HashSet<>());
         trip.setTripTags(new HashSet<>());
         return trip;
@@ -1015,8 +1015,8 @@ class TripManagementServiceTest {
         dto.setMaxParticipants(10);
         dto.setJoinPolicy(JoinPolicy.OPEN);
         dto.setVisibilityStatus(VisibilityStatus.PUBLIC);
-        dto.setTripTags(new HashSet<>(Collections.singletonList(new TripTagDto("Adventure"))));
-        dto.setTripItineraries(new HashSet<>());
+        dto.setTripTags(Collections.singletonList(new TripTagDto("Adventure")));
+        dto.setTripItineraries(new ArrayList<>());
         return dto;
     }
 }

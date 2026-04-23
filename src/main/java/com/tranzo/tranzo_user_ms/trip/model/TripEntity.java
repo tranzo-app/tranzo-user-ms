@@ -12,9 +12,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 @Table(name = "core_trip_details", indexes = {
@@ -132,7 +130,7 @@ public class TripEntity {
     private Set<TagEntity> tripTags = new HashSet<>();
 
     @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<TripItineraryEntity> tripItineraries = new HashSet<>();
+    private List<TripItineraryEntity> tripItineraries = new ArrayList<>();
 
     @OneToMany(mappedBy = "trip", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<TripInviteEntity> tripInvites = new HashSet<>();

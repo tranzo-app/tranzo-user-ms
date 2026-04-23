@@ -14,6 +14,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -80,12 +81,12 @@ public class TripDto {
     private TripMetaDataDto tripMetaData;
 
     @Valid
-    private Set<TripTagDto> tripTags = new HashSet<>();
+    private List<TripTagDto> tripTags = new ArrayList<>();
 
     @Valid
     @NotEmpty(groups = PublishChecks.class,
             message = "At least one itinerary is required for publishing")
-    private Set<TripItineraryDto> tripItineraries = new HashSet<>();
+    private List<TripItineraryDto> tripItineraries = new ArrayList<>();
 
     private List<String> imageUrls;
 }

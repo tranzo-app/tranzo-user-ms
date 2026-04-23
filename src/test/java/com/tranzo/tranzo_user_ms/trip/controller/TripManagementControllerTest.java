@@ -20,10 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -427,8 +424,8 @@ class TripManagementControllerTest {
         dto.setMaxParticipants(10);
         dto.setJoinPolicy(JoinPolicy.OPEN);
         dto.setVisibilityStatus(VisibilityStatus.PUBLIC);
-        dto.setTripTags(new HashSet<>(Collections.singletonList(new TripTagDto("Adventure"))));
-        dto.setTripItineraries(new HashSet<>());
+        dto.setTripTags(new ArrayList<>(Collections.singletonList(new TripTagDto("Adventure"))));
+        dto.setTripItineraries(new ArrayList<>());
         return dto;
     }
 

@@ -9,9 +9,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @Data
@@ -42,7 +41,7 @@ public class TripViewDto {
     private UUID conversationId;
     private TripPolicyViewDto tripPolicy;
     private TripMetaDataViewDto tripMetaData;
-    private Set<TripTagViewDto> tripTags = new HashSet<>();
-    private Set<TripItineraryViewDto> tripItineraries = new HashSet<>();
+    private List<TripTagViewDto> tripTags = new ArrayList<>();
+    private List<TripItineraryViewDto> tripItineraries = new ArrayList<>();
     private List<String> imageUrls;
 }

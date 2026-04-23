@@ -20,11 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -306,7 +302,7 @@ class TripWishlistServiceTest {
         trip.setUpdatedAt(LocalDateTime.now());
         trip.setTripMembers(new HashSet<>());
         trip.setTripTags(new HashSet<>());
-        trip.setTripItineraries(new HashSet<>());
+        trip.setTripItineraries(new ArrayList<>());
         return trip;
     }
 
