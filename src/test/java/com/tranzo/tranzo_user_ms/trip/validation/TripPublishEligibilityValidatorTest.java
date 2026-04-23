@@ -15,9 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -342,7 +340,7 @@ class TripPublishEligibilityValidatorTest {
     @DisplayName("Should throw exception when itineraries are empty")
     void testValidate_ItinenrariesEmpty() {
         // Given
-        validTrip.setTripItineraries(new HashSet<>());
+        validTrip.setTripItineraries(new ArrayList<>());
 
         // When & Then
         TripValidationException exception = assertThrows(TripValidationException.class,
@@ -354,7 +352,7 @@ class TripPublishEligibilityValidatorTest {
     @DisplayName("Should allow at least one itinerary")
     void testValidate_ValidItinerary() {
         // Given
-        Set<TripItineraryEntity> itineraries = new HashSet<>();
+        List<TripItineraryEntity> itineraries = new ArrayList<>();
         TripItineraryEntity itinerary = new TripItineraryEntity();
         itinerary.setItineraryId(UUID.randomUUID());
         itineraries.add(itinerary);
@@ -388,7 +386,7 @@ class TripPublishEligibilityValidatorTest {
         minimalTrip.setMaxParticipants(1);
         minimalTrip.setJoinPolicy(JoinPolicy.OPEN);
 
-        Set<TripItineraryEntity> itineraries = new HashSet<>();
+        List<TripItineraryEntity> itineraries = new ArrayList<>();
         itineraries.add(new TripItineraryEntity());
         minimalTrip.setTripItineraries(itineraries);
 
@@ -413,7 +411,7 @@ class TripPublishEligibilityValidatorTest {
     @DisplayName("Should validate multiple itineraries")
     void testValidate_MultipleItineraries() {
         // Given
-        Set<TripItineraryEntity> itineraries = new HashSet<>();
+        List<TripItineraryEntity> itineraries = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             TripItineraryEntity itinerary = new TripItineraryEntity();
             itinerary.setItineraryId(UUID.randomUUID());
@@ -476,7 +474,7 @@ class TripPublishEligibilityValidatorTest {
         trip.setJoinPolicy(JoinPolicy.OPEN);
         trip.setVisibilityStatus(VisibilityStatus.PUBLIC);
 
-        Set<TripItineraryEntity> itineraries = new HashSet<>();
+        List<TripItineraryEntity> itineraries = new ArrayList<>();
         TripItineraryEntity itinerary = new TripItineraryEntity();
         itinerary.setItineraryId(UUID.randomUUID());
         itineraries.add(itinerary);

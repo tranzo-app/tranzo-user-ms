@@ -47,6 +47,9 @@ public class ImageFetchService {
     @Value("${trip.image.unsplash.content-filter}")
     private String unsplashContentFilter;
 
+    @Value("${trip.image.unsplash.enabled:false}")
+    private boolean unsplashEnabled;
+
     @Value("${trip.image.default-images}")
     private String defaultImages;
 
@@ -68,6 +71,11 @@ public class ImageFetchService {
     @Transactional
     public List<TripImageEntity> fetchImagesFromApi(String destination) {
         List<TripImageEntity> images = new ArrayList<>();
+
+        if (!unsplashEnabled) {
+            log.info("Unsplash API is disabled in configuration. Using default images.");
+            return getDefaultImages(destination);
+        }
 
         if (unsplashApiKey == null || unsplashApiKey.isEmpty()) {
             log.warn("Unsplash API key not configured. Using default images.");

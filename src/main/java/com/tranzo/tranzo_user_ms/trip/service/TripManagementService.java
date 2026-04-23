@@ -188,13 +188,14 @@ public class TripManagementService {
         }
 
         TripEntity newTrip = tripRepository.save(tripEntity);
+        log.info("Trip saved with ID: {}. Itineraries persisted: {}", newTrip.getTripId(), newTrip.getTripItineraries().size());
 
         // Upload user-provided image files to S3 (if provided)
         if (files != null && !files.isEmpty()) {
-            Set<TripImageEntity> images = uploadTripImagesToS3(files, tripEntity.getTripDestination(), userId.toString());
-            tripEntity.setTripImages(images);
+            Set<TripImageEntity> images = uploadTripImagesToS3(files, newTrip.getTripDestination(), userId.toString());
+            newTrip.setTripImages(images);
             images.forEach(image -> image.incrementUsage());
-            tripRepository.save(tripEntity);
+            tripRepository.save(newTrip);
         }
 
         return TripResponseDto.builder()
@@ -297,7 +298,7 @@ public class TripManagementService {
 
     public List<TripViewDto> getMutualTrips(UUID currentUserId, UUID otherUserId) {
         if (currentUserId.equals(otherUserId)) {
-            return List.of();
+            return new ArrayList<>();
         }
         List<TripStatus> statuses = List.of(TripStatus.PUBLISHED, TripStatus.ONGOING, TripStatus.COMPLETED);
         List<TripEntity> trips = tripRepository.findMutualTrips(currentUserId, otherUserId, statuses);
@@ -405,6 +406,7 @@ public class TripManagementService {
         }
         userUtil.validateUserIsHost(tripId, userId);
         updatePublishedTripBasicInfo(trip, tripDto);
+        updatePublishedTripItinerary(trip, tripDto);
 
         // Upload user-provided image files to S3 (if provided)
         if (files != null && !files.isEmpty()) {
@@ -585,7 +587,7 @@ public class TripManagementService {
             trip.getTripItineraries().clear();
             return;
         }
-        Set<TripItineraryEntity> updatedTripItineraries = new HashSet<>();
+        List<TripItineraryEntity> updatedTripItineraries = new ArrayList<>();
         for (TripItineraryDto tripItineraryDto : tripDto.getTripItineraries())
         {
             TripItineraryEntity tripItinerary = tripItineraryRepository.findByTrip_TripIdAndDayNumber(trip.getTripId(), tripItineraryDto.getDayNumber())
@@ -595,6 +597,21 @@ public class TripManagementService {
         }
         trip.getTripItineraries().clear();
         trip.getTripItineraries().addAll(updatedTripItineraries);
+    }
+
+    private void updatePublishedTripItinerary(TripEntity trip, TripDto tripDto)
+    {
+        if (tripDto.getTripItineraries() == null || tripDto.getTripItineraries().isEmpty())
+        {
+            return;
+        }
+        for (TripItineraryDto tripItineraryDto : tripDto.getTripItineraries())
+        {
+            TripItineraryEntity tripItinerary = tripItineraryRepository.findByTrip_TripIdAndDayNumber(trip.getTripId(), tripItineraryDto.getDayNumber())
+                    .orElseGet(TripItineraryEntity::new);
+            setTripItineraryEntity(tripItineraryDto, trip, tripItinerary);
+            trip.getTripItineraries().add(tripItinerary);
+        }
     }
 
     private TripViewDto mapTripEntityToDto(TripEntity trip, Boolean isTripHost)
@@ -648,8 +665,8 @@ public class TripManagementService {
                 .visibilityStatus(trip.getVisibilityStatus())
                 .tripPolicy(trip.getTripPolicyEntity() != null ? mapTripPolicyToDto(trip.getTripPolicyEntity()) : null)
                 .tripMetaData(trip.getTripMetaData() != null ? mapTripMetaDataToDto(trip.getTripMetaData()) : null)
-                .tripTags(trip.getTripTags() != null ? mapTripTagsToDto(trip.getTripTags()) :Set.of())
-                .tripItineraries(trip.getTripItineraries() != null ? mapTripItinerariesToDto(trip.getTripItineraries()) : Set.of())
+                .tripTags(trip.getTripTags() != null ? mapTripTagsToDto(trip.getTripTags()) : new ArrayList<>())
+                .tripItineraries(trip.getTripItineraries() != null ? mapTripItinerariesToDto(trip.getTripItineraries()) : new ArrayList<>())
                 .imageUrls(trip.getTripImages() != null ? trip.getTripImages().stream()
                         .map(image -> {
                             String imageUrl = image.getImageUrl();
@@ -687,7 +704,7 @@ public class TripManagementService {
                 .build();
     }
 
-    private Set<TripTagViewDto> mapTripTagsToDto(Set<TagEntity> tripTags)
+    private List<TripTagViewDto> mapTripTagsToDto(Set<TagEntity> tripTags)
     {
         return tripTags.stream().map((tag) -> {
             TripTagViewDto tagDto = new TripTagViewDto();
@@ -695,10 +712,10 @@ public class TripManagementService {
             tagDto.setTagName(tag.getTagName());
             return tagDto;
         })
-        .collect(Collectors.toSet());
+        .collect(Collectors.toList());
     }
 
-    private Set<TripItineraryViewDto> mapTripItinerariesToDto(Set<TripItineraryEntity> tripItineraries)
+    private List<TripItineraryViewDto> mapTripItinerariesToDto(List<TripItineraryEntity> tripItineraries)
     {
         return tripItineraries.stream()
                 .sorted(Comparator.comparingInt(TripItineraryEntity::getDayNumber))
@@ -713,7 +730,7 @@ public class TripManagementService {
             tripItineraryDto.setActivities(tripItinerary.getActivities());
             return tripItineraryDto;
         })
-        .collect(Collectors.toSet());
+        .collect(Collectors.toList());
     }
 
 
@@ -983,9 +1000,11 @@ public class TripManagementService {
 
     /**
      * Upload trip image files to S3 and return TripImageEntity objects.
+     * Continues processing even if individual uploads fail.
      */
-    private Set<TripImageEntity> uploadTripImagesToS3(List<MultipartFile> files, String destination, String userId) throws IOException {
+    private Set<TripImageEntity> uploadTripImagesToS3(List<MultipartFile> files, String destination, String userId) {
         Set<TripImageEntity> images = new HashSet<>();
+        int failedUploads = 0;
 
         for (MultipartFile file : files) {
             if (file == null || file.isEmpty()) {
@@ -1007,9 +1026,14 @@ public class TripManagementService {
 
                 log.info("Trip image uploaded to S3 | destination={} | key={} | status=SUCCESS", destination, s3Key);
             } catch (Exception e) {
-                log.error("Failed to upload trip image to S3 | destination={} | error={}", destination, e.getMessage(), e);
-                throw new IOException("Failed to upload trip image to S3", e);
+                failedUploads++;
+                log.error("Failed to upload trip image to S3 | destination={} | filename={} | error={}",
+                        destination, file.getOriginalFilename(), e.getMessage(), e);
             }
+        }
+
+        if (failedUploads > 0) {
+            log.warn("Completed image upload with {} failures out of {} total files", failedUploads, files.size());
         }
 
         return images;
