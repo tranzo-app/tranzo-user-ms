@@ -28,6 +28,14 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          docker system prune -af
+
       # 3. Build & Test (🔥 FAILS HERE if anything breaks)
       - name: Build & Test
         run: |
