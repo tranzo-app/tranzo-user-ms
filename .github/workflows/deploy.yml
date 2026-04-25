@@ -84,14 +84,20 @@ jobs:
             cd /home/ec2-user/tranzo-user-ms
 
             # -----------------------------
+            # Free up disk space on server
+            # -----------------------------
+            docker system prune -af --volumes
+            sudo rm -rf /tmp/*
+
+            # -----------------------------
             # Compute image tag
             # -----------------------------
             IMAGE_TAG=$(git rev-parse --short HEAD)
             GIT_SHA=$IMAGE_TAG        # same SHA for logging
             NAME=tranzo-user-ms       # friendly app name
-          
+
             echo "Deploying image tag: $IMAGE_TAG"
-            
+
             export DOCKER_BUILDKIT=0
             export COMPOSE_DOCKER_CLI_BUILD=0
             export IMAGE_TAG=$IMAGE_TAG
