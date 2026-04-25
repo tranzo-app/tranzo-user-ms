@@ -3,6 +3,7 @@ package com.tranzo.tranzo_user_ms.user.service;
 import com.tranzo.tranzo_user_ms.chat.client.ConversationClient;
 import com.tranzo.tranzo_user_ms.trip.client.TripStatisticsClient;
 import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
+import org.springframework.context.ApplicationEventPublisher;
 import com.tranzo.tranzo_user_ms.user.dto.SuggestedTravelPalDto;
 import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import com.tranzo.tranzo_user_ms.user.enums.TravelPalStatus;
@@ -45,6 +46,9 @@ class TravelPalServiceTest {
     @Mock
     private ConversationClient conversationClient;
 
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
+
     @InjectMocks
     private TravelPalService service;
 
@@ -85,6 +89,7 @@ class TravelPalServiceTest {
     void acceptRequest_Success() {
         when(repository.findByUserLowIdAndUserHighId(any(UUID.class), any(UUID.class)))
                 .thenReturn(Optional.of(pendingEntity));
+        doNothing().when(applicationEventPublisher).publishEvent(any(Object.class));
 
         service.acceptRequest(userB, userA);
 

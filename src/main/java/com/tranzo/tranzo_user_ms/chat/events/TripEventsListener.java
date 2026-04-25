@@ -1,8 +1,10 @@
 package com.tranzo.tranzo_user_ms.chat.events;
 
+import com.tranzo.tranzo_user_ms.chat.dto.CreateConversationRequestDto;
 import com.tranzo.tranzo_user_ms.chat.model.ConversationEntity;
 import com.tranzo.tranzo_user_ms.chat.service.CreateAndManageConversationService;
 import com.tranzo.tranzo_user_ms.commons.events.ParticipantJoinedTripEvent;
+import com.tranzo.tranzo_user_ms.commons.events.TravelPalAcceptedEvent;
 import com.tranzo.tranzo_user_ms.commons.events.TripGroupChatCreatedEvent;
 import com.tranzo.tranzo_user_ms.commons.events.TripPublishedEvent;
 import lombok.RequiredArgsConstructor;
@@ -41,5 +43,14 @@ public class TripEventsListener {
         if (event.getConversationId() != null) {
             createAndManageConversationService.addParticipantToConversation(event.getConversationId(), event.getUserId());
         }
+    }
+
+    @EventListener
+    public void onTravelPalAccepted(TravelPalAcceptedEvent event) {
+        log.info("Received TravelPalAcceptedEvent. userA={}, userB={}", event.getUserA(), event.getUserB());
+        CreateConversationRequestDto request = CreateConversationRequestDto.builder()
+                .otherUserId(event.getUserB())
+                .build();
+        createAndManageConversationService.createOneToOneConversation(event.getUserA(), request);
     }
 }

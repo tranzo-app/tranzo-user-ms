@@ -12,7 +12,9 @@ import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import com.tranzo.tranzo_user_ms.commons.exception.ConflictException;
 import com.tranzo.tranzo_user_ms.trip.client.TripStatisticsClient;
 import com.tranzo.tranzo_user_ms.chat.client.ConversationClient;
+import com.tranzo.tranzo_user_ms.commons.events.TravelPalAcceptedEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ public class TravelPalService {
     private final TripStatisticsClient tripStatisticsClient;
     private final RatingService ratingService;
     private final ConversationClient conversationClient;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     /* ================= NORMALIZE ================= */
 
@@ -82,6 +85,9 @@ public class TravelPalService {
             throw new IllegalStateException("Cannot accept your own request");
         }
         entity.setStatus(TravelPalStatus.ACCEPTED);
+        
+        // Publish event to create conversation
+        applicationEventPublisher.publishEvent(new TravelPalAcceptedEvent(currentUserId, otherUserId));
     }
 
     /* ================= REJECT ================= */
