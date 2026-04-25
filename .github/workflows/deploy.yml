@@ -49,8 +49,8 @@ jobs:
           chmod +x mvnw || true
           ./mvnw clean verify
 
-      # 4. Clean old files on EC2
-      - name: Clean Old Source Files on Server
+      # 4. Free up disk space on EC2 before transfer
+      - name: Free up disk space on EC2
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -58,6 +58,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
+            docker system prune -af --volumes
+            sudo rm -rf /tmp/*
             rm -rf /home/ec2-user/tranzo-user-ms/src
             rm -rf /home/ec2-user/tranzo-user-ms/target
 
@@ -71,7 +73,7 @@ jobs:
           source: "."
           target: "/home/ec2-user/tranzo-user-ms"
 
-          # 6. Build & Deploy
+      # 6. Build & Deploy
       - name: Build & Deploy on Server
         uses: appleboy/ssh-action@master
         with:
