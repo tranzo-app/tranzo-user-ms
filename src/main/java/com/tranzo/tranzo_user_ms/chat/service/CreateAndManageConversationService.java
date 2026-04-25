@@ -236,6 +236,36 @@ public class CreateAndManageConversationService {
     }
 
     /**
+     * Removes a user from a conversation by setting leftAt timestamp (soft delete).
+     * Called when a participant leaves or is removed from a trip.
+     *
+     * @param conversationId the conversation ID
+     * @param userId         the user to remove
+     * @throws ConversationNotFoundException if conversation or participant not found
+     */
+    public void removeParticipantFromConversation(UUID conversationId, UUID userId) {
+        log.info("Processing started | operation=removeParticipantFromConversation | conversationId={} | userId={}", conversationId, userId);
+
+        try {
+            ConversationParticipantEntity participant = conversationParticipantRepository
+                    .findByConversation_ConversationIdAndUserIdAndLeftAtIsNull(conversationId, userId)
+                    .orElseThrow(() -> {
+                        log.error("Participant not found | operation=removeParticipantFromConversation | conversationId={} | userId={} | reason=NOT_FOUND", conversationId, userId);
+                        return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
+                    });
+
+            participant.leave();
+            conversationParticipantRepository.save(participant);
+            log.info("Processing completed | operation=removeParticipantFromConversation | conversationId={} | userId={} | status=REMOVED", conversationId, userId);
+        } catch (ConversationNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=removeParticipantFromConversation | conversationId={} | userId={} | reason={}", conversationId, userId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
      * Sends a message to a conversation.
      * For group chats, broadcasts to all participants.
      * For one-on-one chats, sends only to the receiver and checks blocking status.

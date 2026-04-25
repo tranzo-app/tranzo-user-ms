@@ -34,6 +34,7 @@ public interface TripMemberRepository extends JpaRepository<TripMemberEntity, UU
         FROM TripMemberEntity tm
         WHERE tm.userId = :userId
         AND tm.trip.tripStatus IN :statuses
+        AND tm.status = 'ACTIVE'
     """)
     List<TripEntity> findTripsByUserIdAndStatusIn(
             @Param("userId") UUID userId,
