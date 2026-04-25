@@ -1,10 +1,4 @@
-# Production: PostgreSQL (e.g. Amazon RDS). Data persists when the app stops.
-# Activate with: spring.profiles.active=prod
-# Set these in AWS (ECS task def, Elastic Beanstalk, Parameter Store, or Secrets Manager):
-#   SPRING_DATASOURCE_URL      = jdbc:postgresql://<RDS_ENDPOINT>:5432/<DB_NAME>
-#   SPRING_DATASOURCE_USERNAME = <master_username>
-#   SPRING_DATASOURCE_PASSWORD = <master_password>
-#   SPRING_JWT_SECRET          = <strong secret for JWT signing>
+# Prod
 
 server:
   port: ${PORT:8083}
