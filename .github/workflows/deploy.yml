@@ -21,6 +21,14 @@ jobs:
         with:
           ref: ${{ github.event.inputs.ref || github.sha }}
 
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          docker system prune -af
+
       # 2. Setup Java (adjust version if needed)
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -34,14 +42,6 @@ jobs:
           echo "JAVA_HOME=$JAVA_HOME"
           java -version
           mvn -version
-
-      - name: Free up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          docker system prune -af
 
       # 3. Build & Test (🔥 FAILS HERE if anything breaks)
       - name: Build & Test
