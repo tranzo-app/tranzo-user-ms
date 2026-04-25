@@ -74,8 +74,7 @@ public class OtpService {
                 return;
             }
         }
-//        String otp = otpUtility.generateOtp();
-        String otp = "111111";
+        String otp = otpUtility.generateOtp();
         String hash = hashOtp(otp);
         if (twilioConfig.isEnabled() && requestOtpDto.getEmailId() == null)
         {

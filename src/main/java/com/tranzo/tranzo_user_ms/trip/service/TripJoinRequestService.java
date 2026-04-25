@@ -211,6 +211,16 @@ public class TripJoinRequestService {
         trip.setCurrentParticipants(updatedCount);
         trip.setIsFull(updatedCount >= trip.getMaxParticipants());
 
+        // Spring event: add participant to trip's group chat
+        TripPublishedEventPayloadDto eventPayloadDto = TripPublishedEventPayloadDto.builder()
+                .eventType("PARTICIPANT_JOINED")
+                .tripId(trip.getTripId())
+                .userId(joinRequest.getUserId())
+                .conversationId(trip.getConversationID())
+                .build();
+
+        tripEventPublisher.participantJoined(eventPayloadDto);
+
         applicationEventPublisher.publishEvent(
                 new JoinRequestApprovedEvent(trip.getTripId(), trip.getTripTitle(), joinRequest.getUserId()));
         List<UUID> otherMemberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(trip.getTripId(), TripMemberStatus.ACTIVE)
