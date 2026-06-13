@@ -120,8 +120,7 @@ jobs:
             # -----------------------------
             # Clean unused Docker resources
             # -----------------------------
-            docker system prune -f --volumes --filter "label!=keep"
-            
+            docker system prune -f --volumes --filter "label!=keep" 
 
 #          script: |
 #            set -e
