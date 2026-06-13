@@ -13,6 +13,7 @@ import com.tranzo.tranzo_user_ms.user.utility.OtpUtility;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +41,9 @@ public class OtpService {
     private static final int MAX_ATTEMPTS = 3;
     private static final int MAX_REQUESTS = 3;
 
+    @Value("${spring.profiles.active}")
+    private String env;
+
     public void sendOtp(RequestOtpDto requestOtpDto) throws Exception {
         String identifier = otpUtility.resolveIdentifier(requestOtpDto);
         String otpRateLimitKey = buildKeyForRateLimiting(identifier);
@@ -65,7 +69,7 @@ public class OtpService {
                 // resend same OTP
                 String otpHash = existing.getOtpHash();
 //                smsService.sendOtp(identifier, existing.getPlainOtp()); // need to store plain OTP temporarily
-                if (twilioConfig.isEnabled() &&  requestOtpDto.getEmailId() == null)
+                if (!"dev".equals(env) && twilioConfig.isEnabled() &&  requestOtpDto.getEmailId() == null)
                 {
                     sendSms(identifier, existing.getPlainOtp());
                 }
@@ -74,9 +78,9 @@ public class OtpService {
                 return;
             }
         }
-        String otp = otpUtility.generateOtp();
+        String otp = "dev".equals(env) ? "111111" : otpUtility.generateOtp();
         String hash = hashOtp(otp);
-        if (twilioConfig.isEnabled() && requestOtpDto.getEmailId() == null)
+        if (!"dev".equals(env) && twilioConfig.isEnabled() && requestOtpDto.getEmailId() == null)
         {
             sendSms(identifier, otp);
         }
