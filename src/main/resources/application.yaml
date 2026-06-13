@@ -6,6 +6,8 @@ server:
 # For future changes: add V2__description.sql, V3__..., never edit V1 after it has been applied.
 spring:
   # Aadhar configuration - disabled for current release
+  profiles:
+    active: dev
   aadhar:
     enabled: false
     baseUrl: https://aadhar-api.example.com
