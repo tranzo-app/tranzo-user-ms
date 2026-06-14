@@ -1,3 +1,9 @@
+-- Merge of existing Flyway migrations into a single baseline
+-- This file represents the final schema after applying V2, V3, V4, V5 (merged)
+-- Do NOT change this file manually unless intentionally updating baseline
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- ========== users & profile ==========
 CREATE TABLE users (
   user_uuid         UUID PRIMARY KEY,
@@ -130,13 +136,16 @@ CREATE TABLE core_trip_details (
   current_participants    INTEGER,
   is_full               BOOLEAN,
   trip_full_reason      VARCHAR(512),
+  trip_host_name        VARCHAR(255),
   full_marked_at        TIMESTAMP,
   join_policy           VARCHAR(32),
   visibility_status     VARCHAR(32),
   created_at            TIMESTAMP NOT NULL,
   updated_at            TIMESTAMP,
   conversation_id       UUID,
-  splitwise_group_id    UUID
+  splitwise_group_id    UUID,
+  latitude              DOUBLE PRECISION,
+  longitude             DOUBLE PRECISION
 );
 CREATE INDEX idx_trip_status ON core_trip_details(trip_status);
 CREATE INDEX idx_trip_status_start_date ON core_trip_details(trip_status, trip_start_date);
@@ -449,3 +458,43 @@ CREATE TABLE user_notification (
 );
 CREATE INDEX idx_user_notification_user_id ON user_notification(user_id);
 CREATE INDEX idx_user_notification_read_at ON user_notification(user_id, read_at);
+
+-- ========== trip_image and trip_trip_image (from V4) ==========
+CREATE TABLE trip_image (
+    image_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    image_url VARCHAR(2048) NOT NULL,
+    destination VARCHAR(255) NOT NULL,
+    source VARCHAR(50) NOT NULL CHECK (source IN ('USER_PROVIDED', 'API_FETCHED', 'DEFAULT')),
+    usage_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_image_url UNIQUE (image_url)
+);
+CREATE INDEX idx_image_destination ON trip_image(destination);
+CREATE INDEX idx_image_source ON trip_image(source);
+COMMENT ON TABLE trip_image IS 'Stores trip images from Unsplash API and user uploads, reusable across trips';
+COMMENT ON COLUMN trip_image.image_id IS 'Unique identifier for the image';
+COMMENT ON COLUMN trip_image.image_url IS 'URL of the image (must be unique)';
+COMMENT ON COLUMN trip_image.destination IS 'Destination name (e.g., Paris, London) for image categorization';
+COMMENT ON COLUMN trip_image.source IS 'Source of the image: USER_PROVIDED, API_FETCHED, or DEFAULT';
+COMMENT ON COLUMN trip_image.usage_count IS 'Number of trips using this image (for popularity tracking)';
+COMMENT ON COLUMN trip_image.created_at IS 'Timestamp when the image was first added';
+COMMENT ON COLUMN trip_image.updated_at IS 'Timestamp when the image was last updated';
+
+CREATE TABLE trip_trip_image (
+    trip_id UUID NOT NULL,
+    image_id UUID NOT NULL,
+    PRIMARY KEY (trip_id, image_id),
+    CONSTRAINT fk_trip_image_trip FOREIGN KEY (trip_id) REFERENCES core_trip_details(trip_id) ON DELETE CASCADE,
+    CONSTRAINT fk_trip_image_image FOREIGN KEY (image_id) REFERENCES trip_image(image_id) ON DELETE CASCADE
+);
+COMMENT ON TABLE trip_trip_image IS 'Join table for many-to-many relationship between trips and images';
+COMMENT ON COLUMN trip_trip_image.trip_id IS 'Reference to the trip';
+COMMENT ON COLUMN trip_trip_image.image_id IS 'Reference to the image';
+
+-- Add comments for trip_host_name and lat/long (from V3 and V5)
+COMMENT ON COLUMN core_trip_details.trip_host_name IS 'Name of the trip host, populated when trip is created';
+COMMENT ON COLUMN core_trip_details.latitude IS 'Latitude coordinate of the trip destination';
+COMMENT ON COLUMN core_trip_details.longitude IS 'Longitude coordinate of the trip destination';
+
+
