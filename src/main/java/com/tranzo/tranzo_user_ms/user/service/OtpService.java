@@ -69,21 +69,22 @@ public class OtpService {
                 // resend same OTP
                 String otpHash = existing.getOtpHash();
 //                smsService.sendOtp(identifier, existing.getPlainOtp()); // need to store plain OTP temporarily
-                if (!"dev".equals(env) && twilioConfig.isEnabled() &&  requestOtpDto.getEmailId() == null)
-                {
-                    sendSms(identifier, existing.getPlainOtp());
-                }
+//                if (!"dev".equals(env) && twilioConfig.isEnabled() &&  requestOtpDto.getEmailId() == null)
+//                {
+//                    sendSms(identifier, existing.getPlainOtp());
+//                }
                 existing.setSentAt(now);
                 cacheService.put(identifier, existing);
                 return;
             }
         }
-        String otp = "dev".equals(env) ? "111111" : otpUtility.generateOtp();
+//        String otp = "dev".equals(env) ? "111111" : otpUtility.generateOtp();
+        String otp = "111111";
         String hash = hashOtp(otp);
-        if (!"dev".equals(env) && twilioConfig.isEnabled() && requestOtpDto.getEmailId() == null)
-        {
-            sendSms(identifier, otp);
-        }
+//        if (!"dev".equals(env) && twilioConfig.isEnabled() && requestOtpDto.getEmailId() == null)
+//        {
+//            sendSms(identifier, otp);
+//        }
         cacheService.put(
                 otpKey,
                 new OtpData(otp, hash, 0, System.currentTimeMillis())
