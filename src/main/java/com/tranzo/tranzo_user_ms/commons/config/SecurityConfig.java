@@ -68,6 +68,7 @@ public class SecurityConfig {
         config.addAllowedOrigin("http://192.168.0.105:3000");
         config.addAllowedOrigin("https://www.tranzo.in");
         config.addAllowedOrigin("https://tranzo.in");
+        config.addAllowedOrigin("https://cursor-sumit.d380qdrncrtlx8.amplifyapp.com");
         config.setAllowedHeaders(List.of("*"));
 
         config.setAllowedMethods(List.of(
