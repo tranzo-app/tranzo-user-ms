@@ -15,6 +15,7 @@ import jakarta.security.auth.message.AuthException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -236,12 +238,14 @@ public class TripManagementController {
         return ResponseEntity.ok(ResponseDto.success("Trip broadcast to travel pals successfully", null));
     }
 
-//    @PostMapping("/search")
-//    public ResponseEntity<ResponseDto<Page<TripViewDto>>> searchTrips(
-//            @RequestBody SearchRequest request) throws AuthException {
-//        UUID userId = SecurityUtils.getCurrentUserUuid();
-//        List<String> globalFields = new ArrayList<>();
-//        Page<TripViewDto> searchedTrips = tripManagementService.search(request, globalFields);
-//        return ResponseEntity.ok(ResponseDto.success("Trip search is success", searchedTrips));
-//    }
+    @PostMapping("/search")
+    public ResponseEntity<ResponseDto<Page<TripViewDto>>> searchTrips(
+            @RequestBody SearchRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        List<String> globalFields = new ArrayList<>();
+        Page<TripViewDto> searchedTrips = tripManagementService.search(request, globalFields, page, size);
+        return ResponseEntity.ok(ResponseDto.success("Trip search is success", searchedTrips));
+    }
 }

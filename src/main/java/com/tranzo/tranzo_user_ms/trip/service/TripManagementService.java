@@ -1,6 +1,5 @@
 package com.tranzo.tranzo_user_ms.trip.service;
 
-import com.tranzo.tranzo_user_ms.commons.exception.*;
 import com.tranzo.tranzo_user_ms.trip.dto.*;
 import com.tranzo.tranzo_user_ms.trip.enums.*;
 import com.tranzo.tranzo_user_ms.trip.exception.*;
@@ -9,7 +8,6 @@ import com.tranzo.tranzo_user_ms.trip.events.TripPublishedEventPayloadDto;
 import com.tranzo.tranzo_user_ms.trip.model.*;
 import com.tranzo.tranzo_user_ms.trip.repository.*;
 import com.tranzo.tranzo_user_ms.trip.specification.SpecificationBuilder;
-import com.tranzo.tranzo_user_ms.trip.utility.PageableBuilder;
 import com.tranzo.tranzo_user_ms.trip.utility.UserUtil;
 import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
 import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
@@ -20,6 +18,7 @@ import com.tranzo.tranzo_user_ms.commons.events.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
@@ -430,6 +429,28 @@ public class TripManagementService {
                 .tripId(updateTrip.getTripId())
                 .tripStatus(updateTrip.getTripStatus())
                 .build();
+    }
+
+    public List<TripViewDto> fetchFeaturedTrips(int page,
+                                                int size,
+                                                UUID userId) {
+        List<TripStatus> tripStatuses = new ArrayList<>();
+        tripStatuses.add(TripStatus.PUBLISHED);
+        if (userId != null)
+        {
+            return tripMemberRepository.findTripsUserIsNotPartOf(userId, tripStatuses)
+                    .stream()
+                    .skip((long) page * size)
+                    .limit(size)
+                    .map(trip -> mapTripEntityToDto(trip, false))
+                    .toList();
+        }
+        return tripRepository.findByTripStatus(TripStatus.PUBLISHED)
+                .stream()
+                .skip((long) page * size)
+                .limit(size)
+                .map(trip -> mapTripEntityToDto(trip, false))
+                .toList();
     }
 
     private void updatePublishedTripBasicInfo(TripEntity trip, TripDto tripDto) {
@@ -964,7 +985,9 @@ public class TripManagementService {
 
     public Page<TripViewDto> search(
             SearchRequest request,
-            List<String> globalFields
+            List<String> globalFields,
+            int page,
+            int size
     ) {
         SpecificationBuilder<TripEntity> builder = new SpecificationBuilder<>();
         Specification<TripEntity> spec = builder.build(request.getFilters());
@@ -973,7 +996,7 @@ public class TripManagementService {
                     buildGlobalSearch(request.getGlobalSearch(), globalFields);
             spec = spec.and(globalSpec);
         }
-        Pageable pageable = PageableBuilder.build(request);
+        Pageable pageable = PageRequest.of(page, size);
         Page<TripEntity> trips = tripRepository.findAll(spec, pageable);
         return trips.map(trip -> {
             return mapTripEntityToDto(trip, null);

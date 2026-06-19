@@ -9,6 +9,4 @@ public class SearchRequest {
     private List<FilterCriteria> filters;
     private List<SortCriteria> sorts;
     private String globalSearch;
-    private int page = 0;
-    private int size = 20;
 }
