@@ -89,24 +89,19 @@ public class DiscoveryController {
         summary = "Get trending destinations",
         description = "Fetch trending destinations based on trip creation velocity, participant momentum, and availability."
     )
-    public ResponseEntity<ResponseDto<TrendingDestinationsResponse>> getTrendingDestinations(
-            @Parameter(description = "Number of destinations to return (max 20)", example = "10")
-            @RequestParam(defaultValue = "10") int limit,
-            
-            @Parameter(description = "Time window for trend analysis: 7d, 14d, or 30d", example = "7d")
-            @RequestParam(defaultValue = "7d") String timeWindow
-    ) {
-        log.info("Incoming request | API=/trips/trending-destinations | method=GET | limit={} | timeWindow={}", limit, timeWindow);
+    public ResponseEntity<ResponseDto<List<TrendingDestinationResponseDto>>> getTrendingDestinations()
+    {
+        log.info("Incoming request | API=/trips/trending-destinations | method=GET");
         
         try {
-            TrendingDestinationsResponse response = discoveryService.getTrendingDestinations(limit, timeWindow);
+            List<TrendingDestinationResponseDto> response = discoveryService.getTrendingDestinations();
             
-            log.info("Trending destinations retrieved | limit={} | destinationsCount={} | status=SUCCESS", limit, response.getTrendingDestinations().size());
+            log.info("Trending destinations retrieved | status=SUCCESS");
             return ResponseEntity.ok(
                 ResponseDto.success("Trending destinations fetched successfully", response)
             );
         } catch (Exception e) {
-            log.error("Request failed | API=/trips/trending-destinations | method=GET | limit={} | timeWindow={} | reason={}", limit, timeWindow, e.getMessage(), e);
+            log.error("Request failed | API=/trips/trending-destinations | method=GET | reason={}", e.getMessage(), e);
             throw e;
         }
     }

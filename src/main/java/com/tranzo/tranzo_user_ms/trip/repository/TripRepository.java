@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.repository;
 
+import com.tranzo.tranzo_user_ms.trip.dto.TrendingDestinationProjection;
 import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
 import jakarta.persistence.LockModeType;
@@ -62,4 +63,20 @@ public interface TripRepository extends JpaRepository<TripEntity, UUID>, JpaSpec
 
     @Query("SELECT t.tripTitle FROM TripEntity t WHERE t.tripId = :tripId")
     String findTripNameByTripId(UUID tripId);
+
+    @Query("""
+    SELECT new com.tranzo.tranzo_user_ms.trip.dto.TrendingDestinationProjection(
+        t.tripDestination,
+        COUNT(DISTINCT t.id),
+        MIN(i.imageUrl)
+    )
+    FROM TripEntity t
+    JOIN t.tripImages i
+    WHERE t.tripStatus = :status
+    GROUP BY t.tripDestination
+    ORDER BY COUNT(DISTINCT t.id) DESC
+    """)
+    List<TrendingDestinationProjection> findTrendingDestinations(
+            @Param("status") TripStatus status
+    );
 }
