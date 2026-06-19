@@ -453,6 +453,27 @@ public class TripManagementService {
                 .toList();
     }
 
+    public List<TrendingDestinationResponseDto>fetchTrendingDestinations()
+    {
+        List<TrendingDestinationProjection> trips = tripRepository.findTrendingDestinations(TripStatus.PUBLISHED);
+        return trips.stream()
+                .map(trip -> {
+                    TrendingDestinationResponseDto trendingDestinationResponse = new TrendingDestinationResponseDto();
+                    trendingDestinationResponse.setDestination(trip.destination());
+                    trendingDestinationResponse.setTripsCount(trip.tripsCount());
+                    trendingDestinationResponse.setCoverImageUrl(trip.coverImageUrl());
+                    List<FilterCriteria> filterCriteria = new ArrayList<>();
+                    FilterCriteria criteria = new FilterCriteria();
+                    criteria.setField("tripDestination");
+                    criteria.setValue(trip.destination());
+                    criteria.setOperator(FilterOperator.EQUALS);
+                    filterCriteria.add(criteria);
+                    trendingDestinationResponse.setFilters(filterCriteria);
+                    return trendingDestinationResponse;
+                })
+                .toList();
+    }
+
     private void updatePublishedTripBasicInfo(TripEntity trip, TripDto tripDto) {
         if (tripDto.getTripTitle() != null) trip.setTripTitle(tripDto.getTripTitle());
         if (tripDto.getTripDescription() != null) trip.setTripDescription(tripDto.getTripDescription());

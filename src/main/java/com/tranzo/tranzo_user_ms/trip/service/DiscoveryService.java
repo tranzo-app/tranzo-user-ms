@@ -1,9 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.service;
 
-import com.tranzo.tranzo_user_ms.trip.dto.DiscoveryFilterRequest;
-import com.tranzo.tranzo_user_ms.trip.dto.RecommendedTripDto;
-import com.tranzo.tranzo_user_ms.trip.dto.TrendingDestinationsResponse;
-import com.tranzo.tranzo_user_ms.trip.dto.TripViewDto;
+import com.tranzo.tranzo_user_ms.trip.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -101,26 +98,17 @@ public class DiscoveryService {
     /**
      * Fetch trending destinations
      */
-    public TrendingDestinationsResponse getTrendingDestinations(int limit, String timeWindow) {
-        log.info("Processing started | operation=getTrendingDestinations | limit={} | timeWindow={}", limit, timeWindow);
+    public List<TrendingDestinationResponseDto> getTrendingDestinations() {
+        log.info("Processing started | operation=getTrendingDestinations");
         
         try {
-            // Cap limit at 20
-            int validatedLimit = Math.min(Math.max(limit, 1), 20);
+            log.info("Calling external service | service=TrendingDestinationService | operation=computeTrendingDestinations");
+            List<TrendingDestinationResponseDto> result = tripManagementService.fetchTrendingDestinations();
             
-            // Validate timeWindow
-            String validatedWindow = switch (timeWindow) {
-                case "7d", "14d", "30d" -> timeWindow;
-                default -> "7d";
-            };
-            
-            log.info("Calling external service | service=TrendingDestinationService | operation=computeTrendingDestinations | limit={} | timeWindow={}", validatedLimit, validatedWindow);
-            TrendingDestinationsResponse result = trendingDestinationService.computeTrendingDestinations(validatedLimit, validatedWindow);
-            
-            log.info("Processing completed | operation=getTrendingDestinations | limit={} | timeWindow={} | destinationsCount={} | status=SUCCESS", validatedLimit, validatedWindow, result.getTrendingDestinations().size());
+            log.info("Processing completed | operation=getTrendingDestinations | status=SUCCESS");
             return result;
         } catch (Exception e) {
-            log.error("Operation failed | operation=getTrendingDestinations | limit={} | timeWindow={} | reason={}", limit, timeWindow, e.getMessage(), e);
+            log.error("Operation failed | operation=getTrendingDestinations | reason={}", e.getMessage(), e);
             throw e;
         }
     }
