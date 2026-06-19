@@ -1,9 +1,9 @@
 package com.tranzo.tranzo_user_ms.trip.service;
 
 import com.tranzo.tranzo_user_ms.trip.dto.DiscoveryFilterRequest;
-import com.tranzo.tranzo_user_ms.trip.dto.FeaturedTripDto;
 import com.tranzo.tranzo_user_ms.trip.dto.RecommendedTripDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TrendingDestinationsResponse;
+import com.tranzo.tranzo_user_ms.trip.dto.TripViewDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -11,6 +11,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
 
 /**
  * Facade Service for Trip Discovery
@@ -22,30 +25,48 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class DiscoveryService {
 
-    private final FeaturedTripService featuredTripService;
     private final RecommendedTripService recommendedTripService;
     private final TrendingDestinationService trendingDestinationService;
+    private final TripManagementService tripManagementService;
 
     /**
      * Fetch featured trips
      */
-    public Page<FeaturedTripDto> getFeaturedTrips(
+//    public Page<FeaturedTripDto> getFeaturedTrips(
+//            int page,
+//            int size,
+//            Double budgetMin,
+//            Double budgetMax
+//    ) {
+//        log.info("Processing started | operation=getFeaturedTrips | page={} | size={} | budgetMin={} | budgetMax={}", page, size, budgetMin, budgetMax);
+//
+//        try {
+//            // Cap size at 50
+//            int validatedSize = Math.min(Math.max(size, 1), 50);
+//
+//            log.info("Calling external service | service=FeaturedTripService | operation=computeFeaturedTrips | page={} | size={}", page, validatedSize);
+//            Page<FeaturedTripDto> result = featuredTripService.computeFeaturedTrips(page, validatedSize, budgetMin, budgetMax);
+//
+//            log.info("Processing completed | operation=getFeaturedTrips | page={} | size={} | tripsCount={} | status=SUCCESS", page, validatedSize, result.getTotalElements());
+//            return result;
+//        } catch (Exception e) {
+//            log.error("Operation failed | operation=getFeaturedTrips | page={} | size={} | reason={}", page, size, e.getMessage(), e);
+//            throw e;
+//        }
+//    }
+
+    public List<TripViewDto> getFeaturedTrips(
             int page,
             int size,
-            Double budgetMin,
-            Double budgetMax
+            UUID userId
     ) {
-        log.info("Processing started | operation=getFeaturedTrips | page={} | size={} | budgetMin={} | budgetMax={}", page, size, budgetMin, budgetMax);
-        
+        log.info("Processing started | operation=getFeaturedTrips | page={} | size={}", page, size);
         try {
-            // Cap size at 50
-            int validatedSize = Math.min(Math.max(size, 1), 50);
-            
-            log.info("Calling external service | service=FeaturedTripService | operation=computeFeaturedTrips | page={} | size={}", page, validatedSize);
-            Page<FeaturedTripDto> result = featuredTripService.computeFeaturedTrips(page, validatedSize, budgetMin, budgetMax);
-            
-            log.info("Processing completed | operation=getFeaturedTrips | page={} | size={} | tripsCount={} | status=SUCCESS", page, validatedSize, result.getTotalElements());
+            log.info("Calling external service | service=FeaturedTripService | operation=computeFeaturedTrips | page={} | size={}", page, size);
+            List<TripViewDto> result = tripManagementService.fetchFeaturedTrips(page, size, userId);
+            log.info("Processing completed | operation=getFeaturedTrips | page={} | size={} | tripsCount={} | status=SUCCESS", page, size, result.size());
             return result;
+
         } catch (Exception e) {
             log.error("Operation failed | operation=getFeaturedTrips | page={} | size={} | reason={}", page, size, e.getMessage(), e);
             throw e;

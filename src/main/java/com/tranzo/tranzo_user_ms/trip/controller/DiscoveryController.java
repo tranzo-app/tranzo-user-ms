@@ -1,19 +1,19 @@
 package com.tranzo.tranzo_user_ms.trip.controller;
 
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
-import com.tranzo.tranzo_user_ms.trip.dto.DiscoveryFilterRequest;
-import com.tranzo.tranzo_user_ms.trip.dto.FeaturedTripDto;
-import com.tranzo.tranzo_user_ms.trip.dto.RecommendedTripDto;
-import com.tranzo.tranzo_user_ms.trip.dto.TrendingDestinationsResponse;
+import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
+import com.tranzo.tranzo_user_ms.trip.dto.*;
 import com.tranzo.tranzo_user_ms.trip.service.DiscoveryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
 
 /**
  * REST Controller for Trip Discovery Endpoints
@@ -34,32 +34,27 @@ public class DiscoveryController {
      * GET /trips/featured
      * Fetch featured trips with optional budget filtering
      */
-//    @GetMapping("/featured")
-//    @Operation(
-//        summary = "Get featured trips",
-//        description = "Fetch curated featured trips. Sorted by recency, availability, and engagement."
-//    )
-//    public ResponseEntity<ResponseDto<Page<FeaturedTripDto>>> getFeaturedTrips(
-//            @Parameter(description = "Page number (0-indexed)", example = "0")
-//            @RequestParam(defaultValue = "0") int page,
-//
-//            @Parameter(description = "Page size (max 50)", example = "20")
-//            @RequestParam(defaultValue = "20") int size,
-//
-//            @Parameter(description = "Minimum budget (INR)", required = false)
-//            @RequestParam(required = false) Double budgetMin,
-//
-//            @Parameter(description = "Maximum budget (INR)", required = false)
-//            @RequestParam(required = false) Double budgetMax
-//    ) {
-//        log.info("GET /trips/featured - page: {}, size: {}", page, size);
-//
-//        Page<FeaturedTripDto> trips = discoveryService.getFeaturedTrips(page, size, budgetMin, budgetMax);
-//
-//        return ResponseEntity.ok(
-//            ResponseDto.success("Featured trips fetched successfully", trips)
-//        );
-//    }
+    @GetMapping("/featured")
+    @Operation(
+        summary = "Get featured trips",
+        description = "Fetch curated featured trips. Sorted by recency, availability, and engagement."
+    )
+    public ResponseEntity<ResponseDto<List<TripViewDto>>> getFeaturedTrips(
+            @Parameter(description = "Page number (0-indexed)", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+
+            @Parameter(description = "Page size (max 50)", example = "20")
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        log.info("GET /trips/featured - page: {}, size: {}", page, size);
+        UUID userId = SecurityUtils.getCurrentUserUuidOptional().orElse(null);
+
+        List<TripViewDto> trips = discoveryService.getFeaturedTrips(page, size, userId);
+
+        return ResponseEntity.ok(
+            ResponseDto.success("Featured trips fetched successfully", trips)
+        );
+    }
 
     /**
      * POST /trips/recommended

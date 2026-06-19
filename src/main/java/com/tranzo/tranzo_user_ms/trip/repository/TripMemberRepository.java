@@ -40,4 +40,21 @@ public interface TripMemberRepository extends JpaRepository<TripMemberEntity, UU
             @Param("userId") UUID userId,
             @Param("statuses") List<TripStatus> statuses
     );
+
+    @Query("""
+    SELECT t
+    FROM TripEntity t
+    WHERE t.tripStatus IN :statuses
+      AND NOT EXISTS (
+          SELECT 1
+          FROM TripMemberEntity tm
+          WHERE tm.trip = t
+            AND tm.userId = :userId
+            AND tm.status = 'ACTIVE'
+      )
+""")
+    List<TripEntity> findTripsUserIsNotPartOf(
+            @Param("userId") UUID userId,
+            @Param("statuses") List<TripStatus> statuses
+    );
 }
