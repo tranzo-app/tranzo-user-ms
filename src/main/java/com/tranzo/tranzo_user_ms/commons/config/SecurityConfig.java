@@ -43,7 +43,8 @@ public class SecurityConfig {
                                 "/h2-console/**",
                                 "/ws-chat/**",
                                 "/trips/featured",
-                                "/trips/trending-destinations"
+                                "/trips/trending-destinations",
+                                "api/v1/ai/itinerary"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/trips", "/trips/").permitAll()
                         .requestMatchers("/user/register").authenticated()
