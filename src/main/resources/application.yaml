@@ -109,11 +109,11 @@ ai:
   provider: gemini
 
 openai:
-  api-key: ....
+  api-key: ${API}
   model: gpt-4.1-mini
 
 gemini:
-  api-key: ....
+  api-key: ${API}
   model: gemini-2.5-flash
 
 logging:
