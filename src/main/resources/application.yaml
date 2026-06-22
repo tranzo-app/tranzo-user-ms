@@ -109,11 +109,11 @@ ai:
   provider: gemini
 
 openai:
-  api-key: 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
+  api-key: ....
   model: gpt-4.1-mini
 
 gemini:
-  api-key: AQ.Ab8RN6I2uxWIWktJuJuv9h1WcB94H_ZyJrNsMm3nnIgCY64Fww
+  api-key: ....
   model: gemini-2.5-flash
 
 logging:
