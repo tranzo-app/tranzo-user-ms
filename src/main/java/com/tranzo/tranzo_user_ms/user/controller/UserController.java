@@ -5,9 +5,12 @@ import com.tranzo.tranzo_user_ms.commons.service.JwtService;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.user.dto.*;
 import com.tranzo.tranzo_user_ms.user.service.UserService;
+import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
+import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
 import jakarta.security.auth.message.AuthException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -25,10 +28,15 @@ import java.util.UUID;
 public class UserController {
     private final UserService userService;
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
-    public UserController(UserService userService, JwtService jwtService) {
+    @Value("${spring.jwt.access-token-expiry-minutes}")
+    private long accessExpiryMinutes;
+
+    public UserController(UserService userService, JwtService jwtService, UserRepository userRepository) {
         this.userService = userService;
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -90,7 +98,7 @@ public class UserController {
      * Auth: Bearer registration token from OTP verify.
      */
     @PostMapping(value = "/user/register", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ResponseDto<UserProfileDto>> registerUserWithoutFile(
+    public ResponseEntity<ResponseDto<RegisterResponseDto>> registerUserWithoutFile(
             HttpServletRequest request,
             @RequestBody @Valid UserProfileDto userProfileDto) throws IOException {
         log.info("API call started | endpoint=POST:/user/register | type=JSON");
@@ -102,8 +110,19 @@ public class UserController {
             UUID userId = userService.createUserProfile(userProfileDto, identifier, null);
             UserProfileDto createdProfile = userService.getUserProfile(userId);
 
+            UsersEntity user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+            String accessToken = jwtService.generateAccessToken(user);
+            long expiresInSeconds = accessExpiryMinutes * 60;
+
             log.info("API call completed | endpoint=POST:/user/register | type=JSON | userId={} | status=SUCCESS", userId);
-            return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", createdProfile));
+
+            RegisterResponseDto response = RegisterResponseDto.builder()
+                    .userProfile(createdProfile)
+                    .accessToken(accessToken)
+                    .expiresIn(expiresInSeconds)
+                    .build();
+
+            return ResponseEntity.status(201).body(ResponseDto.success(201, "User profile created successfully", response));
         } catch (Exception e) {
             log.error("API call failed | endpoint=POST:/user/register | type=JSON | reason={}", e.getMessage(), e);
             throw e;
@@ -115,7 +134,7 @@ public class UserController {
      * Profile picture is set from file (S3) or from DTO URL in the service.
      */
     @PostMapping(value = "/user/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ResponseDto<UserProfileDto>> registerUser(
+    public ResponseEntity<ResponseDto<RegisterResponseDto>> registerUser(
             HttpServletRequest request,
             @RequestPart("profile") @Valid UserProfileDto userProfileDto,
             @RequestPart(value = "file", required = false) MultipartFile file) throws IOException {
@@ -128,8 +147,19 @@ public class UserController {
             UUID userId = userService.createUserProfile(userProfileDto, identifier, file);
             UserProfileDto createdProfile = userService.getUserProfile(userId);
 
+            UsersEntity user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+            String accessToken = jwtService.generateAccessToken(user);
+            long expiresInSeconds = accessExpiryMinutes * 60;
+
             log.info("API call completed | endpoint=POST:/user/register | type=MULTIPART | userId={} | status=SUCCESS", userId);
-            return ResponseEntity.ok(ResponseDto.success(200, "User profile created successfully", createdProfile));
+
+            RegisterResponseDto response = RegisterResponseDto.builder()
+                    .userProfile(createdProfile)
+                    .accessToken(accessToken)
+                    .expiresIn(expiresInSeconds)
+                    .build();
+
+            return ResponseEntity.status(201).body(ResponseDto.success(201, "User profile created successfully", response));
         } catch (Exception e) {
             log.error("API call failed | endpoint=POST:/user/register | type=MULTIPART | reason={}", e.getMessage(), e);
             throw e;

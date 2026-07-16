@@ -37,7 +37,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: false
     properties:
       hibernate:
@@ -104,6 +104,17 @@ trip:
       orientation: landscape
       content-filter: low
     default-images: https://via.placeholder.com/800x600/3B82F6/FFFFFF?text=Trip
+
+ai:
+  provider: gemini
+
+openai:
+  api-key: ${API}
+  model: gpt-4.1-mini
+
+gemini:
+  api-key: ${API}
+  model: gemini-2.5-flash
 
 logging:
   level:

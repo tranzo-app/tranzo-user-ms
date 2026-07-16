@@ -54,11 +54,14 @@ public class SessionService {
         log.info("Session created | userId={} | status=SUCCESS", user.getUserUuid());
 
         saveNewRefreshToken(refreshToken, user);
-        setCookie(response, "ACCESS_TOKEN", accessToken, (int) (accessExpiryMinutes * 60));
         setCookie(response, "REFRESH_TOKEN", refreshToken, (int) (refreshExpiryDays * 24 * 60 * 60));
+
+        long expiresInSeconds = accessExpiryMinutes * 60;
 
         return SessionResponseDto.builder()
                 .authenticated(true)
+                .accessToken(accessToken)
+                .expiresIn(expiresInSeconds)
                 .build();
     }
 
@@ -84,14 +87,19 @@ public class SessionService {
         String newRefreshToken = jwtService.generateRefreshToken(user);
         storedToken.setTokenHash(hash(newRefreshToken));
         storedToken.setExpiresAt(LocalDateTime.now().plusDays(refreshExpiryDays));
-//        storedToken.setUpdatedAt(LocalDateTime.now());
         refreshTokenRepository.save(storedToken);
         String newAccessToken = jwtService.generateAccessToken(user);
+
         log.info("Session refreshed | userId={} | status=SUCCESS", user.getUserUuid());
-        setCookie(response, "ACCESS_TOKEN", newAccessToken, (int) (accessExpiryMinutes * 60));
+
         setCookie(response, "REFRESH_TOKEN", newRefreshToken, (int) (refreshExpiryDays * 24 * 60 * 60));
+
+        long expiresInSeconds = accessExpiryMinutes * 60;
+
         return SessionResponseDto.builder()
                 .authenticated(true)
+                .accessToken(newAccessToken)
+                .expiresIn(expiresInSeconds)
                 .build();
     }
 
