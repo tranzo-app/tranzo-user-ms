@@ -11,5 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class SessionResponseDto {
     private boolean authenticated;
+    private String accessToken;
+    private Long expiresIn;  // in seconds
 }
 

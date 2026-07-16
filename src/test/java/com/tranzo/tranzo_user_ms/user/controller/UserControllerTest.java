@@ -4,6 +4,8 @@ import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import com.tranzo.tranzo_user_ms.commons.service.JwtService;
 import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
 import com.tranzo.tranzo_user_ms.user.dto.*;
+import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
+import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +36,9 @@ class UserControllerTest {
 
     @Mock
     private JwtService jwtService;
+
+    @Mock
+    private UserRepository userRepository;
 
     @Mock
     private HttpServletRequest request;
@@ -75,12 +80,17 @@ class UserControllerTest {
         when(request.getAttribute("registrationIdentifier")).thenReturn("email:u@test.com");
         when(userService.createUserProfile(any(UserProfileDto.class), eq("email:u@test.com"), any())).thenReturn(userId);
         when(userService.getUserProfile(userId)).thenReturn(profileDto);
+        
+        UsersEntity userEntity = new UsersEntity();
+        when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(userEntity));
+        when(jwtService.generateAccessToken(userEntity)).thenReturn("test-access-token");
 
-        ResponseEntity<ResponseDto<UserProfileDto>> res = controller.registerUser(request, profileDto, null);
+        ResponseEntity<ResponseDto<RegisterResponseDto>> res = controller.registerUser(request, profileDto, null);
 
-        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertEquals(HttpStatus.CREATED, res.getStatusCode());
         assertNotNull(res.getBody());
         assertNotNull(res.getBody().getData());
+        assertEquals("Test", res.getBody().getData().getUserProfile().getFirstName());
         verify(userService).createUserProfile(any(UserProfileDto.class), eq("email:u@test.com"), any());
         verify(userService).getUserProfile(userId);
     }

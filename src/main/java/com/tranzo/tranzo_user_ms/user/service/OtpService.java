@@ -150,6 +150,8 @@ public class OtpService {
         com.tranzo.tranzo_user_ms.user.dto.SessionResponseDto sessionResponseDto = sessionService.createSession(sessionRequestDto, response);
         return VerifyOtpResponseDto.builder()
                 .userExists(userExists)
+                .accessToken(sessionResponseDto.getAccessToken())
+                .expiresIn(sessionResponseDto.getExpiresIn())
                 .build();
     }
 

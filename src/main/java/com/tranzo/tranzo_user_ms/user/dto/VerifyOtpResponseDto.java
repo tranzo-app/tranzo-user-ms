@@ -8,4 +8,6 @@ import lombok.Data;
 public class VerifyOtpResponseDto {
     private boolean userExists;
     private String registrationToken;
+    private String accessToken;
+    private Long expiresIn;  // in seconds
 }
