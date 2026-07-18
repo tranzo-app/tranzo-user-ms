@@ -160,29 +160,35 @@ public class ImageFetchService {
     public List<TripImageEntity> getDefaultImages(String destination) {
         List<TripImageEntity> defaultImageEntities = new ArrayList<>();
 
-        // Check if default images already exist for this destination
-        List<TripImageEntity> existingDefaults = tripImageRepository.findByDestinationAndSource(destination, ImageSource.DEFAULT);
-        if (!existingDefaults.isEmpty()) {
-            return existingDefaults;
-        }
-
         // Create default images
         String[] defaultUrls = defaultImages.split(",");
         for (String url : defaultUrls) {
             String trimmedUrl = url.trim();
             if (!trimmedUrl.isEmpty()) {
-                TripImageEntity image = TripImageEntity.builder()
-                        .imageUrl(trimmedUrl)
-                        .destination(destination)
-                        .source(ImageSource.DEFAULT)
-                        .usageCount(0)
-                        .build();
-                image = tripImageRepository.save(image);
-                defaultImageEntities.add(image);
+                // Check if this image URL already exists globally (unique constraint on image_url)
+                tripImageRepository.findByImageUrl(trimmedUrl).ifPresentOrElse(
+                        existingImage -> {
+                            // Image exists, add it to the list
+                            defaultImageEntities.add(existingImage);
+                            log.debug("Reusing existing default image for destination: {} | url={}", destination, trimmedUrl);
+                        },
+                        () -> {
+                            // Image doesn't exist, create it
+                            TripImageEntity image = TripImageEntity.builder()
+                                    .imageUrl(trimmedUrl)
+                                    .destination(destination)
+                                    .source(ImageSource.DEFAULT)
+                                    .usageCount(0)
+                                    .build();
+                            image = tripImageRepository.save(image);
+                            defaultImageEntities.add(image);
+                            log.debug("Created new default image for destination: {} | url={}", destination, trimmedUrl);
+                        }
+                );
             }
         }
 
-        log.info("Created {} default images for destination: {}", defaultImageEntities.size(), destination);
+        log.info("Retrieved/created {} default images for destination: {}", defaultImageEntities.size(), destination);
         return defaultImageEntities;
     }
 
