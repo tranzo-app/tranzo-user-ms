@@ -1134,9 +1134,9 @@ public class TripManagementService {
                             // Both min and max specified - between range
                             durationPredicates.add(
                                     cb.between(
-                                            cb.function("DATEDIFF", Integer.class,
-                                                    root.get("tripEndDate"),
-                                                    root.get("tripStartDate")
+                                            cb.function("DATE_PART", Integer.class,
+                                                    cb.literal("day"),
+                                                    cb.diff(root.get("tripEndDate"), root.get("tripStartDate"))
                                             ),
                                             duration.getMin(),
                                             duration.getMax()
@@ -1146,9 +1146,9 @@ public class TripManagementService {
                             // Only min specified - above that min (>= min)
                             durationPredicates.add(
                                     cb.greaterThanOrEqualTo(
-                                            cb.function("DATEDIFF", Integer.class,
-                                                    root.get("tripEndDate"),
-                                                    root.get("tripStartDate")
+                                            cb.function("DATE_PART", Integer.class,
+                                                    cb.literal("day"),
+                                                    cb.diff(root.get("tripEndDate"), root.get("tripStartDate"))
                                             ),
                                             duration.getMin()
                                     )
@@ -1157,9 +1157,9 @@ public class TripManagementService {
                             // Only max specified - under that max (<= max)
                             durationPredicates.add(
                                     cb.lessThanOrEqualTo(
-                                            cb.function("DATEDIFF", Integer.class,
-                                                    root.get("tripEndDate"),
-                                                    root.get("tripStartDate")
+                                            cb.function("DATE_PART", Integer.class,
+                                                    cb.literal("day"),
+                                            cb.diff(root.get("tripEndDate"), root.get("tripStartDate"))
                                             ),
                                             duration.getMax()
                                     )
