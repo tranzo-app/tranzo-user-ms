@@ -6,6 +6,7 @@ import com.tranzo.tranzo_user_ms.trip.dto.AnswerQnaRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.CreateQnaRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripResponseDto;
+import com.tranzo.tranzo_user_ms.trip.dto.TripSearchRequest;
 import com.tranzo.tranzo_user_ms.trip.dto.TripViewDto;
 import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.service.TripInviteService;
@@ -268,6 +269,18 @@ public class TripManagementController {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         List<String> globalFields = new ArrayList<>();
         Page<TripViewDto> searchedTrips = tripManagementService.search(request, globalFields, page, size);
+        return ResponseEntity.ok(ResponseDto.success("Trip search is success", searchedTrips));
+    }
+
+    @PostMapping("/search/v2")
+    public ResponseEntity<ResponseDto<Page<TripViewDto>>> searchTripsV2(
+            @RequestBody @Valid TripSearchRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        log.info("Incoming request | API=/trips/search/v2 | method=POST | userId={} | page={} | size={}", userId, page, size);
+        Page<TripViewDto> searchedTrips = tripManagementService.searchTripsV2(request, page, size);
+        log.info("Trip search v2 completed | userId={} | resultsCount={} | status=SUCCESS", userId, searchedTrips.getContent().size());
         return ResponseEntity.ok(ResponseDto.success("Trip search is success", searchedTrips));
     }
 }
