@@ -162,7 +162,7 @@ public class TravelPalService {
     }
 
     /* ================= INCOMING REQUESTS ================= */
-    
+
     public List<SuggestedTravelPalDto> getIncomingPendingRequestsWithDetails(UUID userId) {
         List<TravelPalEntity> pendingRequests = repository.findIncomingPending(userId);
 
@@ -196,6 +196,48 @@ public class TravelPalService {
                             .completedTripsCount(tripStatisticsClient.getCompletedTripsCount(requesterId))
                             .userRating(ratingService.getUserAverageRating(requesterId))
                             .conversationId(getConversationIdBetweenUsers(userId, requesterId))
+                            .build();
+                })
+                .toList();
+    }
+
+    /* ================= OUTGOING REQUESTS ================= */
+
+    public List<SuggestedTravelPalDto> getOutgoingPendingRequestsWithDetails(UUID userId) {
+        List<TravelPalEntity> pendingRequests = repository.findOutgoingPending(userId);
+
+        if (pendingRequests.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Get user IDs of receivers (the other user in the pair)
+        List<UUID> receiverIds = pendingRequests.stream()
+                .map(entity -> entity.getUserLowId().equals(userId)
+                        ? entity.getUserHighId()
+                        : entity.getUserLowId())
+                .toList();
+
+        // Get user details using UserProfileClient
+        Map<UUID, UserNameDto> userDetails = userProfileClient.getNamesByUserIds(receiverIds);
+
+        // Convert to DTOs using available data from client
+        return receiverIds.stream()
+                .filter(userDetails::containsKey) // Only include users found in client response
+                .map(receiverId -> {
+                    UserNameDto userName = userDetails.get(receiverId);
+                    return SuggestedTravelPalDto.builder()
+                            .userId(userName.getUserId())
+                            .firstName(userName.getFirstName())
+                            .middleName(userName.getMiddleName())
+                            .lastName(userName.getLastName())
+                            .bio(userName.getBio())
+                            .dob(userName.getDob())
+                            .location(userName.getLocation())
+                            .profilePictureUrl(userName.getProfilePictureUrl())
+                            .travelPalsCount(getMyTravelPals(receiverId).size())
+                            .completedTripsCount(tripStatisticsClient.getCompletedTripsCount(receiverId))
+                            .userRating(ratingService.getUserAverageRating(receiverId))
+                            .conversationId(getConversationIdBetweenUsers(userId, receiverId))
                             .build();
                 })
                 .toList();

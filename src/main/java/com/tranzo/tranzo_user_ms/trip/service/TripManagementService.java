@@ -336,6 +336,60 @@ public class TripManagementService {
                 .toList();
     }
 
+    public List<TripViewDto> fetchTripsWithFilters(UUID userId, TripStatus tripStatus, Boolean isHost)
+    {
+        List<TripEntity> trips;
+
+        if (tripStatus != null && isHost != null) {
+            // Both filters applied
+            if (isHost) {
+                // Get trips where user is host and status matches
+                trips = tripRepository.findAll().stream()
+                        .filter(trip -> trip.getTripStatus() == tripStatus)
+                        .filter(trip -> tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(
+                                trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE))
+                        .toList();
+            } else {
+                // Get trips where user is NOT host and status matches
+                trips = tripRepository.findAll().stream()
+                        .filter(trip -> trip.getTripStatus() == tripStatus)
+                        .filter(trip -> !tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(
+                                trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE))
+                        .toList();
+            }
+        } else if (tripStatus != null) {
+            // Only status filter
+            trips = tripRepository.findByTripStatus(tripStatus);
+        } else if (isHost != null && userId != null) {
+            // Only host filter
+            if (isHost) {
+                trips = tripRepository.findAll().stream()
+                        .filter(trip -> tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(
+                                trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE))
+                        .toList();
+            } else {
+                trips = tripRepository.findAll().stream()
+                        .filter(trip -> !tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(
+                                trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE))
+                        .toList();
+            }
+        } else {
+            // No filters
+            trips = tripRepository.findAll();
+        }
+
+        return trips.stream()
+                .map(trip -> {
+                    Boolean tripIsHost = null;
+                    if (userId != null) {
+                        tripIsHost = tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(
+                                trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE);
+                    }
+                    return mapTripEntityToDto(trip, tripIsHost);
+                })
+                .toList();
+    }
+
     @Transactional
     public void cancelTrip(UUID tripId, UUID userId)
     {
