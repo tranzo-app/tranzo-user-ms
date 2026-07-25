@@ -7,6 +7,7 @@ import com.tranzo.tranzo_user_ms.trip.dto.CreateQnaRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripResponseDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripViewDto;
+import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.service.TripInviteService;
 import com.tranzo.tranzo_user_ms.trip.service.TripManagementService;
 import com.tranzo.tranzo_user_ms.trip.validation.groups.DraftChecks;
@@ -119,6 +120,27 @@ public class TripManagementController {
         List<TripViewDto> tripDto = tripManagementService.fetchAllTrips(userId);
         log.info("All trips fetched | userId={} | tripsCount={} | status=SUCCESS", userId, tripDto.size());
         return ResponseEntity.ok(ResponseDto.success("All trip details have been fetched successfully", tripDto));
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<ResponseDto<List<TripViewDto>>> fetchTripsWithFilters(
+            @RequestParam(required = false) String tripStatus,
+            @RequestParam(required = false) Boolean isHost) throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        log.info("Incoming request | API=/trips/filter | method=GET | userId={} | tripStatus={} | isHost={}", userId, tripStatus, isHost);
+
+        TripStatus status = null;
+        if (tripStatus != null && !tripStatus.isEmpty()) {
+            try {
+                status = TripStatus.valueOf(tripStatus.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().body(ResponseDto.failure(400, "Invalid trip status. Valid values: DRAFT, PUBLISHED, ONGOING, COMPLETED, CANCELLED"));
+            }
+        }
+
+        List<TripViewDto> tripDto = tripManagementService.fetchTripsWithFilters(userId, status, isHost);
+        log.info("Filtered trips fetched | userId={} | tripsCount={} | status=SUCCESS", userId, tripDto.size());
+        return ResponseEntity.ok(ResponseDto.success("Filtered trip details have been fetched successfully", tripDto));
     }
 
     @DeleteMapping("/{tripId}")

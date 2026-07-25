@@ -58,6 +58,12 @@ public class TravelPalController {
         return ResponseEntity.ok(ResponseDto.success("Pending requests retrieved", service.getIncomingPendingRequestsWithDetails(userId)));
     }
 
+    @GetMapping("/sent")
+    public ResponseEntity<ResponseDto<List<SuggestedTravelPalDto>>> sent() throws AuthException {
+        UUID userId = SecurityUtils.getCurrentUserUuid();
+        return ResponseEntity.ok(ResponseDto.success("Sent requests retrieved", service.getOutgoingPendingRequestsWithDetails(userId)));
+    }
+
     @GetMapping("/suggested")
     public ResponseEntity<ResponseDto<List<SuggestedTravelPalDto>>> suggested() throws AuthException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
