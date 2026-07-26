@@ -15,6 +15,7 @@ import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
 import com.tranzo.tranzo_user_ms.media.service.S3MediaService;
 import com.tranzo.tranzo_user_ms.commons.events.*;
+import jakarta.persistence.criteria.Expression;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -1126,10 +1127,32 @@ public class TripManagementService {
                     predicates.add(cb.or(locationPredicates.toArray(new Predicate[0])));
                 }
 
-                // Durations filter - temporarily disabled due to PostgreSQL date calculation issues
-                // TODO: Implement proper duration filtering using native SQL or custom query
+                // Durations filter
                 if (filters.getDurations() != null && !filters.getDurations().isEmpty()) {
-                    log.debug("Duration filtering temporarily disabled");
+                    List<Predicate> durationPredicates = new ArrayList<>();
+                    for (DurationRange duration : filters.getDurations()) {
+                        // Use custom PostgreSQL function to calculate duration in days
+                        Expression<Integer> daysDiff = cb.function(
+                                "calculate_trip_duration",
+                                Integer.class,
+                                root.get("tripEndDate"),
+                                root.get("tripStartDate")
+                        );
+                        
+                        if (duration.getMin() != null && duration.getMax() != null) {
+                            // Both min and max specified - between range
+                            durationPredicates.add(cb.between(daysDiff, duration.getMin(), duration.getMax()));
+                        } else if (duration.getMin() != null) {
+                            // Only min specified - above that min (>= min)
+                            durationPredicates.add(cb.greaterThanOrEqualTo(daysDiff, duration.getMin()));
+                        } else if (duration.getMax() != null) {
+                            // Only max specified - under that max (<= max)
+                            durationPredicates.add(cb.lessThanOrEqualTo(daysDiff, duration.getMax()));
+                        }
+                    }
+                    if (!durationPredicates.isEmpty()) {
+                        predicates.add(cb.or(durationPredicates.toArray(new Predicate[0])));
+                    }
                 }
             }
 
