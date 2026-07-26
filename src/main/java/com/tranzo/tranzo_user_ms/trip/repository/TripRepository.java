@@ -79,4 +79,11 @@ public interface TripRepository extends JpaRepository<TripEntity, UUID>, JpaSpec
     List<TrendingDestinationProjection> findTrendingDestinations(
             @Param("status") TripStatus status
     );
+
+    @Query(value = """
+        SELECT * FROM core_trip_details t 
+        WHERE t.trip_status = 'PUBLISHED'
+        AND EXTRACT(DAY FROM AGE(t.trip_end_date, t.trip_start_date)) BETWEEN :minDays AND :maxDays
+        """, nativeQuery = true)
+    List<TripEntity> findByDurationRange(@Param("minDays") Integer minDays, @Param("maxDays") Integer maxDays);
 }

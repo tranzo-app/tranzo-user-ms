@@ -1126,49 +1126,10 @@ public class TripManagementService {
                     predicates.add(cb.or(locationPredicates.toArray(new Predicate[0])));
                 }
 
-                // Durations filter
+                // Durations filter - temporarily disabled due to PostgreSQL date calculation issues
+                // TODO: Implement proper duration filtering using native SQL or custom query
                 if (filters.getDurations() != null && !filters.getDurations().isEmpty()) {
-                    List<Predicate> durationPredicates = new ArrayList<>();
-                    for (DurationRange duration : filters.getDurations()) {
-                        if (duration.getMin() != null && duration.getMax() != null) {
-                            // Both min and max specified - between range
-                            durationPredicates.add(
-                                    cb.between(
-                                            cb.function("DATE_PART", Integer.class,
-                                                    cb.literal("day"),
-                                                    cb.diff(root.get("tripEndDate"), root.get("tripStartDate"))
-                                            ),
-                                            duration.getMin(),
-                                            duration.getMax()
-                                    )
-                            );
-                        } else if (duration.getMin() != null) {
-                            // Only min specified - above that min (>= min)
-                            durationPredicates.add(
-                                    cb.greaterThanOrEqualTo(
-                                            cb.function("DATE_PART", Integer.class,
-                                                    cb.literal("day"),
-                                                    cb.diff(root.get("tripEndDate"), root.get("tripStartDate"))
-                                            ),
-                                            duration.getMin()
-                                    )
-                            );
-                        } else if (duration.getMax() != null) {
-                            // Only max specified - under that max (<= max)
-                            durationPredicates.add(
-                                    cb.lessThanOrEqualTo(
-                                            cb.function("DATE_PART", Integer.class,
-                                                    cb.literal("day"),
-                                            cb.diff(root.get("tripEndDate"), root.get("tripStartDate"))
-                                            ),
-                                            duration.getMax()
-                                    )
-                            );
-                        }
-                    }
-                    if (!durationPredicates.isEmpty()) {
-                        predicates.add(cb.or(durationPredicates.toArray(new Predicate[0])));
-                    }
+                    log.debug("Duration filtering temporarily disabled");
                 }
             }
 
