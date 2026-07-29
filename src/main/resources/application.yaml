@@ -15,34 +15,30 @@ spring:
     xApiSecret: test-secret
     timeout: 30
 
-  servlet:
-    multipart:
-      max-file-size: 5MB
-      max-request-size: 25MB
-
   datasource:
-    url: jdbc:h2:file:./data/tranzo_db;DB_CLOSE_DELAY=-1;AUTO_SERVER=TRUE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-#    url: ${SPRING_DATASOURCE_URL}
-#    driver-class-name: org.postgresql.Driver
-#    username: ${SPRING_DATASOURCE_USERNAME}
-#    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: jdbc:postgresql://tranzo-db.cfc28kg0gy2s.ap-south-1.rds.amazonaws.com:5432/postgres
+    driver-class-name: org.postgresql.Driver
+    username: tranzo
+    password: tranzo_db
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
       connection-timeout: 20000
       idle-timeout: 300000
+
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 25MB
+
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
         format_sql: false
-    # false avoids circular dependency: flyway <-> entityManagerFactory (Flyway runs first when false)
     defer-datasource-initialization: false
 
   flyway:

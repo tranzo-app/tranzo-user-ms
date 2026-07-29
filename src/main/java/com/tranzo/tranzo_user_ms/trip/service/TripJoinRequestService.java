@@ -394,6 +394,15 @@ public class TripJoinRequestService {
         trip.setCurrentParticipants(updatedCount);
         trip.setIsFull(updatedCount >= trip.getMaxParticipants());
         tripRepository.save(trip);
+        
+        // Soft delete any join requests for this user and trip
+        tripJoinRequestRepository.findByTrip_TripIdAndUserId(tripId, removalParticipantUserId)
+                .ifPresent(joinRequest -> {
+                    joinRequest.setIsDeleted(true);
+                    joinRequest.setDeletedAt(LocalDateTime.now());
+                    tripJoinRequestRepository.save(joinRequest);
+                });
+        
         if (!otherMemberUserIds.isEmpty()) {
             applicationEventPublisher.publishEvent(
                     new MemberLeftOrRemovedTripEvent(tripId, trip.getTripTitle(), removalParticipantUserId, otherMemberUserIds, removedByHost));
