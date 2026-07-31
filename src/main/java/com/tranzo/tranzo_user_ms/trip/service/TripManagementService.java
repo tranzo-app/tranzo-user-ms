@@ -1093,7 +1093,38 @@ public class TripManagementService {
             // Only published trips
             predicates.add(cb.equal(root.get("tripStatus"), TripStatus.PUBLISHED));
 
-            // Filters
+            // Collect location predicates from both filters and search (OR logic)
+            List<Predicate> locationPredicates = new ArrayList<>();
+            
+            if (request.getFilters() != null) {
+                TripSearchFilters filters = request.getFilters();
+                
+                // Locations filter (fuzzy match on tripDestination)
+                if (filters.getLocations() != null && !filters.getLocations().isEmpty()) {
+                    for (String location : filters.getLocations()) {
+                        locationPredicates.add(cb.like(cb.lower(root.get("tripDestination")), 
+                                "%" + location.toLowerCase() + "%"));
+                    }
+                }
+            }
+            
+            if (request.getSearch() != null) {
+                TripSearchCriteria search = request.getSearch();
+                
+                // Location search (fuzzy match)
+                if (search.getLocation() != null && !search.getLocation().isEmpty()) {
+                    locationPredicates.add(cb.like(cb.lower(root.get("tripDestination")),
+                            "%" + search.getLocation().toLowerCase() + "%"));
+                }
+            }
+            
+            if (!locationPredicates.isEmpty()) {
+                predicates.add(cb.or(locationPredicates.toArray(new Predicate[0])));
+            }
+
+            // Collect budget predicates from both filters and search (OR logic)
+            List<Predicate> budgetPredicates = new ArrayList<>();
+            
             if (request.getFilters() != null) {
                 TripSearchFilters filters = request.getFilters();
 
@@ -1102,29 +1133,47 @@ public class TripManagementService {
                     BudgetRange budget = filters.getEstimatedBudget();
                     if (budget.getMin() != null && budget.getMax() != null) {
                         // Both min and max specified - between range
-                        predicates.add(cb.between(root.get("estimatedBudget"), budget.getMin(), budget.getMax()));
+                        budgetPredicates.add(cb.between(root.get("estimatedBudget"), budget.getMin(), budget.getMax()));
                     } else if (budget.getMin() != null) {
                         // Only min specified - above that min (>= min)
-                        predicates.add(cb.greaterThanOrEqualTo(root.get("estimatedBudget"), budget.getMin()));
+                        budgetPredicates.add(cb.greaterThanOrEqualTo(root.get("estimatedBudget"), budget.getMin()));
                     } else if (budget.getMax() != null) {
                         // Only max specified - under that max (<= max)
-                        predicates.add(cb.lessThanOrEqualTo(root.get("estimatedBudget"), budget.getMax()));
+                        budgetPredicates.add(cb.lessThanOrEqualTo(root.get("estimatedBudget"), budget.getMax()));
                     }
                 }
+            }
+            
+            if (request.getSearch() != null) {
+                TripSearchCriteria search = request.getSearch();
+
+                // Budget search
+                if (search.getBudget() != null) {
+                    BudgetRange budget = search.getBudget();
+                    if (budget.getMin() != null && budget.getMax() != null) {
+                        // Both min and max specified - between range
+                        budgetPredicates.add(cb.between(root.get("estimatedBudget"), budget.getMin(), budget.getMax()));
+                    } else if (budget.getMin() != null) {
+                        // Only min specified - above that min (>= min)
+                        budgetPredicates.add(cb.greaterThanOrEqualTo(root.get("estimatedBudget"), budget.getMin()));
+                    } else if (budget.getMax() != null) {
+                        // Only max specified - under that max (<= max)
+                        budgetPredicates.add(cb.lessThanOrEqualTo(root.get("estimatedBudget"), budget.getMax()));
+                    }
+                }
+            }
+            
+            if (!budgetPredicates.isEmpty()) {
+                predicates.add(cb.or(budgetPredicates.toArray(new Predicate[0])));
+            }
+
+            // Other filters (categories, durations, dates)
+            if (request.getFilters() != null) {
+                TripSearchFilters filters = request.getFilters();
 
                 // Categories filter (tags)
                 if (filters.getCategories() != null && !filters.getCategories().isEmpty()) {
                     predicates.add(root.join("tripTags").get("tagName").in(filters.getCategories()));
-                }
-
-                // Locations filter (fuzzy match on tripDestination)
-                if (filters.getLocations() != null && !filters.getLocations().isEmpty()) {
-                    List<Predicate> locationPredicates = new ArrayList<>();
-                    for (String location : filters.getLocations()) {
-                        locationPredicates.add(cb.like(cb.lower(root.get("tripDestination")), 
-                                "%" + location.toLowerCase() + "%"));
-                    }
-                    predicates.add(cb.or(locationPredicates.toArray(new Predicate[0])));
                 }
 
                 // Durations filter
@@ -1156,32 +1205,10 @@ public class TripManagementService {
                 }
             }
 
-            // Search criteria
+            // Date search (only from search criteria)
             if (request.getSearch() != null) {
                 TripSearchCriteria search = request.getSearch();
 
-                // Location search (fuzzy match)
-                if (search.getLocation() != null && !search.getLocation().isEmpty()) {
-                    predicates.add(cb.like(cb.lower(root.get("tripDestination")),
-                            "%" + search.getLocation().toLowerCase() + "%"));
-                }
-
-                // Budget search
-                if (search.getBudget() != null) {
-                    BudgetRange budget = search.getBudget();
-                    if (budget.getMin() != null && budget.getMax() != null) {
-                        // Both min and max specified - between range
-                        predicates.add(cb.between(root.get("estimatedBudget"), budget.getMin(), budget.getMax()));
-                    } else if (budget.getMin() != null) {
-                        // Only min specified - above that min (>= min)
-                        predicates.add(cb.greaterThanOrEqualTo(root.get("estimatedBudget"), budget.getMin()));
-                    } else if (budget.getMax() != null) {
-                        // Only max specified - under that max (<= max)
-                        predicates.add(cb.lessThanOrEqualTo(root.get("estimatedBudget"), budget.getMax()));
-                    }
-                }
-
-                // Date search
                 if (search.getDate() != null) {
                     DateRange dateRange = search.getDate();
                     if (dateRange.getFrom() != null) {
