@@ -3,6 +3,7 @@ package com.tranzo.tranzo_user_ms.trip.service;
 import com.tranzo.tranzo_user_ms.commons.exception.BadRequestException;
 import com.tranzo.tranzo_user_ms.trip.enums.TripMemberRole;
 import com.tranzo.tranzo_user_ms.trip.enums.TripMemberStatus;
+import com.tranzo.tranzo_user_ms.trip.enums.InviteStatus;
 import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.enums.VisibilityStatus;
 import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
@@ -85,7 +86,8 @@ class TripInviteServiceTest {
         when(travelPalService.getMyTravelPals(hostUserId)).thenReturn(List.of(travelPalUserId));
         when(tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(
                 eq(tripId), eq(travelPalUserId), eq(TripMemberStatus.ACTIVE))).thenReturn(false);
-        when(tripInviteRepository.existsByTrip_TripIdAndInvitedUserId(tripId, travelPalUserId)).thenReturn(false);
+        when(tripInviteRepository.existsByTrip_TripIdAndInvitedUserIdAndStatus(
+                eq(tripId), eq(travelPalUserId), eq(InviteStatus.PENDING))).thenReturn(false);
         when(tripInviteRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         tripInviteService.inviteTravelPal(tripId, hostUserId, travelPalUserId);
