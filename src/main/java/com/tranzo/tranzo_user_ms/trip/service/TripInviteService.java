@@ -59,7 +59,7 @@ public class TripInviteService {
             throw new ConflictException("User is already a member of the trip");
         }
 
-        if (tripInviteRepository.existsByTrip_TripIdAndInvitedUserId(tripId, travelPalUserId)) {
+        if (tripInviteRepository.existsByTrip_TripIdAndInvitedUserIdAndStatus(tripId, travelPalUserId, InviteStatus.PENDING)) {
             throw new ConflictException("User has already been invited to this trip");
         }
 
@@ -94,7 +94,7 @@ public class TripInviteService {
                 continue; // Skip existing members
             }
 
-            if (tripInviteRepository.existsByTrip_TripIdAndInvitedUserId(tripId, travelPalUserId)) {
+            if (tripInviteRepository.existsByTrip_TripIdAndInvitedUserIdAndStatus(tripId, travelPalUserId, InviteStatus.PENDING)) {
                 continue; // Skip already invited users
             }
 
@@ -125,7 +125,7 @@ public class TripInviteService {
             if (tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(tripId, palId, TripMemberStatus.ACTIVE)) {
                 continue;
             }
-            if (tripInviteRepository.existsByTrip_TripIdAndInvitedUserId(tripId, palId)) {
+            if (tripInviteRepository.existsByTrip_TripIdAndInvitedUserIdAndStatus(tripId, palId, InviteStatus.PENDING)) {
                 continue;
             }
             createAndPublishInvite(trip, hostOrCoHostUserId, palId);
