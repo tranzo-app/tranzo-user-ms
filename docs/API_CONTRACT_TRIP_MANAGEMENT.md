@@ -57,7 +57,7 @@ Authorization: Bearer <access_token>
     ],
     "tags": ["adventure", "mountains", "hiking"]
   },
-  "files": [/* optional images */]
+  "files": []
 }
 ```
 
@@ -165,7 +165,7 @@ Authorization: Bearer <access_token>
   "statusCode": 200,
   "status": "SUCCESS",
   "statusMessage": "Draft trip has been updated successfully",
-  "data": { /* updated trip data */ }
+    "data": {}
 }
 ```
 
@@ -480,7 +480,7 @@ Authorization: Bearer <access_token>
   "statusCode": 200,
   "status": "SUCCESS",
   "statusMessage": "Trip updated successfully",
-  "data": { /* updated trip */ }
+    "data": {}
 }
 ```
 
@@ -1096,7 +1096,7 @@ Authorization: Bearer <access_token>
   "statusCode": 200,
   "status": "SUCCESS",
   "statusMessage": "Mutual trips fetched",
-  "data": [/* list of completed trips */]
+    "data": []
 }
 ```
 
@@ -1140,7 +1140,7 @@ Authorization: Bearer <access_token>
   "statusCode": 200,
   "status": "SUCCESS",
   "statusMessage": "User trips fetched",
-  "data": [/* list of user's trips */]
+    "data": []
 }
 ```
 
@@ -1169,7 +1169,7 @@ Authorization: Bearer <access_token>
   "statusCode": 200,
   "status": "SUCCESS",
   "statusMessage": "Completed trips fetched",
-  "data": [/* list of completed trips */]
+    "data": []
 }
 ```
 
@@ -1370,31 +1370,160 @@ Authorization: Bearer <access_token>
 
 ### 30. GET /trips/featured
 
-**Purpose:** Get featured trips
+Purpose: Return curated featured trips for discovery/home screens. Results are pageable and ordered by a server-computed `featuredScore`.
 
-**Query Parameters:**
-| Parameter | Type | Default |
-|-----------|------|---------|
-| page | Integer | 0 |
-| size | Integer | 20 |
+Endpoint
+- Method: GET
+- URL: `/trips/featured`
+- Authentication: Public (no auth required)
+- Content-Type: `application/json`
 
-#### Status Codes
-| Code | Reason |
-|------|--------|
-| 200 | Featured trips fetched |
-| 500 | Server error |
+Query Parameters
+- `page` (integer, optional) — zero-based page index. Default: `0`.
+- `size` (integer, optional) — page size. Default: `20`. Max: `50`.
+- `locale` (string, optional) — IETF language tag to localize titles/descriptions (e.g., `en-US`).
+- `region` (string, optional) — country/region code to bias results (e.g., `IN`, `US`).
+- `tags` (string, optional) — comma-separated tags to filter (e.g., `trekking,beach`).
+- `includeSampleTrips` (boolean, optional) — default `false`. When `true` returns small sample trip summaries per featured item.
+
+Request example
+```http
+GET /trips/featured?page=0&size=12&locale=en-US&region=IN HTTP/1.1
+Host: api.example.com
+Accept: application/json
+```
+
+Success Response (200)
+- Wrapper: `ResponseDto` (see `commons/dto/ResponseDto`).
+- `data` is a paged result object with fields: `content`, `page`, `size`, `totalElements`, `totalPages`, `metadata`.
+
+`FeaturedTripDto` (content item) fields
+- `id` (UUID)
+- `title` (string)
+- `shortDescription` (string)
+- `coverImageUrl` (string)
+- `startDate` (YYYY-MM-DD)
+- `endDate` (YYYY-MM-DD)
+- `priceMin` (number)
+- `priceMax` (number)
+- `currency` (string, ISO4217)
+- `participantCount` (integer)
+- `organizer` { `id`, `name`, `avatarUrl?` }
+- `featuredScore` (number)
+- `tags` (string[])
+- `durationDays` (integer)
+- `sampleTrips?` (array of lightweight trip summaries when requested)
+
+Example success body
+```json
+{
+  "statusCode": 200,
+  "status": "SUCCESS",
+  "statusMessage": "Featured trips retrieved",
+  "data": {
+    "content": [],
+    "page": 0,
+    "size": 12,
+    "totalElements": 154,
+    "totalPages": 13,
+    "metadata": {
+      "generatedAt": "2026-08-10T08:15:30Z",
+      "computedBy": "featured-algo-v1"
+    }
+  }
+}
+```
+
+Errors
+- `400 Bad Request` — invalid parameters (e.g., size > 50)
+- `429 Too Many Requests` — rate limiting
+- `500 Internal Server Error`
+
+Caching & Headers
+- `Cache-Control`: public, `max-age=60` (server configurable)
+- `ETag`: optional; server may provide to enable 304 responses
+- `Vary`: `Accept-Language` when localized
+- Response body includes `metadata.generatedAt` for freshness
+
+Implementation notes
+- Use server-side pageable `Pageable` and `PageImpl` (consistent with other endpoints).
+- Wrap responses with `ResponseDto.success(...)`.
+- Validate and cap `size` to a configurable max (recommended 50).
 
 ---
 
 ### 31. GET /trips/trending-destinations
 
-**Purpose:** Get trending destinations
+Purpose: Return a ranked list of destinations that are trending based on recent trip activity (creation/registrations). Includes computed metrics like `trendScore` and `momentum` and optional sample trips.
 
-#### Status Codes
-| Code | Reason |
-|------|--------|
-| 200 | Trends fetched |
-| 500 | Server error |
+Endpoint
+- Method: GET
+- URL: `/trips/trending-destinations`
+- Authentication: Public (no auth required)
+- Content-Type: `application/json`
+
+Query Parameters
+- `limit` (integer, optional) — number of destinations to return. Default: `10`. Max: `50`.
+- `region` (string, optional) — bias/limit results to a region.
+- `locale` (string, optional) — for localized display names.
+- `includeSampleTrips` (boolean, optional) — default `false`.
+- `since` / `until` (ISO8601 date, optional) — explicit window to compute trends; server may default to a configured window (e.g., last 30 days).
+
+Request example
+```http
+GET /trips/trending-destinations?limit=8&region=IN HTTP/1.1
+Host: api.example.com
+Accept: application/json
+```
+
+Success Response (200)
+- Wrapper: `ResponseDto`.
+- `data` object contains: `destinations` (array) and `metadata`.
+
+`TrendingDestinationResponseDto` fields
+- `rank` (integer)
+- `destinationId` (string) — canonical id or slug
+- `destinationName` (string)
+- `destinationSlug` (string)
+- `coverImageUrl` (string)
+- `tripsCount` (integer)
+- `trendScore` (number)
+- `momentum` (number) — relative change indicator
+- `sampleTrips?` (array of light trip summaries when requested)
+
+Example success body
+```json
+{
+  "statusCode": 200,
+  "status": "SUCCESS",
+  "statusMessage": "Trending destinations retrieved",
+  "data": {
+    "destinations": [],
+    "metadata": {
+      "computedAt": "2026-08-10T08:00:00Z",
+      "cacheExpiresAt": "2026-08-10T08:05:00Z",
+      "window": { "since": "2026-07-10", "until": "2026-08-10" },
+      "algorithmVersion": "trending-v1"
+    }
+  }
+}
+```
+
+Errors
+- `400 Bad Request` — invalid query param (e.g., non-numeric `limit`, bad date format)
+- `429 Too Many Requests`
+- `500 Internal Server Error`
+
+Caching & Headers
+- Trending results are computed periodically; set short TTLs.
+- `Cache-Control`: public, `s-maxage=60`, `max-age=30` (example)
+- `ETag`: recommended
+- Response `metadata.cacheExpiresAt` indicates freshness
+
+Implementation notes
+- Use existing `TrendingDestinationService` and DTOs such as `TrendingDestinationDto` / `TrendingDestinationResponseDto`.
+- Default `limit` to 10 and enforce maximum.
+- Provide `includeSampleTrips` to keep payload small by default.
 
 ---
 
