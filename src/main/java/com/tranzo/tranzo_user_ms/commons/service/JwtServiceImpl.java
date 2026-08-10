@@ -40,10 +40,28 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public String generateAccessToken(UsersEntity user) {
+        // Build a username claim: prefer profile name (first + last), fallback to email or mobile
+        String username = null;
+        if (user.getUserProfileEntity() != null) {
+            StringBuilder nameBuilder = new StringBuilder();
+            if (user.getUserProfileEntity().getFirstName() != null) {
+                nameBuilder.append(user.getUserProfileEntity().getFirstName());
+            }
+            if (user.getUserProfileEntity().getLastName() != null) {
+                if (nameBuilder.length() > 0) nameBuilder.append(' ');
+                nameBuilder.append(user.getUserProfileEntity().getLastName());
+            }
+            if (nameBuilder.length() > 0) username = nameBuilder.toString();
+        }
+        if (username == null) {
+            username = user.getEmail() != null ? user.getEmail() : user.getMobileNumber();
+        }
+
         return Jwts.builder()
                 .setSubject(user.getUserUuid().toString())
                 .setIssuer(issuer)
                 .claim("role", user.getUserRole().name())
+                .claim("username", username)
                 .claim("type", "ACCESS")
                 .setIssuedAt(new Date())
                 .setExpiration(
