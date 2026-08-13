@@ -12,10 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class TripSearchRequest {
     @Valid
-    private TripSearchFilters filters;
-    
-    @Valid
     private TripSearchCriteria search;
-    
+
     private String sortBy;
 }

@@ -1,19 +1,14 @@
 package com.tranzo.tranzo_user_ms.trip.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.util.List;
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class TripSearchFilters {
-    private BudgetRange estimatedBudget;
-    private List<String> categories;
-    private List<String> locations;
-    private List<DurationRange> durations;
+/**
+ * This class was used for older v2 search filters. TripSearchFilters has been
+ * removed from the public request body shape. The class is deprecated and
+ * intentionally left empty to avoid accidental usage. Delete this file once
+ * all code and clients are migrated.
+ */
+@Deprecated
+public final class TripSearchFilters {
+    private TripSearchFilters() {
+        // utility - intentionally uninstantiable
+    }
 }
