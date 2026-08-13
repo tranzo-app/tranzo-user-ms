@@ -62,6 +62,7 @@ public class JwtServiceImpl implements JwtService {
                 .setIssuer(issuer)
                 .claim("role", user.getUserRole().name())
                 .claim("username", username)
+                .claim("userId", user.getUserUuid())
                 .claim("type", "ACCESS")
                 .setIssuedAt(new Date())
                 .setExpiration(
