@@ -49,6 +49,8 @@ public interface ConversationRepository extends JpaRepository<ConversationEntity
                   FROM MessageEntity m2
                   WHERE m2.conversation.conversationId = c.conversationId
               )
+            ORDER BY m.messageId DESC
+            LIMIT 1
         ), ''),
         c.conversationName,
         /* Last activity time */
@@ -81,6 +83,8 @@ public interface ConversationRepository extends JpaRepository<ConversationEntity
                   FROM ConversationParticipantEntity cp
                   WHERE cp.conversation.conversationId = c.conversationId
                     AND cp.userId = :currentUserId
+                  ORDER BY cp.joinedAt DESC
+                  LIMIT 1
               )
         ),
         
