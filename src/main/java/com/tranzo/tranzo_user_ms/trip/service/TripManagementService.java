@@ -500,7 +500,7 @@ public class TripManagementService {
                     .map(trip -> mapTripEntityToDto(trip, false))
                     .toList();
         }
-        return tripRepository.findByTripStatus(TripStatus.PUBLISHED)
+        return tripRepository.findPublicTripsByStatus(TripStatus.PUBLISHED)
                 .stream()
                 .skip((long) page * size)
                 .limit(size)
