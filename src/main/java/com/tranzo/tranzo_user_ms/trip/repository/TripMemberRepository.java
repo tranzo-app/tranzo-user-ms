@@ -45,6 +45,7 @@ public interface TripMemberRepository extends JpaRepository<TripMemberEntity, UU
     SELECT t
     FROM TripEntity t
     WHERE t.tripStatus IN :statuses
+      AND t.visibilityStatus = 'PUBLIC'
       AND NOT EXISTS (
           SELECT 1
           FROM TripMemberEntity tm

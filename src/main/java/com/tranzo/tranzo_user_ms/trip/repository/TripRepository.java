@@ -30,6 +30,9 @@ public interface TripRepository extends JpaRepository<TripEntity, UUID>, JpaSpec
 
     List<TripEntity> findByTripStatus(TripStatus status);
 
+    @Query("SELECT t FROM TripEntity t WHERE t.tripStatus = :status AND t.visibilityStatus = 'PUBLIC'")
+    List<TripEntity> findPublicTripsByStatus(@Param("status") TripStatus status);
+
     Optional<TripEntity> findByTripIdAndTripStatus(
             UUID tripId, TripStatus status
     );
@@ -73,6 +76,7 @@ public interface TripRepository extends JpaRepository<TripEntity, UUID>, JpaSpec
     FROM TripEntity t
     JOIN t.tripImages i
     WHERE t.tripStatus = :status
+    AND t.visibilityStatus = 'PUBLIC'
     GROUP BY t.tripDestination
     ORDER BY COUNT(DISTINCT t.id) DESC
     """)
