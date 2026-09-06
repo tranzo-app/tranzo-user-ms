@@ -55,20 +55,29 @@ public class TravelPalService {
             throw new IllegalArgumentException("Cannot add yourself");
         }
         UserPair pair = normalize(requesterId, receiverId);
-        repository.findByUserLowIdAndUserHighId(pair.low(), pair.high())
-                .ifPresent(existing -> {
-                    if (existing.getStatus() == TravelPalStatus.ACCEPTED) {
-                        throw new IllegalStateException("Connection already exists");
-                    } else if (existing.getStatus() == TravelPalStatus.PENDING) {
-                        throw new ConflictException("Travel pal request already pending");
-                    }
-                });
-        TravelPalEntity entity = new TravelPalEntity();
-        entity.setUserLowId(pair.low());
-        entity.setUserHighId(pair.high());
-        entity.setRequestedBy(requesterId);
-        entity.setStatus(TravelPalStatus.PENDING);
-        repository.save(entity);
+        Optional<TravelPalEntity> existing = repository.findByUserLowIdAndUserHighId(pair.low(), pair.high());
+        
+        if (existing.isPresent()) {
+            TravelPalEntity entity = existing.get();
+            if (entity.getStatus() == TravelPalStatus.ACCEPTED) {
+                throw new IllegalStateException("Connection already exists");
+            } else if (entity.getStatus() == TravelPalStatus.PENDING) {
+                throw new ConflictException("Travel pal request already pending");
+            } else if (entity.getStatus() == TravelPalStatus.REJECTED) {
+                // Update rejected request to pending instead of delete + create
+                entity.setStatus(TravelPalStatus.PENDING);
+                entity.setRequestedBy(requesterId);
+                repository.save(entity);
+                return;
+            }
+        }
+        
+        TravelPalEntity newEntity = new TravelPalEntity();
+        newEntity.setUserLowId(pair.low());
+        newEntity.setUserHighId(pair.high());
+        newEntity.setRequestedBy(requesterId);
+        newEntity.setStatus(TravelPalStatus.PENDING);
+        repository.save(newEntity);
     }
 
     /* ================= ACCEPT ================= */
