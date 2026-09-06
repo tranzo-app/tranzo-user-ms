@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import java.math.BigDecimal;
 
 /**
@@ -36,4 +37,7 @@ public class PublicUserProfileDto {
     private Integer completedTripsCount;
     
     private BigDecimal userRating;
+
+    // Conversation ID if exists
+    private UUID conversationId;
 }

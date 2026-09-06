@@ -69,7 +69,7 @@ trip:
       per-page: ${TRIP_IMAGE_UNSPLASH_PER_PAGE:1}
       orientation: ${TRIP_IMAGE_UNSPLASH_ORIENTATION:landscape}
       content-filter: ${TRIP_IMAGE_UNSPLASH_CONTENT_FILTER:low}
-    default-images: ${TRIP_IMAGE_DEFAULT_IMAGES:https://via.placeholder.com/800x600/3B82F6/FFFFFF?text=Trip}
+    default-images: ${TRIP_IMAGE_DEFAULT_IMAGES:https://placehold.co/800x600/3B82F6/FFFFFF?text=Trip}
 
 aws:
   region: ap-south-1

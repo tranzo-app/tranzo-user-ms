@@ -16,6 +16,8 @@ import com.tranzo.tranzo_user_ms.user.repository.UserProfileRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserReportRepository;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.media.service.S3MediaService;
+import com.tranzo.tranzo_user_ms.chat.client.ConversationClient;
+import com.tranzo.tranzo_user_ms.commons.utility.SecurityUtils;
 import org.springframework.transaction.annotation.Transactional;
 import com.tranzo.tranzo_user_ms.user.utility.UserUtility;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +42,7 @@ public class UserService {
     private final TravelPalService travelPalService;
     private final RatingService ratingService;
     private final TripStatisticsClient tripStatisticsClient;
+    private final ConversationClient conversationClient;
 
     public void findUserByUserId(UUID userUuid) {
         userRepository.findUserByUserUuid(userUuid)
@@ -72,6 +75,19 @@ public class UserService {
                 .map(this::mapToSocialHandleDto)
                 .collect(Collectors.toList());
         String profilePictureUrl = resolveProfilePictureUrl(profileEntity.getProfilePictureUrl());
+        
+        // Get conversation ID if current user is authenticated
+        UUID conversationId = null;
+        try {
+            UUID currentUserId = SecurityUtils.getCurrentUserUuidOptional().orElse(null);
+            if (currentUserId != null && !currentUserId.equals(user.getUserUuid())) {
+                conversationId = conversationClient.getConversationIdBetweenUsers(currentUserId, user.getUserUuid());
+            }
+        } catch (Exception e) {
+            // Ignore errors getting conversation ID
+            log.debug("Could not get conversation ID: {}", e.getMessage());
+        }
+        
         return PublicUserProfileDto.builder()
                 .firstName(profileEntity.getFirstName())
                 .middleName(profileEntity.getMiddleName())
@@ -86,6 +102,7 @@ public class UserService {
                 .travelPalsCount(travelPalService.getMyTravelPals(user.getUserUuid()).size())
                 .completedTripsCount(tripStatisticsClient.getCompletedTripsCount(user.getUserUuid()))
                 .userRating(ratingService.getUserAverageRating(user.getUserUuid()))
+                .conversationId(conversationId)
                 .build();
     }
 
