@@ -354,13 +354,18 @@ public class TripManagementService {
                 // Get trips where user is NOT host and status matches
                 trips = tripRepository.findAll().stream()
                         .filter(trip -> trip.getTripStatus() == tripStatus)
+                        .filter(trip -> tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(
+                                trip.getTripId(), userId, TripMemberStatus.ACTIVE))
                         .filter(trip -> !tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(
                                 trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE))
                         .toList();
             }
         } else if (tripStatus != null) {
-            // Only status filter
-            trips = tripRepository.findByTripStatus(tripStatus);
+            // Only status filter - ensure user is a member
+            trips = tripRepository.findByTripStatus(tripStatus).stream()
+                    .filter(trip -> tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(
+                            trip.getTripId(), userId, TripMemberStatus.ACTIVE))
+                    .toList();
         } else if (isHost != null && userId != null) {
             // Only host filter
             if (isHost) {
@@ -370,13 +375,18 @@ public class TripManagementService {
                         .toList();
             } else {
                 trips = tripRepository.findAll().stream()
+                        .filter(trip -> tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(
+                                trip.getTripId(), userId, TripMemberStatus.ACTIVE))
                         .filter(trip -> !tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(
                                 trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE))
                         .toList();
             }
         } else {
-            // No filters
-            trips = tripRepository.findAll();
+            // No filters - get all trips where user is a member
+            trips = tripRepository.findAll().stream()
+                    .filter(trip -> tripMemberRepository.existsByTrip_TripIdAndUserIdAndStatus(
+                            trip.getTripId(), userId, TripMemberStatus.ACTIVE))
+                    .toList();
         }
 
         return trips.stream()
@@ -716,26 +726,23 @@ public class TripManagementService {
         int activeMemberCount = tripMemberRepository.countByTrip_TripIdAndStatus(
                 trip.getTripId(), TripMemberStatus.ACTIVE);
 
-        // Get host name - use stored value if available, otherwise fetch dynamically
-        String hostName = trip.getTripHostName();
-        if (hostName == null) {
-            // Fallback for existing trips without stored host name
-            UUID hostUserId = tripMemberRepository.findByTrip_TripIdAndStatus(trip.getTripId(), TripMemberStatus.ACTIVE)
-                    .stream()
-                    .filter(m -> m.getRole() == TripMemberRole.HOST)
-                    .map(TripMemberEntity::getUserId)
-                    .findFirst()
-                    .orElse(null);
+        // Always fetch host name dynamically to get current name from user profile
+        String hostName = null;
+        UUID hostUserId = tripMemberRepository.findByTrip_TripIdAndStatus(trip.getTripId(), TripMemberStatus.ACTIVE)
+                .stream()
+                .filter(m -> m.getRole() == TripMemberRole.HOST)
+                .map(TripMemberEntity::getUserId)
+                .findFirst()
+                .orElse(null);
 
-            if (hostUserId != null) {
-                Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(hostUserId));
-                UserNameDto hostNameDto = namesByUserId.get(hostUserId);
-                if (hostNameDto != null) {
-                    hostName = String.join(" ",
-                        hostNameDto.getFirstName() != null ? hostNameDto.getFirstName() : "",
-                        hostNameDto.getMiddleName() != null ? hostNameDto.getMiddleName() : "",
-                        hostNameDto.getLastName() != null ? hostNameDto.getLastName() : "").trim();
-                }
+        if (hostUserId != null) {
+            Map<UUID, UserNameDto> namesByUserId = userProfileClient.getNamesByUserIds(List.of(hostUserId));
+            UserNameDto hostNameDto = namesByUserId.get(hostUserId);
+            if (hostNameDto != null) {
+                hostName = String.join(" ",
+                    hostNameDto.getFirstName() != null ? hostNameDto.getFirstName() : "",
+                    hostNameDto.getMiddleName() != null ? hostNameDto.getMiddleName() : "",
+                    hostNameDto.getLastName() != null ? hostNameDto.getLastName() : "").trim();
             }
         }
 
@@ -1092,6 +1099,9 @@ public class TripManagementService {
 
             // Only published trips
             predicates.add(cb.equal(root.get("tripStatus"), TripStatus.PUBLISHED));
+
+            // Only public trips (exclude private trips)
+            predicates.add(cb.equal(root.get("visibilityStatus"), VisibilityStatus.PUBLIC));
 
             // Location predicates from search criteria (fuzzy match on tripDestination)
             if (request.getSearch() != null && request.getSearch().getLocation() != null && !request.getSearch().getLocation().isEmpty()) {
