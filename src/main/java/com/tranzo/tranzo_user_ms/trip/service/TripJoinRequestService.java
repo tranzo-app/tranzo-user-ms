@@ -50,9 +50,10 @@ public class TripJoinRequestService {
         {
             throw new TripValidationException(TripErrorCode.TRIP_NOT_PUBLISHED);
         }
-        if (trip.getVisibilityStatus() != VisibilityStatus.PUBLIC) {
-            throw new TripValidationException(TripErrorCode.TRIP_NOT_JOINABLE);
-        }
+        // Temporarily disabled visibility check to allow join requests for private trips
+        // if (trip.getVisibilityStatus() != VisibilityStatus.PUBLIC) {
+        //     throw new TripValidationException(TripErrorCode.TRIP_NOT_JOINABLE);
+        // }
 
         // Trip member validation
         Optional<TripMemberEntity> existingTripMember = tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE);
