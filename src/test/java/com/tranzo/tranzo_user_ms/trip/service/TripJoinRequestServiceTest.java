@@ -164,16 +164,30 @@ class TripJoinRequestServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw exception when trip is private")
+    @DisplayName("Should allow join request for private trip")
     void testCreateJoinRequest_PrivateTrip() {
         // Given
         tripEntity.setVisibilityStatus(VisibilityStatus.PRIVATE);
         when(tripRepository.findByIdForUpdate(tripId)).thenReturn(Optional.of(tripEntity));
+        when(tripMemberRepository.findByTrip_TripIdAndUserIdAndStatus(tripId, userId, TripMemberStatus.ACTIVE))
+            .thenReturn(Optional.empty());
+        when(tripJoinRequestRepository.existsByTrip_TripIdAndUserIdAndStatusIn(any(), any(), any()))
+            .thenReturn(false);
+        when(tripJoinRequestRepository.save(any())).thenReturn(joinRequestEntity);
+        when(userProfileClient.getNamesByUserIds(any())).thenReturn(Map.of(userId, UserNameDto.builder()
+            .userId(userId)
+            .firstName("John")
+            .middleName(null)
+            .lastName("Doe")
+            .bio(null)
+            .build()));
 
-        // When & Then
-        assertThrows(TripValidationException.class, () ->
-            tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId)
-        );
+        // When
+        TripJoinRequestResponseDto result = tripJoinRequestService.createJoinRequest(joinRequestDto, tripId, userId);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(tripId, result.getTripId());
     }
 
     @Test
