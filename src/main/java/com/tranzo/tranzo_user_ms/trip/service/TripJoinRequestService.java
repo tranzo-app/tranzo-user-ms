@@ -397,7 +397,7 @@ public class TripJoinRequestService {
         tripRepository.save(trip);
         
         // Soft delete any join requests for this user and trip
-        tripJoinRequestRepository.findByTrip_TripIdAndUserId(tripId, removalParticipantUserId)
+        tripJoinRequestRepository.findFirstByTrip_TripIdAndUserIdOrderByCreatedAtDesc(tripId, removalParticipantUserId)
                 .ifPresent(joinRequest -> {
                     joinRequest.setIsDeleted(true);
                     joinRequest.setDeletedAt(LocalDateTime.now());
@@ -414,11 +414,41 @@ public class TripJoinRequestService {
         // Validate trip exists
         tripRepository.findById(tripId)
                 .orElseThrow(TripNotFoundException::new);
-        
+
         // Find join request for this trip and user
-        Optional<TripJoinRequestEntity> joinRequest = tripJoinRequestRepository.findByTrip_TripIdAndUserId(tripId, userId);
-        
+        Optional<TripJoinRequestEntity> joinRequest = tripJoinRequestRepository.findFirstByTrip_TripIdAndUserIdOrderByCreatedAtDesc(tripId, userId);
+
         // Return status if found, null if not found
         return joinRequest.map(TripJoinRequestEntity::getStatus).orElse(null);
+    }
+
+    public TripJoinRequestResponseDto getJoinRequestForUser(UUID tripId, UUID userId) {
+        // Validate trip exists
+        TripEntity trip = tripRepository.findById(tripId)
+                .orElseThrow(TripNotFoundException::new);
+
+        // Find join request for this trip and user
+        Optional<TripJoinRequestEntity> joinRequest = tripJoinRequestRepository.findFirstByTrip_TripIdAndUserIdOrderByCreatedAtDesc(tripId, userId);
+
+        if (joinRequest.isEmpty()) {
+            return null;
+        }
+
+        TripJoinRequestEntity request = joinRequest.get();
+        UserNameDto names = userProfileClient.getNamesByUserIds(List.of(userId)).get(userId);
+
+        return TripJoinRequestResponseDto.builder()
+                .joinRequestId(request.getRequestId())
+                .tripId(tripId)
+                .requestorUserId(userId)
+                .firstName(names != null ? names.getFirstName() : null)
+                .middleName(names != null ? names.getMiddleName() : null)
+                .lastName(names != null ? names.getLastName() : null)
+                .profilePictureUrl(names != null ? names.getProfilePictureUrl() : null)
+                .status(request.getStatus())
+                .requestedChannel(request.getSource())
+                .createdAt(request.getCreatedAt())
+                .updatedAt(request.getUpdatedAt())
+                .build();
     }
 }

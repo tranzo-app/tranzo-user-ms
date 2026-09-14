@@ -16,5 +16,5 @@ public interface TripJoinRequestRepository extends JpaRepository<TripJoinRequest
 
     boolean existsByTrip_TripIdAndUserIdAndStatusIn(UUID tripId, UUID userUuid, Set<JoinRequestStatus> statusSet);
     
-    Optional<TripJoinRequestEntity> findByTrip_TripIdAndUserId(UUID tripId, UUID userId);
+    Optional<TripJoinRequestEntity> findFirstByTrip_TripIdAndUserIdOrderByCreatedAtDesc(UUID tripId, UUID userId);
 }

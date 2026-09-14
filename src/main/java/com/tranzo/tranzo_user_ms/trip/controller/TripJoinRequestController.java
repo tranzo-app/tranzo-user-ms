@@ -115,4 +115,17 @@ public class TripJoinRequestController {
         }
     }
 
+    @GetMapping("/trips/{tripId}/join-request")
+    public ResponseEntity<ResponseDto<TripJoinRequestResponseDto>> getJoinRequestForUser(@PathVariable UUID tripId) throws AuthException {
+        try {
+            UUID userId = SecurityUtils.getCurrentUserUuid();
+            TripJoinRequestResponseDto joinRequest = tripJoinRequestService.getJoinRequestForUser(tripId, userId);
+            return ResponseEntity.ok(ResponseDto.success("Join request fetched successfully", joinRequest));
+        } catch (AuthException e) {
+            throw e;
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
 }
