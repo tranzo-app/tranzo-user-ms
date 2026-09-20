@@ -16,8 +16,8 @@ import java.util.UUID;
 public class NotificationResponseDto {
 
     private UUID notificationId;
-    private UUID userId;
-    private UUID tripId;
+    private String userName;
+    private String tripName;
     private NotificationType type;
     private String title;
     private String body;
