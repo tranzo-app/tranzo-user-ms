@@ -6,6 +6,10 @@ import com.tranzo.tranzo_user_ms.notification.dto.NotificationResponseDto;
 import com.tranzo.tranzo_user_ms.notification.enums.NotificationType;
 import com.tranzo.tranzo_user_ms.notification.model.UserNotificationEntity;
 import com.tranzo.tranzo_user_ms.notification.service.NotificationService;
+import com.tranzo.tranzo_user_ms.trip.model.TripEntity;
+import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
+import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
+import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.data.domain.Page;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +25,8 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,6 +39,12 @@ class NotificationControllerTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private TripRepository tripRepository;
+
+    @Mock
+    private UserProfileClient userProfileClient;
 
     @InjectMocks
     private NotificationController notificationController;
@@ -47,17 +59,29 @@ class NotificationControllerTest {
     @Test
     @DisplayName("Should get my notifications successfully")
     void testGetMyNotifications_Success() throws Exception {
+        UUID tripId = UUID.randomUUID();
         UserNotificationEntity entity = UserNotificationEntity.builder()
             .notificationId(UUID.randomUUID())
             .userId(userId)
-            .tripId(UUID.randomUUID())
+            .tripId(tripId)
             .type(NotificationType.TRIP_CANCELLED)
             .title("Trip cancelled")
             .body("Your trip was cancelled.")
             .build();
         PageImpl<UserNotificationEntity> page = new PageImpl<>(List.of(entity));
 
+        TripEntity tripEntity = TripEntity.builder()
+            .tripId(tripId)
+            .tripTitle("Test Trip")
+            .build();
+
         when(notificationService.getNotificationsForUser(eq(userId), any())).thenReturn(page);
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(tripEntity));
+        when(userProfileClient.getNamesByUserIds(any())).thenReturn(Map.of(userId, UserNameDto.builder()
+            .userId(userId)
+            .firstName("John")
+            .lastName("Doe")
+            .build()));
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
@@ -67,6 +91,8 @@ class NotificationControllerTest {
             assertEquals(200, response.getStatusCode().value());
             assertNotNull(response.getBody());
             verify(notificationService).getNotificationsForUser(eq(userId), any());
+            verify(tripRepository).findById(tripId);
+            verify(userProfileClient).getNamesByUserIds(any());
         }
     }
 
