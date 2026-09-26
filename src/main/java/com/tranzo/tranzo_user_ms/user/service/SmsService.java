@@ -57,8 +57,8 @@ public class SmsService {
                 .messageAttributes(attributes)
                 .build();
 
-        if ("dev".equals(env)) {
-            log.info("Dev mode: SMS not sent | phone={} | otp={}", phone, otp);
+        if ("dev".equals(env) || "test".equals(env)) {
+            log.info("Dev/Test mode: SMS not sent | phone={} | otp={}", phone, otp);
             return;
         }
 

@@ -14,7 +14,7 @@ public class TestConfig {
         TwilioConfig config = new TwilioConfig();
         // Set disabled state for tests
         config.setEnabled(false);
-        config.setAccountSSD("test-account");
+        config.setAccountSid("test-account");
         config.setAuthToken("test-token");
         config.setPhoneNumber("test-phone");
         config.setSmsTemplate("Test template: %s");
