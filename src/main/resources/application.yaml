@@ -76,13 +76,14 @@ app:
 #     draft-reminder-cron: "0 0 9 * * ?"
 #     upcoming-cron: "0 0 8 * * ?"
 
-aws:
-  region: ap-south-1
-  access-key: ....
-  secret-key: ....
-
-ses:
-  from-email: support@tranzo.in
+# Commented out - using Twilio for SMS instead of AWS SNS/SES
+#aws:
+#  region: ap-south-1
+#  access-key: ....
+#  secret-key: ....
+#
+#ses:
+#  from-email: support@tranzo.in
 
 twilio :
   enabled: false
@@ -99,7 +100,7 @@ trip:
       per-page: 1
       orientation: landscape
       content-filter: low
-    default-images: https://via.placeholder.com/800x600/3B82F6/FFFFFF?text=Trip
+    default-images: https://placehold.co/800x600/3B82F6/FFFFFF?text=Trip
 
 ai:
   provider: gemini
