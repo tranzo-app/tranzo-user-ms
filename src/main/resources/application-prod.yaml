@@ -71,10 +71,11 @@ trip:
       content-filter: ${TRIP_IMAGE_UNSPLASH_CONTENT_FILTER:low}
     default-images: ${TRIP_IMAGE_DEFAULT_IMAGES:https://placehold.co/800x600/3B82F6/FFFFFF?text=Trip}
 
-aws:
-  region: ap-south-1
-  access-key: ${AWS_SES_ACCESS_KEY}
-  secret-key: ${AWS_SES_SECRET_KEY}
+# Commented out - using Twilio for SMS instead of AWS SNS/SES
+#aws:
+#  region: ap-south-1
+#  access-key: ${AWS_SES_ACCESS_KEY}
+#  secret-key: ${AWS_SES_SECRET_KEY}
 
 twilio :
   enabled: ${TWILIO_ENABLED}

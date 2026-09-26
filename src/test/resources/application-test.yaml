@@ -49,10 +49,11 @@ twilio:
   username: username
   sms-template: sns-template
 
-aws:
-  region: region
-  access-key: ses-access-key
-  secret-key: ses-secret-key
+# Commented out - using Twilio for SMS instead of AWS SNS
+#aws:
+#  region: region
+#  access-key: ses-access-key
+#  secret-key: ses-secret-key
 
 trip:
   image:
