@@ -16,7 +16,7 @@ public class TwilioConfig {
     private boolean enabled;
 
     @Value("${twilio.username}")
-    private String accountSSD;
+    private String accountSid;
 
     @Value("${twilio.auth-token}")
     private String authToken;
@@ -29,6 +29,8 @@ public class TwilioConfig {
 
     @PostConstruct
     public void init() {
-        Twilio.init(this.accountSSD, this.authToken);
+        if (enabled) {
+            Twilio.init(this.accountSid, this.authToken);
+        }
     }
 }

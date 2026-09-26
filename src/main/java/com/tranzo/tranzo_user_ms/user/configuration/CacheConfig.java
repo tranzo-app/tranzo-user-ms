@@ -25,7 +25,7 @@ public class CacheConfig {
     @Bean
     public Cache<String, Integer> rateLimitCache() {
         return Caffeine.newBuilder()
-                .expireAfterWrite(10, TimeUnit.MINUTES)
+                .expireAfterWrite(5, TimeUnit.MINUTES)
                 .maximumSize(100000)
                 .build();
     }
