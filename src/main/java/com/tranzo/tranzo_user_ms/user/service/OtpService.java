@@ -2,7 +2,6 @@ package com.tranzo.tranzo_user_ms.user.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.tranzo.tranzo_user_ms.commons.service.JwtService;
-import com.tranzo.tranzo_user_ms.user.configuration.TwilioConfig;
 import com.tranzo.tranzo_user_ms.user.dto.*;
 import com.tranzo.tranzo_user_ms.user.enums.AccountStatus;
 import com.tranzo.tranzo_user_ms.user.enums.UserRole;
@@ -17,9 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.twilio.rest.api.v2010.account.Message;
-import com.twilio.type.PhoneNumber;
-
 import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.Optional;
@@ -28,14 +24,13 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 public class OtpService {
-    private final TwilioConfig twilioConfig;
     private final OtpUtility otpUtility;
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final SessionService sessionService;
     private final Cache<String, Integer> rateLimitCache;
     private final OtpCacheService cacheService;
-//    private final SmsService smsService;
+    private final SmsService smsService;
     private final EmailService emailService;
 
     private static final int MAX_ATTEMPTS = 3;
@@ -68,39 +63,30 @@ public class OtpService {
             } else {
                 // resend same OTP
                 String otpHash = existing.getOtpHash();
-//                smsService.sendOtp(identifier, existing.getPlainOtp()); // need to store plain OTP temporarily
-//                if (!"dev".equals(env) && twilioConfig.isEnabled() &&  requestOtpDto.getEmailId() == null)
-//                {
-//                    sendSms(identifier, existing.getPlainOtp());
+                if (requestOtpDto.getEmailId() == null) {
+                    smsService.sendOtp(identifier, existing.getPlainOtp());
+                }
+//                else {
+//                    emailService.sendOtpEmail(identifier, existing.getPlainOtp());
 //                }
                 existing.setSentAt(now);
                 cacheService.put(identifier, existing);
                 return;
             }
         }
-//        String otp = "dev".equals(env) ? "111111" : otpUtility.generateOtp();
-        String otp = "111111";
+        String otp = "dev".equals(env) ? "111111" : otpUtility.generateOtp();
         String hash = hashOtp(otp);
-//        if (!"dev".equals(env) && twilioConfig.isEnabled() && requestOtpDto.getEmailId() == null)
-//        {
-//            sendSms(identifier, otp);
+        if (requestOtpDto.getEmailId() == null) {
+            smsService.sendOtp(identifier, otp);
+        }
+//        else {
+//            emailService.sendOtpEmail(identifier, otp);
 //        }
         cacheService.put(
                 otpKey,
                 new OtpData(otp, hash, 0, System.currentTimeMillis())
         );
         log.info("OTP sent | identifier={} | status=SUCCESS", identifier);
-        // Sending SMS via AWS SNS
-//        smsService.sendOtp(identifier, otp);
-        // Sending SMS via AWS SNS
-//        if (requestOtpDto.getEmailId() != null)
-//        {
-//            emailService.sendOtpEmail(identifier, otp);
-//        }
-//        else
-//        {
-//            smsService.sendOtp(identifier, otp);
-//        }
     }
 
     public VerifyOtpResponseDto verifyOtp(VerifyOtpDto verifyOtpDto, HttpServletResponse response) throws Exception {
@@ -176,11 +162,6 @@ public class OtpService {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         byte[] hash = md.digest(otp.getBytes());
         return Base64.getEncoder().encodeToString(hash);
-    }
-
-    private void sendSms(String to, String otp) {
-        String message = String.format(twilioConfig.getSmsTemplate(), otp, 300 / 60);
-        Message.creator(new PhoneNumber(to), new PhoneNumber(twilioConfig.getPhoneNumber()), message).create();
     }
 
     @Transactional
