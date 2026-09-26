@@ -47,7 +47,7 @@ twilio:
   auth-token: auth-token
   phone-number: phone-number
   username: username
-  sms-template: sns-template
+  sms-template: "Your Tranzo OTP code is %s. It will expire in %d minutes."
 
 # Commented out - using Twilio for SMS instead of AWS SNS
 #aws:

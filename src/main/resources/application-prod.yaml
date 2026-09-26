@@ -82,7 +82,7 @@ twilio :
   auth-token : ${TWILIO_AUTH_TOKEN}
   phone-number : ${TWILIO_PHONE_NUMBER}
   username : ${TWILIO_USERNAME}
-  sms-template: ${TWILIO_SMS_TEMPLATE}
+  sms-template: ${TWILIO_SMS_TEMPLATE:Your Tranzo OTP code is %s. It will expire in %d minutes.}
 
 aadhar:
   enabled: false

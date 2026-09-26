@@ -90,7 +90,7 @@ twilio :
   auth-token : auth_token
   phone-number : ....
   username : username
-  sms-template: template
+  sms-template: "Your Tranzo OTP code is %s. It will expire in %d minutes."
 
 trip:
   image:
