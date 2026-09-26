@@ -24,7 +24,7 @@ public class SmsService {
             return;
         }
 
-        String message = String.format(twilioConfig.getSmsTemplate(), otp);
+        String message = String.format(twilioConfig.getSmsTemplate(), otp, 5);
 
         if ("dev".equals(env) || "test".equals(env)) {
             log.info("Dev/Test mode: SMS not sent | phone={} | otp={}", phone, otp);
