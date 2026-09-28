@@ -36,6 +36,9 @@ public class ConversationEntity {
     @Column(name = "conversation_name")
     private String conversationName; // only used if type = GROUP
 
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
     /**
      * IMPORTANT:
      * - Using Set to prevent duplicate participants

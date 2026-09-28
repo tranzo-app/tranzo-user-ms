@@ -6,6 +6,7 @@ import com.tranzo.tranzo_user_ms.chat.service.CreateAndManageConversationService
 import com.tranzo.tranzo_user_ms.commons.events.MemberLeftOrRemovedTripEvent;
 import com.tranzo.tranzo_user_ms.commons.events.ParticipantJoinedTripEvent;
 import com.tranzo.tranzo_user_ms.commons.events.TravelPalAcceptedEvent;
+import com.tranzo.tranzo_user_ms.commons.events.TripCancelledEvent;
 import com.tranzo.tranzo_user_ms.commons.events.TripGroupChatCreatedEvent;
 import com.tranzo.tranzo_user_ms.commons.events.TripPublishedEvent;
 import com.tranzo.tranzo_user_ms.trip.repository.TripRepository;
@@ -71,6 +72,22 @@ public class TripEventsListener {
             createAndManageConversationService.removeParticipantFromConversation(conversationId.get(), userId);
         } else {
             log.warn("Conversation not found for trip | tripId={} | userId={} | reason=NO_CONVERSATION_ID", tripId, userId);
+        }
+    }
+
+    @EventListener
+    public void onTripCancelled(TripCancelledEvent event) {
+        log.info("Received TripCancelledEvent. tripId={}", event.getTripId());
+        UUID tripId = event.getTripId();
+
+        Optional<UUID> conversationId = tripRepository.findById(tripId)
+                .map(trip -> trip.getConversationID());
+
+        if (conversationId.isPresent()) {
+            createAndManageConversationService.markConversationAsDeleted(conversationId.get());
+            log.info("Conversation marked as deleted | tripId={} | conversationId={}", tripId, conversationId.get());
+        } else {
+            log.warn("Conversation not found for trip | tripId={} | reason=NO_CONVERSATION_ID", tripId);
         }
     }
 }

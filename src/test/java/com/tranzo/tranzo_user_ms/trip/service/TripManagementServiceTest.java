@@ -12,6 +12,7 @@ import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
 import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.DisplayName;
@@ -71,6 +72,9 @@ class TripManagementServiceTest {
 
     @Mock
     private ImageFetchService imageFetchService;
+
+    @Mock
+    private Validator validator;
 
     @InjectMocks
     private TripManagementService tripManagementService;

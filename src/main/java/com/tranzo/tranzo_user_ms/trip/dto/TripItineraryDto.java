@@ -1,5 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.dto;
 
+import com.tranzo.tranzo_user_ms.trip.validation.groups.PublishChecks;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,16 +17,16 @@ import java.util.Map;
 @AllArgsConstructor
 @Builder
 public class TripItineraryDto {
-    @NotNull(message = "Day number is required")
-    @Min(value = 1, message = "Day number must be at least 1")
+    @NotNull(groups = PublishChecks.class, message = "Day number is required")
+    @Min(value = 1, groups = PublishChecks.class, message = "Day number must be at least 1")
     private Integer dayNumber;
 
-    @NotBlank(message = "Title is required")
-    @Size(max = 200, message = "Title must not exceed 200 characters")
+    @NotBlank(groups = PublishChecks.class, message = "Title is required")
+    @Size(max = 200, groups = PublishChecks.class, message = "Title must not exceed 200 characters")
     private String title;
 
-    @NotBlank(message = "Description is required")
-    @Size(max = 500, message = "Description must not exceed 500 characters")
+    @NotBlank(groups = PublishChecks.class, message = "Description is required")
+    @Size(max = 500, groups = PublishChecks.class, message = "Description must not exceed 500 characters")
     private String description;
 
     private Map<String, Object> activities;

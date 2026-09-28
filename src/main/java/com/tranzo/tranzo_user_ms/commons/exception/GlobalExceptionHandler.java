@@ -314,6 +314,7 @@ public class GlobalExceptionHandler {
             case INVALID_MAX_PARTICIPANTS -> "Max participants must be greater than zero";
             case JOIN_POLICY_MISSING -> "Join policy is required";
             case ITINERARY_MISSING -> "At least one itinerary is required";
+            case VALIDATION_FAILED -> "Trip validation failed";
 
             // Trip capacity and membership errors
             case TRIP_FULL -> "Trip is already full";

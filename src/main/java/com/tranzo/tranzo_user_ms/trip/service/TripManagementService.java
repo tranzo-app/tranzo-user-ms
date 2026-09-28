@@ -13,9 +13,12 @@ import com.tranzo.tranzo_user_ms.user.client.UserProfileClient;
 import com.tranzo.tranzo_user_ms.user.dto.UserNameDto;
 import com.tranzo.tranzo_user_ms.user.service.TravelPalService;
 import com.tranzo.tranzo_user_ms.trip.validation.TripPublishEligibilityValidator;
+import com.tranzo.tranzo_user_ms.trip.validation.groups.PublishChecks;
 import com.tranzo.tranzo_user_ms.media.service.S3MediaService;
 import com.tranzo.tranzo_user_ms.commons.events.*;
 import jakarta.persistence.criteria.Expression;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
@@ -51,6 +54,7 @@ public class TripManagementService {
     private final ImageFetchService imageFetchService;
     private final S3MediaService s3MediaService;
     private final TripImageRepository tripImageRepository;
+    private final Validator validator;
 
     public TripManagementService(TripMemberRepository tripMemberRepository,
                                  TripRepository tripRepository,
@@ -66,7 +70,8 @@ public class TripManagementService {
                                  UserProfileClient userProfileClient,
                                  ImageFetchService imageFetchService,
                                  S3MediaService s3MediaService,
-                                 TripImageRepository tripImageRepository) {
+                                 TripImageRepository tripImageRepository,
+                                 Validator validator) {
         this.tripMemberRepository = tripMemberRepository;
         this.tripRepository = tripRepository;
         this.tagRepository = tagRepository;
@@ -82,6 +87,7 @@ public class TripManagementService {
         this.imageFetchService = imageFetchService;
         this.s3MediaService = s3MediaService;
         this.tripImageRepository = tripImageRepository;
+        this.validator = validator;
     }
 
     private void resolveTripImages(TripEntity trip, List<String> userProvidedImageUrls, String userId) {
@@ -428,6 +434,17 @@ public class TripManagementService {
                 .orElseThrow(() -> new TripNotFoundException());
         userUtil.validateUserIsHost(tripId, userId);
         tripPublishEligibilityValidator.validate(trip);
+        
+        // Validate trip data with PublishChecks before publishing
+        TripDto tripDto = mapTripEntityToTripDto(trip);
+        Set<ConstraintViolation<TripDto>> violations = validator.validate(tripDto, PublishChecks.class);
+        if (!violations.isEmpty()) {
+            String errorMessage = violations.stream()
+                    .map(ConstraintViolation::getMessage)
+                    .collect(Collectors.joining(", "));
+            throw new TripValidationException(TripErrorCode.VALIDATION_FAILED, errorMessage);
+        }
+        
         trip.setTripStatus(TripStatus.PUBLISHED);
         if (trip.getVisibilityStatus() == null)
         {
@@ -471,6 +488,46 @@ public class TripManagementService {
         userUtil.validateUserIsHost(tripId, userId);
         updatePublishedTripBasicInfo(trip, tripDto);
         updatePublishedTripItinerary(trip, tripDto);
+
+        // Upload user-provided image files to S3 (if provided)
+        if (files != null && !files.isEmpty()) {
+            Set<TripImageEntity> images = uploadTripImagesToS3(files, trip.getTripDestination(), userId.toString());
+            trip.setTripImages(images);
+            images.forEach(image -> image.incrementUsage());
+        }
+
+        TripEntity updateTrip = tripRepository.save(trip);
+
+        List<UUID> memberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
+                .stream()
+                .map(TripMemberEntity::getUserId)
+                .toList();
+        if (!memberUserIds.isEmpty()) {
+            applicationEventPublisher.publishEvent(
+                    new TripDetailsChangedEvent(tripId, trip.getTripTitle(), memberUserIds));
+        }
+
+        return TripResponseDto.builder()
+                .tripId(updateTrip.getTripId())
+                .tripStatus(updateTrip.getTripStatus())
+                .build();
+    }
+
+    @Transactional
+    public TripResponseDto updatePublishedTrip(TripUpdateDto tripUpdateDto, UUID tripId, UUID userId, List<MultipartFile> files) throws IOException
+    {
+        TripEntity trip = tripRepository.findById(tripId)
+                .orElseThrow(() -> new TripNotFoundException());
+        if (trip.getTripStatus() != TripStatus.PUBLISHED && trip.getTripStatus() != TripStatus.ONGOING) {
+            throw new TripValidationException(TripErrorCode.INVALID_TRIP_STATUS_TRANSITION, "Only published or ongoing trips can be updated");
+        }
+        userUtil.validateUserIsHost(tripId, userId);
+        updatePublishedTripBasicInfoFromUpdateDto(trip, tripUpdateDto);
+        
+        // Only update itineraries if provided
+        if (tripUpdateDto.getTripItineraries() != null && !tripUpdateDto.getTripItineraries().isEmpty()) {
+            updatePublishedTripItineraryFromUpdateDto(trip, tripUpdateDto);
+        }
 
         // Upload user-provided image files to S3 (if provided)
         if (files != null && !files.isEmpty()) {
@@ -554,6 +611,72 @@ public class TripManagementService {
         if (tripDto.getMaxParticipants() != null) trip.setMaxParticipants(tripDto.getMaxParticipants());
         if (tripDto.getJoinPolicy() != null) trip.setJoinPolicy(tripDto.getJoinPolicy());
         if (tripDto.getVisibilityStatus() != null) trip.setVisibilityStatus(tripDto.getVisibilityStatus());
+    }
+
+    private void updatePublishedTripBasicInfoFromUpdateDto(TripEntity trip, TripUpdateDto tripUpdateDto) {
+        if (tripUpdateDto.getTripTitle() != null) trip.setTripTitle(tripUpdateDto.getTripTitle());
+        if (tripUpdateDto.getTripDescription() != null) trip.setTripDescription(tripUpdateDto.getTripDescription());
+        if (tripUpdateDto.getTripDestination() != null) trip.setTripDestination(tripUpdateDto.getTripDestination());
+        if (tripUpdateDto.getLatitude() != null) trip.setLatitude(tripUpdateDto.getLatitude());
+        if (tripUpdateDto.getLongitude() != null) trip.setLongitude(tripUpdateDto.getLongitude());
+        if (tripUpdateDto.getTripStartDate() != null) trip.setTripStartDate(tripUpdateDto.getTripStartDate());
+        if (tripUpdateDto.getTripEndDate() != null) {
+            if (tripUpdateDto.getTripStartDate() != null && tripUpdateDto.getTripStartDate().isAfter(tripUpdateDto.getTripEndDate())) {
+                throw new TripValidationException(TripErrorCode.INVALID_DATE_RANGE);
+            }
+            trip.setTripEndDate(tripUpdateDto.getTripEndDate());
+        }
+        if (tripUpdateDto.getEstimatedBudget() != null) trip.setEstimatedBudget(tripUpdateDto.getEstimatedBudget());
+        if (tripUpdateDto.getMaxParticipants() != null) trip.setMaxParticipants(tripUpdateDto.getMaxParticipants());
+        if (tripUpdateDto.getIsFull() != null) trip.setIsFull(tripUpdateDto.getIsFull());
+        if (tripUpdateDto.getTripFullReason() != null) trip.setTripFullReason(tripUpdateDto.getTripFullReason());
+        if (tripUpdateDto.getJoinPolicy() != null) trip.setJoinPolicy(tripUpdateDto.getJoinPolicy());
+        if (tripUpdateDto.getVisibilityStatus() != null) trip.setVisibilityStatus(tripUpdateDto.getVisibilityStatus());
+        
+        // Update trip policy if provided
+        if (tripUpdateDto.getTripPolicy() != null) {
+            TripPolicyEntity tripPolicyEntity = trip.getTripPolicyEntity();
+            if (tripPolicyEntity == null) {
+                tripPolicyEntity = new TripPolicyEntity();
+                tripPolicyEntity.setTrip(trip);
+                trip.setTripPolicyEntity(tripPolicyEntity);
+            }
+            tripPolicyEntity.setCancellationPolicy(tripUpdateDto.getTripPolicy().getCancellationPolicy());
+            tripPolicyEntity.setRefundPolicy(tripUpdateDto.getTripPolicy().getRefundPolicy());
+        }
+        
+        // Update trip metadata if provided
+        if (tripUpdateDto.getTripMetaData() != null) {
+            TripMetaDataEntity tripMetaDataEntity = trip.getTripMetaData();
+            if (tripMetaDataEntity == null) {
+                tripMetaDataEntity = new TripMetaDataEntity();
+                tripMetaDataEntity.setTrip(trip);
+                trip.setTripMetaData(tripMetaDataEntity);
+            }
+            tripMetaDataEntity.setTripSummary(tripUpdateDto.getTripMetaData().getTripSummary());
+            tripMetaDataEntity.setWhatsIncluded(tripUpdateDto.getTripMetaData().getWhatsIncluded());
+            tripMetaDataEntity.setWhatsExcluded(tripUpdateDto.getTripMetaData().getWhatsExcluded());
+        }
+        
+        // Update trip tags if provided
+        if (tripUpdateDto.getTripTags() != null) {
+            if (tripUpdateDto.getTripTags().isEmpty()) {
+                trip.getTripTags().clear();
+            } else {
+                Set<TagEntity> updatedTripTags = new HashSet<>();
+                for (TripTagDto tagDto : tripUpdateDto.getTripTags()) {
+                    TagEntity tag = tagRepository.findByTagNameIgnoreCase(tagDto.getTagName())
+                            .orElseGet(() -> {
+                                TagEntity newTag = new TagEntity();
+                                newTag.setTagName(tagDto.getTagName());
+                                return tagRepository.save(newTag);
+                            });
+                    updatedTripTags.add(tag);
+                }
+                trip.getTripTags().clear();
+                trip.getTripTags().addAll(updatedTripTags);
+            }
+        }
     }
 
     @Transactional
@@ -721,6 +844,17 @@ public class TripManagementService {
         }
     }
 
+    private void updatePublishedTripItineraryFromUpdateDto(TripEntity trip, TripUpdateDto tripUpdateDto)
+    {
+        for (TripItineraryDto tripItineraryDto : tripUpdateDto.getTripItineraries())
+        {
+            TripItineraryEntity tripItinerary = tripItineraryRepository.findByTrip_TripIdAndDayNumber(trip.getTripId(), tripItineraryDto.getDayNumber())
+                    .orElseGet(TripItineraryEntity::new);
+            setTripItineraryEntity(tripItineraryDto, trip, tripItinerary);
+            trip.getTripItineraries().add(tripItinerary);
+        }
+    }
+
     private TripViewDto mapTripEntityToDto(TripEntity trip, Boolean isTripHost)
     {
         int activeMemberCount = tripMemberRepository.countByTrip_TripIdAndStatus(
@@ -787,6 +921,70 @@ public class TripManagementService {
                         })
                         .collect(java.util.stream.Collectors.toList()) : null)
                 .build();
+    }
+
+    private TripDto mapTripEntityToTripDto(TripEntity trip)
+    {
+        return TripDto.builder()
+                .tripTitle(trip.getTripTitle())
+                .tripDescription(trip.getTripDescription())
+                .tripDestination(trip.getTripDestination())
+                .latitude(trip.getLatitude())
+                .longitude(trip.getLongitude())
+                .tripStartDate(trip.getTripStartDate())
+                .tripEndDate(trip.getTripEndDate())
+                .estimatedBudget(trip.getEstimatedBudget())
+                .maxParticipants(trip.getMaxParticipants())
+                .isFull(trip.getIsFull())
+                .tripFullReason(trip.getTripFullReason())
+                .joinPolicy(trip.getJoinPolicy())
+                .visibilityStatus(trip.getVisibilityStatus())
+                .tripPolicy(trip.getTripPolicyEntity() != null ? mapTripPolicyEntityToDto(trip.getTripPolicyEntity()) : null)
+                .tripMetaData(trip.getTripMetaData() != null ? mapTripMetaDataEntityToDto(trip.getTripMetaData()) : null)
+                .tripTags(trip.getTripTags() != null ? mapTripTagsEntityToDto(trip.getTripTags()) : new ArrayList<>())
+                .tripItineraries(trip.getTripItineraries() != null ? mapTripItinerariesEntityToDto(trip.getTripItineraries()) : new ArrayList<>())
+                .imageUrls(null)
+                .build();
+    }
+
+    private TripPolicyDto mapTripPolicyEntityToDto(TripPolicyEntity tripPolicy)
+    {
+        return TripPolicyDto.builder()
+                .cancellationPolicy(tripPolicy.getCancellationPolicy())
+                .refundPolicy(tripPolicy.getRefundPolicy())
+                .build();
+    }
+
+    private TripMetaDataDto mapTripMetaDataEntityToDto(TripMetaDataEntity tripMetaData)
+    {
+        return TripMetaDataDto.builder()
+                .tripSummary(tripMetaData.getTripSummary())
+                .whatsIncluded(tripMetaData.getWhatsIncluded())
+                .whatsExcluded(tripMetaData.getWhatsExcluded())
+                .build();
+    }
+
+    private List<TripTagDto> mapTripTagsEntityToDto(Set<TagEntity> tripTags)
+    {
+        return tripTags.stream()
+                .map(tag -> TripTagDto.builder()
+                        .tagName(tag.getTagName())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    private List<TripItineraryDto> mapTripItinerariesEntityToDto(List<TripItineraryEntity> tripItineraries)
+    {
+        return tripItineraries.stream()
+                .map(itinerary -> TripItineraryDto.builder()
+                        .dayNumber(itinerary.getDayNumber())
+                        .title(itinerary.getTitle())
+                        .description(itinerary.getDescription())
+                        .activities(itinerary.getActivities())
+                        .meals(itinerary.getMeals())
+                        .stay(itinerary.getStay())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     private TripPolicyViewDto mapTripPolicyToDto(TripPolicyEntity tripPolicy)

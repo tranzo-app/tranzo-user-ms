@@ -100,7 +100,7 @@ class CreateAndManageChatControllerTest {
     @Test
     @DisplayName("getMyConversations returns list from service")
     void testGetMyConversations() throws Exception {
-        ChatListItemDto item = new ChatListItemDto(UUID.randomUUID(), null, "hi", "test conversation", LocalDateTime.now(), false, 0L, null);
+        ChatListItemDto item = new ChatListItemDto(UUID.randomUUID(), null, "hi", "test conversation", LocalDateTime.now(), false, 0L, null, false);
         List<ChatListItemDto> list = List.of(item);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
