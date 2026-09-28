@@ -7,11 +7,13 @@ import com.tranzo.tranzo_user_ms.trip.dto.CreateQnaRequestDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripResponseDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripSearchRequest;
+import com.tranzo.tranzo_user_ms.trip.dto.TripUpdateDto;
 import com.tranzo.tranzo_user_ms.trip.dto.TripViewDto;
 import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.service.TripInviteService;
 import com.tranzo.tranzo_user_ms.trip.service.TripManagementService;
 import com.tranzo.tranzo_user_ms.trip.validation.groups.DraftChecks;
+import com.tranzo.tranzo_user_ms.trip.validation.groups.PublishChecks;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import jakarta.security.auth.message.AuthException;
 import jakarta.validation.Valid;
@@ -164,15 +166,15 @@ public class TripManagementController {
         return ResponseEntity.ok(ResponseDto.success("Trip is successfully published", tripResponse));
     }
 
-    // Frontend should send the partial TripDto whether any field is empty or not. That's why it is PATCH
+    // Frontend should send the partial TripUpdateDto whether any field is empty or not. That's why it is PATCH
     @PatchMapping(value = "/{tripId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ResponseDto<TripResponseDto>> updatePublishedTrip(
             @PathVariable UUID tripId,
-            @RequestPart(value = "trip") @Valid TripDto tripDto,
+            @RequestPart(value = "trip") @Valid TripUpdateDto tripUpdateDto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) throws AuthException, IOException {
         UUID userId = SecurityUtils.getCurrentUserUuid();
         log.info("Incoming request | API=/trips/{} | method=PATCH | userId={} | filesCount={}", tripId, userId, files != null ? files.size() : 0);
-        TripResponseDto tripResponse = tripManagementService.updateTrip(tripDto, tripId, userId, files);
+        TripResponseDto tripResponse = tripManagementService.updatePublishedTrip(tripUpdateDto, tripId, userId, files);
         log.info("Published trip updated | userId={} | tripId={} | status=SUCCESS", userId, tripId);
         return ResponseEntity.ok(ResponseDto.success("Published trip has been updated successfully", tripResponse));
     }

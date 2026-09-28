@@ -1,7 +1,6 @@
 package com.tranzo.tranzo_user_ms.chat.dto;
 
 import com.tranzo.tranzo_user_ms.chat.enums.ConversationType;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -20,6 +19,7 @@ public class ChatListItemDto {
     private Boolean muted;
     private Long unreadCount;
     private String profilePictureUrl;
+    private Boolean isDeleted;
 
     public ChatListItemDto(
             UUID conversationId,
@@ -29,7 +29,8 @@ public class ChatListItemDto {
             LocalDateTime lastMessageAt,
             Boolean muted,
             Long unreadCount,
-            String profilePictureUrl
+            String profilePictureUrl,
+            Boolean isDeleted
     ) {
         this.conversationId = conversationId;
         this.type = type;
@@ -39,5 +40,6 @@ public class ChatListItemDto {
         this.unreadCount = unreadCount;
         this.conversationName = conversationName;
         this.profilePictureUrl = profilePictureUrl;
+        this.isDeleted = isDeleted;
     }
 }

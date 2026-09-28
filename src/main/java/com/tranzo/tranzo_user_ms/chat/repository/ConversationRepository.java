@@ -87,9 +87,12 @@ public interface ConversationRepository extends JpaRepository<ConversationEntity
                   LIMIT 1
               )
         ),
-        
+
         /* Profile picture URL - null for group chats, will be set later for one-on-one */
-        null
+        null,
+
+        /* Is deleted or not */
+        c.isDeleted
     )
     FROM ConversationEntity c
     WHERE EXISTS (

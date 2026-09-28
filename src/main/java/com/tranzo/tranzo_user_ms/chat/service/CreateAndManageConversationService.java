@@ -597,4 +597,32 @@ public class CreateAndManageConversationService {
             throw e;
         }
     }
+
+    /**
+     * Marks a conversation as deleted/inactive.
+     * Called when a trip is cancelled.
+     *
+     * @param conversationId the conversation ID
+     * @throws ConversationNotFoundException if conversation not found
+     */
+    public void markConversationAsDeleted(UUID conversationId) {
+        log.info("Processing started | operation=markConversationAsDeleted | conversationId={}", conversationId);
+
+        try {
+            ConversationEntity conversation = conversationRepository.findById(conversationId)
+                    .orElseThrow(() -> {
+                        log.error("Conversation not found | operation=markConversationAsDeleted | conversationId={} | reason=NOT_FOUND", conversationId);
+                        return new ConversationNotFoundException("CONVERSATION_NOT_FOUND");
+                    });
+
+            conversation.setIsDeleted(true);
+            conversationRepository.save(conversation);
+            log.info("Processing completed | operation=markConversationAsDeleted | conversationId={} | status=DELETED", conversationId);
+        } catch (ConversationNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Operation failed | operation=markConversationAsDeleted | conversationId={} | reason={}", conversationId, e.getMessage(), e);
+            throw e;
+        }
+    }
 }

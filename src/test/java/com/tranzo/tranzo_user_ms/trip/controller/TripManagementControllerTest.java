@@ -43,6 +43,7 @@ class TripManagementControllerTest {
     private UUID userId;
     private UUID tripId;
     private TripDto tripDto;
+    private TripUpdateDto tripUpdateDto;
     private TripResponseDto tripResponseDto;
     private TripViewDto tripViewDto;
 
@@ -51,6 +52,7 @@ class TripManagementControllerTest {
         userId = UUID.randomUUID();
         tripId = UUID.randomUUID();
         tripDto = createSampleTripDto();
+        tripUpdateDto = createSampleTripUpdateDto();
         tripResponseDto = createSampleTripResponseDto();
         tripViewDto = createSampleTripViewDto();
     }
@@ -207,18 +209,18 @@ class TripManagementControllerTest {
     @Test
     @DisplayName("Should update published trip successfully")
     void testUpdatePublishedTrip_Success() throws Exception {
-        when(tripManagementService.updateTrip(any(TripDto.class), any(UUID.class), any(UUID.class), any()))
+        when(tripManagementService.updatePublishedTrip(any(TripUpdateDto.class), any(UUID.class), any(UUID.class), any()))
             .thenReturn(tripResponseDto);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserUuid).thenReturn(userId);
 
             ResponseEntity<ResponseDto<TripResponseDto>> response =
-                tripManagementController.updatePublishedTrip(tripId, tripDto, null);
+                tripManagementController.updatePublishedTrip(tripId, tripUpdateDto, null);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
-            verify(tripManagementService, times(1)).updateTrip(eq(tripDto), eq(tripId), eq(userId), any());
+            verify(tripManagementService, times(1)).updatePublishedTrip(eq(tripUpdateDto), eq(tripId), eq(userId), any());
         }
     }
 
@@ -441,6 +443,20 @@ class TripManagementControllerTest {
         dto.setTripId(tripId);
         dto.setTripTitle("Sample Trip");
         dto.setTripDestination("Paris");
+        return dto;
+    }
+
+    private TripUpdateDto createSampleTripUpdateDto() {
+        TripUpdateDto dto = new TripUpdateDto();
+        dto.setTripTitle("Updated Trip");
+        dto.setTripDescription("Updated Description");
+        dto.setTripDestination("London");
+        dto.setTripStartDate(LocalDate.of(2026, 7, 1));
+        dto.setTripEndDate(LocalDate.of(2026, 7, 10));
+        dto.setEstimatedBudget(6000.0);
+        dto.setMaxParticipants(15);
+        dto.setJoinPolicy(JoinPolicy.APPROVAL_REQUIRED);
+        dto.setVisibilityStatus(VisibilityStatus.PUBLIC);
         return dto;
     }
 }
