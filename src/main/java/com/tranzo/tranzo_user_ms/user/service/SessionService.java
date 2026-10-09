@@ -47,7 +47,14 @@ public class SessionService {
             HttpServletResponse response
     ) {
         UsersEntity user = findUser(request);
+        return createSessionForUser(user, response);
+    }
 
+    @Transactional
+    public SessionResponseDto createSessionForUser(
+            UsersEntity user,
+            HttpServletResponse response
+    ) {
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
 
