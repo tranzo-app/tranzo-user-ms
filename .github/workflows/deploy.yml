@@ -109,13 +109,13 @@ jobs:
             # -----------------------------
             # Stop old container safely
             # -----------------------------
-            docker compose down || true
+            docker-compose down || true
 
             # -----------------------------
             # Build & run the new image
             # -----------------------------
-            docker compose build --no-cache app
-            docker compose up -d app
+            docker-compose build --no-cache app
+            docker-compose up -d app
 
             # -----------------------------
             # Clean unused Docker resources
