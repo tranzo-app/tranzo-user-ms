@@ -7,6 +7,7 @@ import com.tranzo.tranzo_user_ms.user.dto.*;
 import com.tranzo.tranzo_user_ms.user.model.UsersEntity;
 import com.tranzo.tranzo_user_ms.user.repository.UserRepository;
 import com.tranzo.tranzo_user_ms.user.service.UserService;
+import com.tranzo.tranzo_user_ms.user.service.SessionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,7 +43,13 @@ class UserControllerTest {
     private UserRepository userRepository;
 
     @Mock
+    private SessionService sessionService;
+
+    @Mock
     private HttpServletRequest request;
+
+    @Mock
+    private HttpServletResponse response;
 
     @InjectMocks
     private UserController controller;
@@ -80,12 +88,18 @@ class UserControllerTest {
         when(request.getAttribute("registrationIdentifier")).thenReturn("email:u@test.com");
         when(userService.createUserProfile(any(UserProfileDto.class), eq("email:u@test.com"), any())).thenReturn(userId);
         when(userService.getUserProfile(userId)).thenReturn(profileDto);
-        
+
         UsersEntity userEntity = new UsersEntity();
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(userEntity));
-        when(jwtService.generateAccessToken(userEntity)).thenReturn("test-access-token");
 
-        ResponseEntity<ResponseDto<RegisterResponseDto>> res = controller.registerUser(request, profileDto, null);
+        SessionResponseDto sessionResponse = SessionResponseDto.builder()
+                .authenticated(true)
+                .accessToken("test-access-token")
+                .expiresIn(3600L)
+                .build();
+        when(sessionService.createSessionForUser(userEntity, response)).thenReturn(sessionResponse);
+
+        ResponseEntity<ResponseDto<RegisterResponseDto>> res = controller.registerUser(request, response, profileDto, null);
 
         assertEquals(HttpStatus.CREATED, res.getStatusCode());
         assertNotNull(res.getBody());
@@ -93,6 +107,7 @@ class UserControllerTest {
         assertEquals("Test", res.getBody().getData().getUserProfile().getFirstName());
         verify(userService).createUserProfile(any(UserProfileDto.class), eq("email:u@test.com"), any());
         verify(userService).getUserProfile(userId);
+        verify(sessionService).createSessionForUser(userEntity, response);
     }
 
     @Test
