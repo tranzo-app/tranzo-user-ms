@@ -163,14 +163,33 @@ jobs:
           echo "Timed out waiting for deployment. Check Systems Manager Run Command."
           exit 1
 
+      
       - name: Verify public API
         run: |
           set -e
-          CODE=$(curl -sS -o /tmp/tranzo-api-check.txt \
-            -w '%{http_code}' --max-time 20 https://api.tranzo.in)
-          echo "API HTTP status: $CODE"
-          if [ "$CODE" = "000" ] || [ "$CODE" -ge 500 ]; then
-            cat /tmp/tranzo-api-check.txt
-            exit 1
-          fi
+
+          for attempt in $(seq 1 12); do
+            CODE=$(curl -sS -o /tmp/tranzo-api-check.txt \
+              -w '%{http_code}' --max-time 10 https://api.tranzo.in/ || true)
+
+            echo "API check ${attempt}/12: HTTP ${CODE:-000}"
+
+            if [ "$CODE" = "401" ] || \
+               { [ "$CODE" -ge 200 ] && [ "$CODE" -lt 400 ]; }; then
+              echo "API is responding successfully."
+              cat /tmp/tranzo-api-check.txt
+              exit 0
+            fi
+
+            if [ "$CODE" != "000" ] && [ "$CODE" -lt 500 ]; then
+              echo "Unexpected HTTP status: $CODE"
+              cat /tmp/tranzo-api-check.txt
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+          echo "API did not become healthy within the retry window."
           cat /tmp/tranzo-api-check.txt
+          exit 1
