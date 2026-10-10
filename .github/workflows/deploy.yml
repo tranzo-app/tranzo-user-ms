@@ -110,6 +110,8 @@ jobs:
             # Stop old container safely
             # -----------------------------
             docker-compose down || true
+            docker stop tranzo-user || true
+            docker rm tranzo-user || true
 
             # -----------------------------
             # Build & run the new image
