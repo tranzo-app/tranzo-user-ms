@@ -112,6 +112,7 @@ jobs:
             docker-compose down || true
             docker stop tranzo-user || true
             docker rm tranzo-user || true
+            fuser -k 8083/tcp || true
 
             # -----------------------------
             # Build & run the new image
