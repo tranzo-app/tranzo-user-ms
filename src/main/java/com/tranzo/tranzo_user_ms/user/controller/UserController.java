@@ -53,7 +53,7 @@ public class UserController {
 
         try {
             UUID userId = SecurityUtils.getCurrentUserUuid();
-            log.info("Processing request | operation=getUser | userId={}", userId);
+            log.info("Processing user request | operation=getUser | userId={}", userId);
 
             UserProfileDto userProfileDto = userService.getUserProfile(userId);
 
