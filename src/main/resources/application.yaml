@@ -16,10 +16,10 @@ spring:
     timeout: 30
 
   datasource:
-    url: jdbc:postgresql://tranzo-db.cfc28kg0gy2s.ap-south-1.rds.amazonaws.com:5432/postgres
+    url: jdbc:postgresql://localhost:5432/postgres
     driver-class-name: org.postgresql.Driver
-    username: tranzo
-    password: tranzo_db
+    username: postgres
+    password: tranzo_abc_db
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
@@ -103,14 +103,14 @@ trip:
     default-images: https://placehold.co/800x600/3B82F6/FFFFFF?text=Trip
 
 ai:
-  provider: gemini
+  provider: gemini  # switch to "openai" to use OpenAI instead
 
 openai:
-  api-key: ${API}
+  api-key: ${OPENAI_API_KEY:${API:}}
   model: gpt-4.1-mini
 
 gemini:
-  api-key: ${API}
+  api-key: ${GEMINI_API_KEY:${API:}}
   model: gemini-2.5-flash
 
 logging:
