@@ -5,6 +5,9 @@ server:
 # Tables are created once; on restart Flyway skips applied migrations, data persists (file-based H2).
 # For future changes: add V2__description.sql, V3__..., never edit V1 after it has been applied.
 spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.vertexai.autoconfigure.gemini.VertexAiGeminiChatAutoConfiguration
   # Aadhar configuration - disabled for current release
   profiles:
     active: dev
@@ -103,7 +106,7 @@ trip:
     default-images: https://placehold.co/800x600/3B82F6/FFFFFF?text=Trip
 
 ai:
-  provider: gemini  # switch to "openai" to use OpenAI instead
+  provider: openai  # switch to "gemini" to use Gemini instead
 
 openai:
   api-key: ${OPENAI_API_KEY:${API:}}
