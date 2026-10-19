@@ -328,6 +328,13 @@ public class TripManagementService {
                 .toList();
     }
 
+    public List<TripViewDto> fetchDraftTripsForUser(UUID userId) {
+        List<TripEntity> trips = tripMemberRepository.findDraftTripsByHostUserId(userId);
+        return trips.stream()
+                .map(trip -> mapTripEntityToDto(trip, true))
+                .toList();
+    }
+
     public List<TripViewDto> fetchAllTrips(UUID userId)
     {
         List<TripEntity> trips = tripRepository.findAll();

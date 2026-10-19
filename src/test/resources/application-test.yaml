@@ -65,6 +65,17 @@ trip:
       content-filter: low
     default-images: https://via.placeholder.com/800x600/3B82F6/FFFFFF?text=Trip
 
+ai:
+  provider: gemini
+
+gemini:
+  api-key: test-dummy-key
+  model: gemini-2.5-flash
+
+openai:
+  api-key: test-dummy-key
+  model: gpt-4.1-mini
+
 logging:
   level:
     root: WARN

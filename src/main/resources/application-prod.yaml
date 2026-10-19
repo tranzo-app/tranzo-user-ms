@@ -97,3 +97,14 @@ logging:
     com.tranzo: INFO
     org.springframework.web: INFO
     org.hibernate.SQL: WARN
+
+ai:
+  provider: gemini  # switch to "openai" to use OpenAI instead
+
+openai:
+  api-key: ${OPENAI_API_KEY:${API:}}
+  model: gpt-4.1-mini
+
+gemini:
+  api-key: ${GEMINI_API_KEY:${API:}}
+  model: gemini-3.8-flash

@@ -58,4 +58,15 @@ public interface TripMemberRepository extends JpaRepository<TripMemberEntity, UU
             @Param("userId") UUID userId,
             @Param("statuses") List<TripStatus> statuses
     );
+
+    @Query("""
+        SELECT tm.trip
+        FROM TripMemberEntity tm
+        WHERE tm.userId = :userId
+          AND tm.role = 'HOST'
+          AND tm.status = 'ACTIVE'
+          AND tm.trip.tripStatus = 'DRAFT'
+        ORDER BY tm.trip.createdAt DESC
+    """)
+    List<TripEntity> findDraftTripsByHostUserId(@Param("userId") UUID userId);
 }
