@@ -91,6 +91,11 @@ jobs:
           source, destination = sys.argv[1:3]
           os.makedirs(destination, exist_ok=True)
 
+          # Wipe the Java source tree so deleted files don't linger across deployments
+          stale_src = os.path.join(destination, 'src')
+          if os.path.exists(stale_src):
+              shutil.rmtree(stale_src)
+
           for name in os.listdir(source):
               if name in {".env", ".git", "target"}:
                   continue
