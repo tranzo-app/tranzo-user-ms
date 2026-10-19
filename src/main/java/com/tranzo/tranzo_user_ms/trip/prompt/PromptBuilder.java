@@ -6,41 +6,36 @@ import org.springframework.stereotype.Component;
 @Component
 public class PromptBuilder {
 
-    public String buildUserPrompt(
-            GenerateItineraryRequest request) {
+    public String buildUserPrompt(GenerateItineraryRequest request) {
 
         StringBuilder prompt = new StringBuilder();
 
-        prompt.append("Destination: ")
-                .append(request.destination())
-                .append("\n");
+        prompt.append("Destination: ").append(request.destination()).append("\n");
+        prompt.append("Number of days: ").append(request.numberOfDays()).append("\n");
+        prompt.append("Trip type: ").append(request.tripType()).append("\n");
 
-        prompt.append("Number of days: ")
-                .append(request.numberOfDays())
-                .append("\n");
+        if (request.tripTitle() != null && !request.tripTitle().isBlank()) {
+            prompt.append("Trip name: ").append(request.tripTitle()).append("\n");
+        }
 
-        prompt.append("Trip type: ")
-                .append(request.tripType())
-                .append("\n");
+        if (request.description() != null && !request.description().isBlank()) {
+            prompt.append("Trip description: ").append(request.description()).append("\n");
+        }
 
-        if (request.budget() != null) {
-            prompt.append("Budget: ")
-                    .append(request.budget())
-                    .append("\n");
+        if (request.maxParticipants() != null) {
+            prompt.append("Number of travellers: ").append(request.maxParticipants()).append("\n");
+        }
+
+        if (request.costPerPerson() != null) {
+            prompt.append("Budget per person: ₹").append(request.costPerPerson()).append("\n");
         }
 
         if (request.season() != null) {
-            prompt.append("Season: ")
-                    .append(request.season())
-                    .append("\n");
+            prompt.append("Season: ").append(request.season()).append("\n");
         }
 
-        if (request.interests() != null
-                && !request.interests().isEmpty()) {
-
-            prompt.append("Interests: ")
-                    .append(String.join(", ", request.interests()))
-                    .append("\n");
+        if (request.tripTags() != null && !request.tripTags().isEmpty()) {
+            prompt.append("Trip themes/tags: ").append(String.join(", ", request.tripTags())).append("\n");
         }
 
         return prompt.toString();
