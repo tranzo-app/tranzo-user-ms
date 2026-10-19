@@ -199,7 +199,6 @@ public class TripManagementService {
         // Upload user-provided image files to S3 (if provided)
         if (files != null && !files.isEmpty()) {
             Set<TripImageEntity> images = uploadTripImagesToS3(files, newTrip.getTripDestination(), userId.toString());
-            newTrip.getTripImages().clear();
             newTrip.getTripImages().addAll(images);
             images.forEach(image -> image.incrementUsage());
             tripRepository.save(newTrip);
@@ -229,9 +228,11 @@ public class TripManagementService {
         // Upload user-provided image files to S3 (if provided)
         if (files != null && !files.isEmpty()) {
             Set<TripImageEntity> images = uploadTripImagesToS3(files, trip.getTripDestination(), userId.toString());
+            Set<TripImageEntity> oldImages = new HashSet<>(trip.getTripImages());
             trip.getTripImages().clear();
             trip.getTripImages().addAll(images);
             images.forEach(image -> image.incrementUsage());
+            cleanupRemovedImages(oldImages);
         }
 
         TripEntity updateTrip = tripRepository.save(trip);
@@ -426,8 +427,10 @@ public class TripManagementService {
             throw new TripValidationException(TripErrorCode.INVALID_TRIP_STATUS_TRANSITION, "Only trips in a valid status can be cancelled");
         }
         userUtil.validateUserIsHost(tripId, userId);
+        Set<TripImageEntity> tripImages = new HashSet<>(trip.getTripImages());
         trip.setTripStatus(TripStatus.CANCELLED);
         tripRepository.save(trip);
+        cleanupRemovedImages(tripImages);
 
         List<UUID> memberUserIds = tripMemberRepository.findByTrip_TripIdAndStatus(tripId, TripMemberStatus.ACTIVE)
                 .stream()
@@ -501,9 +504,11 @@ public class TripManagementService {
         // Upload user-provided image files to S3 (if provided)
         if (files != null && !files.isEmpty()) {
             Set<TripImageEntity> images = uploadTripImagesToS3(files, trip.getTripDestination(), userId.toString());
+            Set<TripImageEntity> oldImages = new HashSet<>(trip.getTripImages());
             trip.getTripImages().clear();
             trip.getTripImages().addAll(images);
             images.forEach(image -> image.incrementUsage());
+            cleanupRemovedImages(oldImages);
         }
 
         TripEntity updateTrip = tripRepository.save(trip);
@@ -542,9 +547,11 @@ public class TripManagementService {
         // Upload user-provided image files to S3 (if provided)
         if (files != null && !files.isEmpty()) {
             Set<TripImageEntity> images = uploadTripImagesToS3(files, trip.getTripDestination(), userId.toString());
+            Set<TripImageEntity> oldImages = new HashSet<>(trip.getTripImages());
             trip.getTripImages().clear();
             trip.getTripImages().addAll(images);
             images.forEach(image -> image.incrementUsage());
+            cleanupRemovedImages(oldImages);
         }
 
         TripEntity updateTrip = tripRepository.save(trip);
@@ -1442,5 +1449,29 @@ public class TripManagementService {
         }
 
         return images;
+    }
+
+    /**
+     * Decrement usageCount for images being removed from a trip.
+     * USER_PROVIDED images with usageCount reaching 0 are deleted from S3 and the DB.
+     * API_FETCHED / DEFAULT images are kept as a local cache — no extra Unsplash calls needed.
+     */
+    private void cleanupRemovedImages(Set<TripImageEntity> removedImages) {
+        for (TripImageEntity image : removedImages) {
+            image.decrementUsage();
+            if (image.getSource() == ImageSource.USER_PROVIDED && image.getUsageCount() <= 0) {
+                try {
+                    if (image.getImageUrl() != null && image.getImageUrl().startsWith("uploads/")) {
+                        s3MediaService.delete(image.getImageUrl());
+                    }
+                    tripImageRepository.delete(image);
+                    log.info("Cleaned up user-provided image | imageId={} | key={}", image.getImageId(), image.getImageUrl());
+                } catch (Exception e) {
+                    log.error("Failed to clean up image | imageId={} | key={} | error={}", image.getImageId(), image.getImageUrl(), e.getMessage(), e);
+                }
+            } else {
+                tripImageRepository.save(image);
+            }
+        }
     }
 }

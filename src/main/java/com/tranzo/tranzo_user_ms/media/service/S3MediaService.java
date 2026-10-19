@@ -11,6 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -148,6 +149,18 @@ public class S3MediaService {
                     .build();
         } catch (Exception e) {
             log.error("Operation failed | operation=getPresignedUrl | key={} | reason={}", key, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    public void delete(String key) {
+        log.info("Processing started | operation=delete | key={}", key);
+        try {
+            ensureConfigured();
+            s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
+            log.info("Processing completed | operation=delete | key={} | status=SUCCESS", key);
+        } catch (Exception e) {
+            log.error("Operation failed | operation=delete | key={} | reason={}", key, e.getMessage(), e);
             throw e;
         }
     }
