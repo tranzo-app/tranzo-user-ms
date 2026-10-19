@@ -6,11 +6,10 @@ FROM maven:3.9.6-eclipse-temurin-21 AS build
 # Set the working directory
 WORKDIR /app
 
-# Copy pom.xml first and resolve dependencies (improves layer caching)
-# Note: dependency:resolve instead of go-offline — go-offline fails for
-# Spring Milestone/Snapshot repos which are not on Maven Central.
+# Copy pom.xml first to cache the dependency download layer separately from source.
+# -q suppresses Downloading/Downloaded noise so SSM output limit isn't exhausted.
 COPY pom.xml .
-RUN mvn dependency:resolve -B || true
+RUN mvn dependency:resolve -B -q || true
 
 # Copy the entire project
 COPY . .
