@@ -99,7 +99,7 @@ logging:
     org.hibernate.SQL: WARN
 
 ai:
-  provider: gemini  # switch to "openai" to use OpenAI instead
+  provider: openai  # switch to "openai" to use OpenAI instead
 
 openai:
   api-key: ${OPENAI_API_KEY:${API:}}
