@@ -15,7 +15,7 @@ RUN mvn dependency:resolve -B -q || true
 COPY . .
 
 # Build the application (JAR file)
-RUN mvn clean package -DskipTests -B
+RUN mvn clean package -DskipTests -B > /tmp/build.log 2>&1 || (tail -100 /tmp/build.log && exit 1)
 
 # ============================
 # 2️⃣ Run Stage: Use Lightweight Java Runtime
