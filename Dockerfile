@@ -6,15 +6,17 @@ FROM maven:3.9.6-eclipse-temurin-21 AS build
 # Set the working directory
 WORKDIR /app
 
-# Copy pom.xml and download dependencies (for better caching)
+# Copy pom.xml first and resolve dependencies (improves layer caching)
+# Note: dependency:resolve instead of go-offline — go-offline fails for
+# Spring Milestone/Snapshot repos which are not on Maven Central.
 COPY pom.xml .
-RUN mvn dependency:go-offline
+RUN mvn dependency:resolve -B || true
 
 # Copy the entire project
 COPY . .
 
 # Build the application (JAR file)
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -B
 
 # ============================
 # 2️⃣ Run Stage: Use Lightweight Java Runtime
