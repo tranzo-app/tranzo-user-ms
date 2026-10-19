@@ -1,7 +1,6 @@
 package com.tranzo.tranzo_user_ms.trip.dto;
 
 import com.tranzo.tranzo_user_ms.trip.enums.Season;
-import com.tranzo.tranzo_user_ms.trip.enums.TripType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -18,8 +17,8 @@ public record GenerateItineraryRequest(
         @Max(30)
         Integer numberOfDays,
 
-        @NotNull
-        TripType tripType,
+        @NotBlank
+        String tripType,
 
         String tripTitle,
 

@@ -65,13 +65,15 @@ public class PromptBuilder {
 
             Trip type guidance:
 
-            - SOLO: prioritise flexibility, safety, social opportunities, and local experiences.
-            - COUPLE: include romantic experiences, scenic locations, and intimate activities.
-            - FAMILY: prioritise child-friendly attractions, comfort, and reduced travel fatigue.
-            - FRIENDS: include adventure activities, nightlife, group experiences, and photo-worthy locations.
-            - BACKPACKING: focus on budget-conscious experiences, public transport, and local culture.
-            - LUXURY: recommend premium stays, fine dining, and exclusive experiences.
-            - ADVENTURE: prioritise outdoor activities, trekking, water sports, and adrenaline experiences.
+            Tailor the itinerary to the trip type provided. For example:
+            - Solo trips: prioritise flexibility, safety, and local experiences.
+            - Couple trips: include romantic and scenic experiences.
+            - Family trips: prioritise child-friendly attractions and comfort.
+            - Friend groups: include group activities, nightlife, and photo-worthy spots.
+            - Backpacking: focus on budget options and local culture.
+            - Luxury trips: recommend premium experiences, fine dining, and exclusive venues.
+            - Adventure trips: prioritise outdoor activities, trekking, and adrenaline experiences.
+            - For any other trip type, interpret it sensibly and tailor accordingly.
 
             Content guidelines for each day:
 
