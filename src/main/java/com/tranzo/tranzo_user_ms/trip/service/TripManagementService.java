@@ -386,6 +386,7 @@ public class TripManagementService {
             // Only host filter
             if (isHost) {
                 trips = tripRepository.findAll().stream()
+                        .filter(trip -> trip.getTripStatus() != TripStatus.DRAFT && trip.getTripStatus() != TripStatus.CANCELLED)
                         .filter(trip -> tripMemberRepository.existsByTrip_TripIdAndUserIdAndRoleAndStatus(
                                 trip.getTripId(), userId, TripMemberRole.HOST, TripMemberStatus.ACTIVE))
                         .toList();
