@@ -199,7 +199,8 @@ public class TripManagementService {
         // Upload user-provided image files to S3 (if provided)
         if (files != null && !files.isEmpty()) {
             Set<TripImageEntity> images = uploadTripImagesToS3(files, newTrip.getTripDestination(), userId.toString());
-            newTrip.setTripImages(images);
+            newTrip.getTripImages().clear();
+            newTrip.getTripImages().addAll(images);
             images.forEach(image -> image.incrementUsage());
             tripRepository.save(newTrip);
         }
@@ -228,7 +229,8 @@ public class TripManagementService {
         // Upload user-provided image files to S3 (if provided)
         if (files != null && !files.isEmpty()) {
             Set<TripImageEntity> images = uploadTripImagesToS3(files, trip.getTripDestination(), userId.toString());
-            trip.setTripImages(images);
+            trip.getTripImages().clear();
+            trip.getTripImages().addAll(images);
             images.forEach(image -> image.incrementUsage());
         }
 
@@ -499,7 +501,8 @@ public class TripManagementService {
         // Upload user-provided image files to S3 (if provided)
         if (files != null && !files.isEmpty()) {
             Set<TripImageEntity> images = uploadTripImagesToS3(files, trip.getTripDestination(), userId.toString());
-            trip.setTripImages(images);
+            trip.getTripImages().clear();
+            trip.getTripImages().addAll(images);
             images.forEach(image -> image.incrementUsage());
         }
 
@@ -539,7 +542,8 @@ public class TripManagementService {
         // Upload user-provided image files to S3 (if provided)
         if (files != null && !files.isEmpty()) {
             Set<TripImageEntity> images = uploadTripImagesToS3(files, trip.getTripDestination(), userId.toString());
-            trip.setTripImages(images);
+            trip.getTripImages().clear();
+            trip.getTripImages().addAll(images);
             images.forEach(image -> image.incrementUsage());
         }
 
