@@ -13,7 +13,6 @@ import com.tranzo.tranzo_user_ms.trip.enums.TripStatus;
 import com.tranzo.tranzo_user_ms.trip.service.TripInviteService;
 import com.tranzo.tranzo_user_ms.trip.service.TripManagementService;
 import com.tranzo.tranzo_user_ms.trip.validation.groups.DraftChecks;
-import com.tranzo.tranzo_user_ms.trip.validation.groups.PublishChecks;
 import com.tranzo.tranzo_user_ms.commons.dto.ResponseDto;
 import jakarta.security.auth.message.AuthException;
 import jakarta.validation.Valid;

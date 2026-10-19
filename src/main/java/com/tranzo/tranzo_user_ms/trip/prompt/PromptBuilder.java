@@ -6,41 +6,36 @@ import org.springframework.stereotype.Component;
 @Component
 public class PromptBuilder {
 
-    public String buildUserPrompt(
-            GenerateItineraryRequest request) {
+    public String buildUserPrompt(GenerateItineraryRequest request) {
 
         StringBuilder prompt = new StringBuilder();
 
-        prompt.append("Destination: ")
-                .append(request.destination())
-                .append("\n");
+        prompt.append("Destination: ").append(request.destination()).append("\n");
+        prompt.append("Number of days: ").append(request.numberOfDays()).append("\n");
+        prompt.append("Trip type: ").append(request.tripType()).append("\n");
 
-        prompt.append("Number of days: ")
-                .append(request.numberOfDays())
-                .append("\n");
+        if (request.tripTitle() != null && !request.tripTitle().isBlank()) {
+            prompt.append("Trip name: ").append(request.tripTitle()).append("\n");
+        }
 
-        prompt.append("Trip type: ")
-                .append(request.tripType())
-                .append("\n");
+        if (request.description() != null && !request.description().isBlank()) {
+            prompt.append("Trip description: ").append(request.description()).append("\n");
+        }
 
-        if (request.budget() != null) {
-            prompt.append("Budget: ")
-                    .append(request.budget())
-                    .append("\n");
+        if (request.maxParticipants() != null) {
+            prompt.append("Number of travellers: ").append(request.maxParticipants()).append("\n");
+        }
+
+        if (request.costPerPerson() != null) {
+            prompt.append("Budget per person: ₹").append(request.costPerPerson()).append("\n");
         }
 
         if (request.season() != null) {
-            prompt.append("Season: ")
-                    .append(request.season())
-                    .append("\n");
+            prompt.append("Season: ").append(request.season()).append("\n");
         }
 
-        if (request.interests() != null
-                && !request.interests().isEmpty()) {
-
-            prompt.append("Interests: ")
-                    .append(String.join(", ", request.interests()))
-                    .append("\n");
+        if (request.tripTags() != null && !request.tripTags().isEmpty()) {
+            prompt.append("Trip themes/tags: ").append(String.join(", ", request.tripTags())).append("\n");
         }
 
         return prompt.toString();
@@ -70,13 +65,15 @@ public class PromptBuilder {
 
             Trip type guidance:
 
-            - SOLO: prioritise flexibility, safety, social opportunities, and local experiences.
-            - COUPLE: include romantic experiences, scenic locations, and intimate activities.
-            - FAMILY: prioritise child-friendly attractions, comfort, and reduced travel fatigue.
-            - FRIENDS: include adventure activities, nightlife, group experiences, and photo-worthy locations.
-            - BACKPACKING: focus on budget-conscious experiences, public transport, and local culture.
-            - LUXURY: recommend premium stays, fine dining, and exclusive experiences.
-            - ADVENTURE: prioritise outdoor activities, trekking, water sports, and adrenaline experiences.
+            Tailor the itinerary to the trip type provided. For example:
+            - Solo trips: prioritise flexibility, safety, and local experiences.
+            - Couple trips: include romantic and scenic experiences.
+            - Family trips: prioritise child-friendly attractions and comfort.
+            - Friend groups: include group activities, nightlife, and photo-worthy spots.
+            - Backpacking: focus on budget options and local culture.
+            - Luxury trips: recommend premium experiences, fine dining, and exclusive venues.
+            - Adventure trips: prioritise outdoor activities, trekking, and adrenaline experiences.
+            - For any other trip type, interpret it sensibly and tailor accordingly.
 
             Content guidelines for each day:
 

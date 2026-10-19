@@ -31,6 +31,14 @@ public class CacheConfig {
     }
 
     @Bean
+    public Cache<String, Integer> aiItineraryRateLimitCache() {
+        return Caffeine.newBuilder()
+                .expireAfterWrite(1, TimeUnit.HOURS)
+                .maximumSize(100000)
+                .build();
+    }
+
+    @Bean
     public Cache<String, String> aadhaarTokenCache() {
         return Caffeine.newBuilder()
                 .expireAfterWrite(23, TimeUnit.HOURS)

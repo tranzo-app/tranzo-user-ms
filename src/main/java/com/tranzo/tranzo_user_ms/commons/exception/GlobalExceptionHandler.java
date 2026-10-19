@@ -172,6 +172,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ex.getStatusCode()).body(response);
     }
 
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ResponseDto<Void>> handleRateLimitExceededException(RateLimitExceededException ex) {
+        log.warn("Rate limit exceeded | message={}", ex.getMessage());
+        return ExceptionResponseUtil.build(ex.getMessage(), 429, null);
+    }
+
     /**
      * Handle BadRequestException - bad request errors
      */
