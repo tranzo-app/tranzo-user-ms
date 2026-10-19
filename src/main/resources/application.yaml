@@ -18,8 +18,8 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/postgres
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: tranzo_abc_db
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
@@ -57,7 +57,7 @@ spring:
       path: /h2-console  # the URL path for the H2 dashboard
 
   jwt:
-    secret: 7kP9xQeZyWvT2A1bNcLmJkHGFdsapOiuRANDOMKEY
+    secret: ${SPRING_JWT_SECRET}
     access-token-expiry-minutes: 100
     refresh-token-expiry-days: 7
     registration-token-expiry-minutes: 100
@@ -111,7 +111,7 @@ openai:
 
 gemini:
   api-key: ${GEMINI_API_KEY:${API:}}
-  model: gemini-2.5-flash
+  model: gemini-3.8-flash
 
 logging:
   level:

@@ -53,15 +53,6 @@ public class PromptBuilder {
 
             Your goal is to generate realistic, enjoyable, and geographically feasible travel itineraries tailored to the user's preferences.
 
-            Output requirements:
-
-            - Return only valid JSON.
-            - Do not include markdown formatting.
-            - Do not wrap the JSON in triple backticks.
-            - Do not include explanations outside the JSON response.
-            - Ensure the response follows the expected structure exactly.
-            - Generate exactly the requested number of itinerary days.
-
             General guidelines:
 
             - Consider the destination, season, budget, trip type, and user interests.
@@ -101,20 +92,7 @@ public class PromptBuilder {
 
             If the destination is unfamiliar or less popular, generate the best possible itinerary using general travel knowledge.
 
-            Expected JSON structure:
-
-            {
-              "destination": "string",
-              "numberOfDays": 0,
-              "tripType": "string",
-              "itinerary": [
-                {
-                  "day": 1,
-                  "title": "string",
-                  "description": "string"
-                }
-              ]
-            }
+            Generate exactly the requested number of itinerary days.
             """;
     }
 }
