@@ -114,6 +114,7 @@ jobs:
           export GIT_SHA="$SHORT_SHA"
           export DOCKER_BUILDKIT=0
           export COMPOSE_DOCKER_CLI_BUILD=0
+          docker system prune -af
           docker-compose build --no-cache app
           docker-compose up -d --no-deps app
           docker ps --filter name=tranzo-user
